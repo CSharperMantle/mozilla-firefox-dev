@@ -1367,6 +1367,15 @@ void wasm::GenerateDirectCallFromJit(MacroAssembler& masm, const FuncExport& fe,
 
   size_t framePushedAtStart = masm.framePushed();
 
+  if (ABIStackAlignment < WasmStackAlignment) {
+    masm.assertStackAlignment(ABIStackAlignment);
+    masm.moveStackPtrTo(scratch);
+    masm.andToStackPtr(Imm32(~(WasmStackAlignment - 1)));
+    masm.subFromStackPtr(Imm32(WasmStackAlignment));
+    masm.storePtr(scratch, Address(StackPointer, 0));
+  }
+  masm.setFramePushed(0);
+
   // Note, if code here pushes a reference value into the frame for its own
   // purposes (and not just as an argument to the callee) then the frame must be
   // traced in TraceJitExitFrame, see the case there for DirectWasmJitCall.  The
@@ -1585,7 +1594,15 @@ void wasm::GenerateDirectCallFromJit(MacroAssembler& masm, const FuncExport& fe,
   // Free args + frame descriptor.
   masm.leaveExitFrame(bytesNeeded + ExitFrameLayout::Size());
 
-  MOZ_ASSERT(framePushedAtStart == masm.framePushed());
+  if (ABIStackAlignment < WasmStackAlignment) {
+    masm.loadPtr(Address(StackPointer, 0), scratch);
+    masm.addToStackPtr(Imm32(WasmStackAlignment));
+    masm.moveToStackPtr(scratch);
+    masm.assertStackAlignment(ABIStackAlignment);
+  }
+
+  MOZ_ASSERT(0 == masm.framePushed());
+  masm.setFramePushed(framePushedAtStart);
 }
 
 static void StackCopy(MacroAssembler& masm, MIRType type, Register scratch,

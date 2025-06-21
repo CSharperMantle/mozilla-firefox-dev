@@ -1067,6 +1067,7 @@ void wasm::GenerateJitEntryPrologue(MacroAssembler& masm,
     MOZ_ASSERT_IF(!masm.oom(), SetFP == masm.currentOffset() - offsets->begin);
   }
 
+  masm.andToStackPtr(Imm32(~(WasmStackAlignment - 1)));
   masm.setFramePushed(0);
 }
 
