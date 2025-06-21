@@ -2826,7 +2826,7 @@ void MacroAssembler::atomicFetchOp(Scalar::Type type, Synchronization sync,
                 offsetTemp, maskTemp, output);
 }
 
-void MacroAssembler::atomicPause() { MOZ_CRASH("NYI"); }
+void MacroAssembler::atomicPause() { fence_i(); }
 
 void MacroAssembler::branchPtrInNurseryChunk(Condition cond, Register ptr,
                                              Register temp, Label* label) {
