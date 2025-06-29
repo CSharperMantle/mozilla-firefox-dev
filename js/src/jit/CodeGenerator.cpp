@@ -18600,12 +18600,19 @@ void CodeGenerator::visitLoadTypedArrayElementHoleBigInt(
 template <typename T>
 static inline void StoreToTypedArray(MacroAssembler& masm,
                                      Scalar::Type writeType,
-                                     const LAllocation* value, const T& dest,
+                                     const LAllocation* value,
+                                     MIRType mirValueType, const T& dest,
                                      Register temp,
                                      LiveRegisterSet volatileRegs) {
   if (Scalar::isFloatingType(writeType)) {
-    masm.storeToTypedFloatArray(writeType, ToFloatRegister(value), dest, temp,
-                                volatileRegs);
+    if (mirValueType == MIRType::Float32) {
+      masm.storeToTypedFloatArray(writeType, ToFloatRegister(value).asSingle(),
+                                  dest, temp, volatileRegs);
+    } else {
+      MOZ_ASSERT(mirValueType == MIRType::Double);
+      masm.storeToTypedFloatArray(writeType, ToFloatRegister(value).asDouble(),
+                                  dest, temp, volatileRegs);
+    }
   } else {
     if (value->isConstant()) {
       masm.storeToTypedIntArray(writeType, Imm32(ToInt32(value)), dest);
@@ -18623,6 +18630,7 @@ void CodeGenerator::visitStoreUnboxedScalar(LStoreUnboxedScalar* lir) {
   const MStoreUnboxedScalar* mir = lir->mir();
 
   Scalar::Type writeType = mir->writeType();
+  MIRType mirValueType = mir->value()->type();
 
   LiveRegisterSet volatileRegs;
   if (MacroAssembler::StoreRequiresCall(writeType)) {
@@ -18631,11 +18639,13 @@ void CodeGenerator::visitStoreUnboxedScalar(LStoreUnboxedScalar* lir) {
 
   if (lir->index()->isConstant()) {
     Address dest = ToAddress(elements, lir->index(), writeType);
-    StoreToTypedArray(masm, writeType, value, dest, temp, volatileRegs);
+    StoreToTypedArray(masm, writeType, value, mirValueType, dest, temp,
+                      volatileRegs);
   } else {
     BaseIndex dest(elements, ToRegister(lir->index()),
                    ScaleFromScalarType(writeType));
-    StoreToTypedArray(masm, writeType, value, dest, temp, volatileRegs);
+    StoreToTypedArray(masm, writeType, value, mirValueType, dest, temp,
+                      volatileRegs);
   }
 }
 
@@ -18675,6 +18685,7 @@ void CodeGenerator::visitStoreDataViewElement(LStoreDataViewElement* lir) {
   Register64 temp64 = ToTempRegister64OrInvalid(lir->temp1());
 
   Scalar::Type writeType = lir->mir()->writeType();
+  MIRType mirValueType = lir->mir()->value()->type();
 
   LiveRegisterSet volatileRegs;
   if (MacroAssembler::StoreRequiresCall(writeType)) {
@@ -18691,7 +18702,8 @@ void CodeGenerator::visitStoreDataViewElement(LStoreDataViewElement* lir) {
   // types.)
   if (noSwap && (!Scalar::isFloatingType(writeType) ||
                  MacroAssembler::SupportsFastUnalignedFPAccesses())) {
-    StoreToTypedArray(masm, writeType, value, dest, temp, volatileRegs);
+    StoreToTypedArray(masm, writeType, value, mirValueType, dest, temp,
+                      volatileRegs);
     return;
   }
 
@@ -18860,6 +18872,7 @@ void CodeGenerator::visitStoreTypedArrayElementHole(
   const LAllocation* value = lir->value();
 
   Scalar::Type arrayType = lir->mir()->arrayType();
+  MIRType mirValueType = lir->mir()->value()->type();
 
   Register index = ToRegister(lir->index());
   const LAllocation* length = lir->length();
@@ -18878,7 +18891,8 @@ void CodeGenerator::visitStoreTypedArrayElementHole(
   }
 
   BaseIndex dest(elements, index, ScaleFromScalarType(arrayType));
-  StoreToTypedArray(masm, arrayType, value, dest, temp, volatileRegs);
+  StoreToTypedArray(masm, arrayType, value, mirValueType, dest, temp,
+                    volatileRegs);
 
   masm.bind(&skip);
 }
