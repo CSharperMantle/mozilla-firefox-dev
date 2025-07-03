@@ -2135,7 +2135,7 @@ FaultingCodeOffset MacroAssembler::wasmTrapInstruction() {
   BlockTrampolinePoolScope block_trampoline_pool(this, 2);
   FaultingCodeOffset fco = FaultingCodeOffset(currentOffset());
   illegal_trap(kWasmTrapCode);
-  ebreak();
+  addi(zero, zero, 0x123);
   return fco;
 }
 size_t MacroAssembler::PushRegsInMaskSizeInBytes(LiveRegisterSet set) {
@@ -2158,7 +2158,6 @@ void MacroAssembler::branchValueIsNurseryCellImpl(Condition cond,
   getGCThingValueChunk(value, scratch2);
   loadPtr(Address(scratch2, gc::ChunkStoreBufferOffset), scratch2);
   branchPtr(InvertCondition(cond), scratch2, ImmWord(0), label);
-
   bind(&done);
 }
 
