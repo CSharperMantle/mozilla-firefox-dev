@@ -848,7 +848,15 @@ class BaseStackFrame final : public BaseStackFrameAllocator {
     if (StackSizeOfFloat == 4) {
       masm.Pop(r);
     } else {
+#  if defined(JS_CODEGEN_RISCV64)
+      // On riscv64, we need to properly NaN-box the lower 32 bits of the
+      // number.
+      ScratchRegisterScope scratch(masm);
+      masm.Pop(Register64(scratch));
+      masm.moveGPRToFloat32(scratch, r);
+#  else
       masm.Pop(r.asDouble());
+#  endif
     }
 #endif
     MOZ_ASSERT(stackBefore - StackSizeOfFloat == currentStackHeight());
@@ -1039,15 +1047,23 @@ class BaseStackFrame final : public BaseStackFrameAllocator {
   }
 
  private:
+  void store32BitsToStack(Register src, uint32_t destHeight) {
+    masm.store32(src, Address(sp_, stackOffset(destHeight)));
+  }
+
   void store32BitsToStack(int32_t imm, uint32_t destHeight, Register temp) {
     masm.move32(Imm32(imm), temp);
-    masm.store32(temp, Address(sp_, stackOffset(destHeight)));
+    store32BitsToStack(temp, destHeight);
+  }
+
+  void store64BitsToStack(Register64 src, uint32_t destHeight) {
+    masm.store64(src, Address(sp_, stackOffset(destHeight)));
   }
 
   void store64BitsToStack(int64_t imm, uint32_t destHeight, Register temp) {
 #ifdef JS_PUNBOX64
     masm.move64(Imm64(imm), Register64(temp));
-    masm.store64(Register64(temp), Address(sp_, stackOffset(destHeight)));
+    store64BitsToStack(Register64(temp), destHeight);
 #else
     union {
       int64_t i64;
