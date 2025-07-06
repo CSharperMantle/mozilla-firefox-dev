@@ -848,7 +848,15 @@ class BaseStackFrame final : public BaseStackFrameAllocator {
     if (StackSizeOfFloat == 4) {
       masm.Pop(r);
     } else {
+#  if defined(JS_CODEGEN_RISCV64)
+      // On riscv64, we need to properly NaN-box the lower 32 bits of the
+      // number.
+      ScratchRegisterScope scratch(masm);
+      masm.Pop(Register64(scratch));
+      masm.moveGPRToFloat32(scratch, r);
+#  else
       masm.Pop(r.asDouble());
+#  endif
     }
 #endif
     MOZ_ASSERT(stackBefore - StackSizeOfFloat == currentStackHeight());
