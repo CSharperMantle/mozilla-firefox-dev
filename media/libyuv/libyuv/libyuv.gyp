@@ -26,8 +26,8 @@
     'clang%': 0,
     # Link-Time Optimizations.
     'use_lto%': 0,
-    # Enable LASX on LoongArch by default.
-    "loong_lasx%": 1,
+    # Disable LASX on LoongArch by default (for 2K3000/3B6000M).
+    "loong_lasx%": 0,
     # Enable LSX on LoongArch by default. Has no effect if loong_lasx is
     # enabled because LASX implies LSX according to the architecture specs.
     "loong_lsx%": 1,
