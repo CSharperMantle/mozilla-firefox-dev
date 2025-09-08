@@ -140,6 +140,7 @@ MOZ_ReportAssertionFailure(const char* aStr, const char* aFilename,
 #  if defined(MOZ_DUMP_ASSERTION_STACK)
   MozWalkTheStack(stderr, CallerPC(), /* aMaxFrames */ 0);
 #  endif
+  fflush(stdout);
   fflush(stderr);
 #endif
 }
@@ -168,6 +169,7 @@ MOZ_ReportAssertionFailure(const char* aStr, const char* aFilename,
 #  if defined(MOZ_DUMP_ASSERTION_STACK)
   MozWalkTheStack(stderr, CallerPC(), /* aMaxFrames */ 0);
 #  endif
+  fflush(stdout);
   fflush(stderr);
 #endif
 }
