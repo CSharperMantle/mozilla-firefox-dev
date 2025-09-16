@@ -746,7 +746,8 @@ class MacroAssemblerRiscv64Compat : public MacroAssemblerRiscv64 {
   }
 
   void moveIfZero(Register dst, Register src, Register cond) {
-    ScratchRegisterScope scratch(asMasm());
+    UseScratchRegisterScope temps(this);
+    Register scratch = temps.Acquire();
     MOZ_ASSERT(dst != scratch && cond != scratch);
     Label done;
     ma_branch(&done, NotEqual, cond, zero);
@@ -755,7 +756,8 @@ class MacroAssemblerRiscv64Compat : public MacroAssemblerRiscv64 {
   }
 
   void moveIfNotZero(Register dst, Register src, Register cond) {
-    ScratchRegisterScope scratch(asMasm());
+    UseScratchRegisterScope temps(this);
+    Register scratch = temps.Acquire();
     MOZ_ASSERT(dst != scratch && cond != scratch);
     Label done;
     ma_branch(&done, Equal, cond, zero);
@@ -801,7 +803,8 @@ class MacroAssemblerRiscv64Compat : public MacroAssemblerRiscv64 {
   }
 
   void unboxWasmAnyRefGCThingForGCBarrier(const Address& src, Register dest) {
-    ScratchRegisterScope scratch(asMasm());
+    UseScratchRegisterScope temps(this);
+    Register scratch = temps.Acquire();
     MOZ_ASSERT(scratch != dest);
     movePtr(ImmWord(wasm::AnyRef::GCThingMask), scratch);
     loadPtr(src, dest);
@@ -816,7 +819,8 @@ class MacroAssemblerRiscv64Compat : public MacroAssemblerRiscv64 {
 
   // Like unboxGCThingForGCBarrier, but loads the GC thing's chunk base.
   void getGCThingValueChunk(const Address& src, Register dest) {
-    ScratchRegisterScope scratch(asMasm());
+    UseScratchRegisterScope temps(this);
+    Register scratch = temps.Acquire();
     MOZ_ASSERT(scratch != dest);
     loadPtr(src, dest);
     movePtr(ImmWord(JS::detail::ValueGCThingPayloadChunkMask), scratch);
