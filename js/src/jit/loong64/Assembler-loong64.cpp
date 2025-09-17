@@ -2286,9 +2286,12 @@ void Assembler::bind(InstImm* inst, uintptr_t branch, uintptr_t target) {
     return;
   }
 
+  UseScratchRegisterScope temps(*this);
+
   // Generate the long jump for calls because return address has to be the
   // address after the reserved block.
   if (inst[0].encode() == inst_jirl.encode()) {
+    Register ScratchRegister = temps.Acquire();
     addLongJump(BufferOffset(branch), BufferOffset(target));
     Assembler::WriteLoad64Instructions(inst, ScratchRegister,
                                        LabelBase::INVALID_OFFSET);
@@ -2315,6 +2318,7 @@ void Assembler::bind(InstImm* inst, uintptr_t branch, uintptr_t target) {
   if (inst[0].encode() == inst_beq.encode()) {
     // Handle long unconditional jump. Only four 4 instruction.
     addLongJump(BufferOffset(branch), BufferOffset(target));
+    Register ScratchRegister = temps.Acquire();
     Assembler::WriteLoad64Instructions(inst, ScratchRegister,
                                        LabelBase::INVALID_OFFSET);
     inst[3] = InstImm(op_jirl, BOffImm16(0), ScratchRegister, zero);
@@ -2323,6 +2327,7 @@ void Assembler::bind(InstImm* inst, uintptr_t branch, uintptr_t target) {
     inst[0] = invertBranch(inst[0], BOffImm16(5 * sizeof(uint32_t)));
     // No need for a "nop" here because we can clobber scratch.
     addLongJump(BufferOffset(branch + sizeof(uint32_t)), BufferOffset(target));
+    Register ScratchRegister = temps.Acquire();
     Assembler::WriteLoad64Instructions(&inst[1], ScratchRegister,
                                        LabelBase::INVALID_OFFSET);
     inst[4] = InstImm(op_jirl, BOffImm16(0), ScratchRegister, zero);
@@ -2471,10 +2476,31 @@ void Assembler::ToggleCall(CodeLocationLabel inst_, bool enabled) {
 
   if (enabled) {
     MOZ_ASSERT((i3->extractBitField(31, 25)) != ((uint32_t)op_lu12i_w >> 25));
-    InstImm jirl = InstImm(op_jirl, BOffImm16(0), ScratchRegister, ra);
+    InstImm jirl =
+        InstImm(op_jirl, BOffImm16(0), Register::FromCode(i2->extractRD()), ra);
     *i3 = jirl;
   } else {
     InstNOP nop;
     *i3 = nop;
   }
+}
+
+UseScratchRegisterScope::UseScratchRegisterScope(Assembler& assembler)
+    : available_(assembler.GetScratchRegisterList()),
+      old_available_(*available_) {}
+
+UseScratchRegisterScope::~UseScratchRegisterScope() {
+  *available_ = old_available_;
+}
+
+Register UseScratchRegisterScope::Acquire() {
+  MOZ_ASSERT(available_ != nullptr);
+  MOZ_ASSERT(!available_->empty());
+  Register index = GeneralRegisterSet::FirstRegister(available_->bits());
+  available_->takeRegisterIndex(index);
+  return index;
+}
+
+bool UseScratchRegisterScope::hasAvailable() const {
+  return (available_->size()) != 0;
 }
