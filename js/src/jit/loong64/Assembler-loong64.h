@@ -100,13 +100,13 @@ static constexpr FloatRegister ReturnFloat32Reg{FloatRegisters::f0,
 static constexpr FloatRegister ReturnDoubleReg = f0;
 static constexpr FloatRegister ReturnSimd128Reg = InvalidFloatReg;
 
-static constexpr Register ScratchRegister = s8;
+static constexpr Register SavedScratchRegister = s8;
 
 // Helper classes for ScratchRegister usage. Asserts that only one piece
 // of code thinks it has exclusive ownership of each scratch register.
-struct ScratchRegisterScope : public AutoRegisterScope {
-  explicit ScratchRegisterScope(MacroAssembler& masm)
-      : AutoRegisterScope(masm, ScratchRegister) {}
+struct SavedScratchRegisterScope : public AutoRegisterScope {
+  explicit SavedScratchRegisterScope(MacroAssembler& masm)
+      : AutoRegisterScope(masm, SavedScratchRegister) {}
 };
 
 static constexpr FloatRegister ScratchFloat32Reg{FloatRegisters::f23,

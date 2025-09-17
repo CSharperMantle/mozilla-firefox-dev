@@ -49,10 +49,10 @@ static_assert(1 << defaultShift == sizeof(JS::Value),
 // See documentation for ScratchTagScope and ScratchTagScopeRelease in
 // MacroAssembler-x64.h.
 
-class ScratchTagScope : public ScratchRegisterScope {
+class ScratchTagScope : public SavedScratchRegisterScope {
  public:
   ScratchTagScope(MacroAssembler& masm, const ValueOperand&)
-      : ScratchRegisterScope(masm) {}
+      : SavedScratchRegisterScope(masm) {}
 };
 
 class ScratchTagScopeRelease {
