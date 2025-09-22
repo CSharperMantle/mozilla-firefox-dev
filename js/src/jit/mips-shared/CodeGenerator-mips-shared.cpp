@@ -340,6 +340,8 @@ void CodeGenerator::visitMulI(LMulI* ins) {
           // power of 2.
 
           if ((1 << shift) == constant) {
+            UseScratchRegisterScope temps(masm);
+            Register ScratchRegister = temps.Acquire();
             // dest = lhs * pow(2, shift)
             masm.ma_sll(dest, src, Imm32(shift));
             // At runtime, check (lhs == dest >> shift), if this does
@@ -380,7 +382,8 @@ void CodeGenerator::visitMulI(LMulI* ins) {
 
       // Result is -0 if lhs or rhs is negative.
       // In that case result must be double value so bailout
-      Register scratch = SecondScratchReg;
+      UseScratchRegisterScope temps(masm);
+      Register scratch = temps.Acquire();
       masm.as_or(scratch, ToRegister(lhs), ToRegister(rhs));
       bailoutCmp32(Assembler::Signed, scratch, scratch, ins->snapshot());
 
@@ -448,8 +451,9 @@ void CodeGenerator::visitMulI64(LMulI64* lir) {
         return;
       default:
         if (constant > 0) {
+          UseScratchRegisterScope temps(masm);
           if (mozilla::IsPowerOfTwo(static_cast<uint64_t>(constant + 1))) {
-            ScratchRegisterScope scratch(masm);
+            Register scratch = temps.Acquire();
             Register64 scratch64(scratch);
             masm.move64(ToRegister64(lhs), scratch64);
             masm.lshift64(Imm32(FloorLog2(constant + 1)), output);
@@ -457,7 +461,7 @@ void CodeGenerator::visitMulI64(LMulI64* lir) {
             return;
           } else if (mozilla::IsPowerOfTwo(
                          static_cast<uint64_t>(constant - 1))) {
-            ScratchRegisterScope scratch(masm);
+            Register scratch = temps.Acquire();
             Register64 scratch64(scratch);
             masm.move64(ToRegister64(lhs), scratch64);
             masm.lshift64(Imm32(FloorLog2(constant - 1u)), output);
@@ -1359,7 +1363,8 @@ void CodeGeneratorMIPSShared::emitTableSwitchDispatch(MTableSwitch* mir,
 template <typename T>
 void CodeGeneratorMIPSShared::emitWasmLoad(T* lir) {
   const MWasmLoad* mir = lir->mir();
-  SecondScratchRegisterScope scratch2(masm);
+  UseScratchRegisterScope temps(masm);
+  Register scratch2 = temps.Acquire();
 
   Register memoryBase = ToRegister(lir->memoryBase());
   Register ptr = ToRegister(lir->ptr());
@@ -1398,7 +1403,8 @@ void CodeGenerator::visitWasmUnalignedLoad(LWasmUnalignedLoad* lir) {
 template <typename T>
 void CodeGeneratorMIPSShared::emitWasmStore(T* lir) {
   const MWasmStore* mir = lir->mir();
-  SecondScratchRegisterScope scratch2(masm);
+  UseScratchRegisterScope temps(masm);
+  Register scratch2 = temps.Acquire();
 
   Register memoryBase = ToRegister(lir->memoryBase());
   Register ptr = ToRegister(lir->ptr());

@@ -52,12 +52,16 @@ void MacroAssemblerMIPS64Compat::convertInt32ToDouble(const Address& src,
 
 void MacroAssemblerMIPS64Compat::convertInt32ToDouble(const BaseIndex& src,
                                                       FloatRegister dest) {
+  UseScratchRegisterScope temps(*this);
+  Register ScratchRegister = temps.Acquire();
   computeScaledAddress(src, ScratchRegister);
   convertInt32ToDouble(Address(ScratchRegister, src.offset), dest);
 }
 
 void MacroAssemblerMIPS64Compat::convertUInt32ToDouble(Register src,
                                                        FloatRegister dest) {
+  UseScratchRegisterScope temps(*this);
+  Register ScratchRegister = temps.Acquire();
   ma_dext(ScratchRegister, src, Imm32(0), Imm32(32));
   asMasm().convertInt64ToDouble(Register64(ScratchRegister), dest);
 }
@@ -67,6 +71,9 @@ void MacroAssemblerMIPS64Compat::convertUInt64ToDouble(Register src,
   Label positive, done;
   ma_b(src, src, &positive, NotSigned, ShortJump);
 
+  UseScratchRegisterScope temps(*this);
+  Register ScratchRegister = temps.Acquire();
+  Register SecondScratchReg = temps.Acquire();
   MOZ_ASSERT(src != ScratchRegister);
   MOZ_ASSERT(src != SecondScratchReg);
 
@@ -87,6 +94,8 @@ void MacroAssemblerMIPS64Compat::convertUInt64ToDouble(Register src,
 
 void MacroAssemblerMIPS64Compat::convertUInt32ToFloat32(Register src,
                                                         FloatRegister dest) {
+  UseScratchRegisterScope temps(*this);
+  Register ScratchRegister = temps.Acquire();
   ma_dext(ScratchRegister, src, Imm32(0), Imm32(32));
   asMasm().convertInt64ToFloat32(Register64(ScratchRegister), dest);
 }
@@ -109,12 +118,14 @@ void MacroAssemblerMIPS64Compat::convertDoubleToInt32(FloatRegister src,
                                                       Register dest,
                                                       Label* fail,
                                                       bool negativeZeroCheck) {
+  UseScratchRegisterScope temps(*this);
   if (negativeZeroCheck) {
     moveFromDouble(src, dest);
     ma_drol(dest, dest, Imm32(1));
     ma_b(dest, Imm32(1), fail, Assembler::Equal);
   }
 
+  Register ScratchRegister = temps.Acquire();
   // Truncate double to int ; if result is inexact or invalid fail.
   as_truncwd(ScratchFloat32Reg, src);
   as_cfc1(ScratchRegister, Assembler::FCSR);
@@ -128,11 +139,14 @@ void MacroAssemblerMIPS64Compat::convertDoubleToInt32(FloatRegister src,
 void MacroAssemblerMIPS64Compat::convertDoubleToPtr(FloatRegister src,
                                                     Register dest, Label* fail,
                                                     bool negativeZeroCheck) {
+  UseScratchRegisterScope temps(*this);
   if (negativeZeroCheck) {
     moveFromDouble(src, dest);
     ma_drol(dest, dest, Imm32(1));
     ma_b(dest, Imm32(1), fail, Assembler::Equal);
   }
+
+  Register ScratchRegister = temps.Acquire();
   as_truncld(ScratchDoubleReg, src);
   as_cfc1(ScratchRegister, Assembler::FCSR);
   moveFromDouble(ScratchDoubleReg, dest);
@@ -148,11 +162,13 @@ void MacroAssemblerMIPS64Compat::convertFloat32ToInt32(FloatRegister src,
                                                        Register dest,
                                                        Label* fail,
                                                        bool negativeZeroCheck) {
+  UseScratchRegisterScope temps(*this);
   if (negativeZeroCheck) {
     moveFromFloat32(src, dest);
     ma_b(dest, Imm32(INT32_MIN), fail, Assembler::Equal);
   }
 
+  Register ScratchRegister = temps.Acquire();
   as_truncws(ScratchFloat32Reg, src);
   as_cfc1(ScratchRegister, Assembler::FCSR);
   moveFromFloat32(ScratchFloat32Reg, dest);
@@ -338,6 +354,8 @@ void MacroAssemblerMIPS64::ma_dror(Register rd, Register rt, Register shift) {
 }
 
 void MacroAssemblerMIPS64::ma_drol(Register rd, Register rt, Register shift) {
+  UseScratchRegisterScope temps(*this);
+  Register ScratchRegister = temps.Acquire();
   as_dsubu(ScratchRegister, zero, shift);
   as_drotrv(rd, rt, ScratchRegister);
 }
@@ -377,6 +395,9 @@ void MacroAssemblerMIPS64::ma_dshd(Register rd, Register rt) {
 }
 
 void MacroAssemblerMIPS64::ma_dctz(Register rd, Register rs) {
+  UseScratchRegisterScope temps(*this);
+  Register ScratchRegister = temps.Acquire();
+  Register SecondScratchReg = temps.Acquire();
   ma_dnegu(ScratchRegister, rs);
   as_and(rd, ScratchRegister, rs);
   as_dclz(rd, rd);
@@ -398,6 +419,8 @@ void MacroAssemblerMIPS64::ma_daddu(Register rd, Register rs, Imm32 imm) {
   if (Imm16::IsInSignedRange(imm.value)) {
     as_daddiu(rd, rs, imm.value);
   } else {
+    UseScratchRegisterScope temps(*this);
+    Register ScratchRegister = temps.Acquire();
     ma_li(ScratchRegister, imm);
     as_daddu(rd, rs, ScratchRegister);
   }
@@ -407,6 +430,8 @@ void MacroAssemblerMIPS64::ma_daddu(Register rd, Register rs, ImmWord imm) {
   if (Imm16::IsInSignedRange(int64_t(imm.value))) {
     as_daddiu(rd, rs, imm.value);
   } else {
+    UseScratchRegisterScope temps(*this);
+    Register ScratchRegister = temps.Acquire();
     ma_li(ScratchRegister, imm);
     as_daddu(rd, rs, ScratchRegister);
   }
@@ -422,6 +447,8 @@ void MacroAssemblerMIPS64::ma_daddu(Register rd, Imm32 imm) {
 
 void MacroAssemblerMIPS64::ma_add32TestOverflow(Register rd, Register rs,
                                                 Register rt, Label* overflow) {
+  UseScratchRegisterScope temps(*this);
+  Register SecondScratchReg = temps.Acquire();
   as_daddu(SecondScratchReg, rs, rt);
   as_addu(rd, rs, rt);
   ma_b(rd, SecondScratchReg, overflow, Assembler::NotEqual);
@@ -430,11 +457,14 @@ void MacroAssemblerMIPS64::ma_add32TestOverflow(Register rd, Register rs,
 void MacroAssemblerMIPS64::ma_add32TestOverflow(Register rd, Register rs,
                                                 Imm32 imm, Label* overflow) {
   // Check for signed range because of as_daddiu
+  UseScratchRegisterScope temps(*this);
   if (Imm16::IsInSignedRange(imm.value)) {
+    Register SecondScratchReg = temps.Acquire();
     as_daddiu(SecondScratchReg, rs, imm.value);
     as_addiu(rd, rs, imm.value);
     ma_b(rd, SecondScratchReg, overflow, Assembler::NotEqual);
   } else {
+    Register ScratchRegister = temps.Acquire();
     ma_li(ScratchRegister, imm);
     ma_add32TestOverflow(rd, rs, ScratchRegister, overflow);
   }
@@ -442,15 +472,17 @@ void MacroAssemblerMIPS64::ma_add32TestOverflow(Register rd, Register rs,
 
 void MacroAssemblerMIPS64::ma_addPtrTestOverflow(Register rd, Register rs,
                                                  Register rt, Label* overflow) {
-  SecondScratchRegisterScope scratch2(asMasm());
-  MOZ_ASSERT(rd != rt);
+  UseScratchRegisterScope temps(*this);
+  Register scratch2 = temps.Acquire();
+  MOZ_ASSERT_IF(rd == rs, rs != rt);
   MOZ_ASSERT(rd != scratch2);
 
   if (rs == rt) {
     as_daddu(rd, rs, rs);
     as_xor(scratch2, rs, rd);
   } else {
-    ScratchRegisterScope scratch(asMasm());
+    UseScratchRegisterScope temps(*this);
+    Register scratch = temps.Acquire();
     MOZ_ASSERT(rs != scratch2);
     MOZ_ASSERT(rt != scratch2);
 
@@ -458,8 +490,10 @@ void MacroAssemblerMIPS64::ma_addPtrTestOverflow(Register rd, Register rs,
     as_xor(scratch2, rs, rt);
     as_nor(scratch2, scratch2, zero);
 
+    // handle rd == rt
+    ma_move(scratch, rt);
     as_daddu(rd, rs, rt);
-    as_xor(scratch, rd, rt);
+    as_xor(scratch, rd, scratch);
     as_and(scratch, scratch, scratch2);
   }
 
@@ -468,21 +502,34 @@ void MacroAssemblerMIPS64::ma_addPtrTestOverflow(Register rd, Register rs,
 
 void MacroAssemblerMIPS64::ma_addPtrTestOverflow(Register rd, Register rs,
                                                  Imm32 imm, Label* overflow) {
-  ma_li(ScratchRegister, imm);
-  ma_addPtrTestOverflow(rd, rs, ScratchRegister, overflow);
+  ma_addPtrTestOverflow(rd, rs, ImmWord(imm.value), overflow);
 }
 
 void MacroAssemblerMIPS64::ma_addPtrTestOverflow(Register rd, Register rs,
                                                  ImmWord imm, Label* overflow) {
-  ScratchRegisterScope scratch(asMasm());
-  ma_li(scratch, imm);
-  ma_addPtrTestOverflow(rd, rs, scratch, overflow);
+  UseScratchRegisterScope temps(*this);
+  Register scratch2 = temps.Acquire();
+  {
+    UseScratchRegisterScope temps(*this);
+    Register scratch = temps.Acquire();
+
+    // If the sign of rs and rt are different, no overflow
+    ma_li(scratch, imm);
+    as_xor(scratch2, rs, scratch);
+    as_nor(scratch2, scratch2, zero);
+
+    as_daddu(rd, rs, scratch);
+    as_xor(scratch, rd, scratch);
+    as_and(scratch, scratch, scratch2);
+  }
+  ma_b(scratch2, zero, overflow, Assembler::LessThan);
 }
 
 void MacroAssemblerMIPS64::ma_addPtrTestCarry(Condition cond, Register rd,
                                               Register rs, Register rt,
                                               Label* overflow) {
-  SecondScratchRegisterScope scratch2(asMasm());
+  UseScratchRegisterScope temps(*this);
+  Register scratch2 = temps.Acquire();
   as_daddu(rd, rs, rt);
   as_sltu(scratch2, rd, rt);
   ma_b(scratch2, scratch2, overflow,
@@ -493,13 +540,15 @@ void MacroAssemblerMIPS64::ma_addPtrTestCarry(Condition cond, Register rd,
                                               Register rs, Imm32 imm,
                                               Label* overflow) {
   // Check for signed range because of as_daddiu
+  UseScratchRegisterScope temps(*this);
   if (Imm16::IsInSignedRange(imm.value)) {
-    SecondScratchRegisterScope scratch2(asMasm());
+    Register scratch2 = temps.Acquire();
     as_daddiu(rd, rs, imm.value);
     as_sltiu(scratch2, rd, imm.value);
     ma_b(scratch2, scratch2, overflow,
          cond == Assembler::CarrySet ? Assembler::NonZero : Assembler::Zero);
   } else {
+    Register ScratchRegister = temps.Acquire();
     ma_li(ScratchRegister, imm);
     ma_addPtrTestCarry(cond, rd, rs, ScratchRegister, overflow);
   }
@@ -509,14 +558,15 @@ void MacroAssemblerMIPS64::ma_addPtrTestCarry(Condition cond, Register rd,
                                               Register rs, ImmWord imm,
                                               Label* overflow) {
   // Check for signed range because of as_daddiu
+  UseScratchRegisterScope temps(*this);
   if (Imm16::IsInSignedRange(int64_t(imm.value))) {
-    SecondScratchRegisterScope scratch2(asMasm());
+    Register scratch2 = temps.Acquire();
     as_daddiu(rd, rs, imm.value);
     as_sltiu(scratch2, rd, imm.value);
     ma_b(scratch2, scratch2, overflow,
          cond == Assembler::CarrySet ? Assembler::NonZero : Assembler::Zero);
   } else {
-    ScratchRegisterScope scratch(asMasm());
+    Register scratch = temps.Acquire();
     ma_li(scratch, imm);
     ma_addPtrTestCarry(cond, rd, rs, scratch, overflow);
   }
@@ -545,7 +595,8 @@ void MacroAssemblerMIPS64::ma_addPtrTestSigned(Condition cond, Register rd,
                                                Label* taken) {
   MOZ_ASSERT(cond == Assembler::Signed || cond == Assembler::NotSigned);
 
-  SecondScratchRegisterScope scratch2(asMasm());
+  UseScratchRegisterScope temps(*this);
+  Register scratch2 = temps.Acquire();
   ma_li(scratch2, imm);
   ma_addPtrTestSigned(cond, rd, rj, scratch2, taken);
 }
@@ -555,6 +606,8 @@ void MacroAssemblerMIPS64::ma_dsubu(Register rd, Register rs, Imm32 imm) {
   if (Imm16::IsInSignedRange(-imm.value)) {
     as_daddiu(rd, rs, -imm.value);
   } else {
+    UseScratchRegisterScope temps(*this);
+    Register ScratchRegister = temps.Acquire();
     ma_li(ScratchRegister, imm);
     as_dsubu(rd, rs, ScratchRegister);
   }
@@ -564,6 +617,8 @@ void MacroAssemblerMIPS64::ma_dsubu(Register rd, Register rs, ImmWord imm) {
   if (Imm16::IsInSignedRange(int64_t(-imm.value))) {
     as_daddiu(rd, rs, -imm.value);
   } else {
+    UseScratchRegisterScope temps(*this);
+    Register ScratchRegister = temps.Acquire();
     ma_li(ScratchRegister, imm);
     as_dsubu(rd, rs, ScratchRegister);
   }
@@ -579,6 +634,8 @@ void MacroAssemblerMIPS64::ma_dsubu(Register rd, Imm32 imm) {
 
 void MacroAssemblerMIPS64::ma_sub32TestOverflow(Register rd, Register rs,
                                                 Register rt, Label* overflow) {
+  UseScratchRegisterScope temps(*this);
+  Register SecondScratchReg = temps.Acquire();
   as_dsubu(SecondScratchReg, rs, rt);
   as_subu(rd, rs, rt);
   ma_b(rd, SecondScratchReg, overflow, Assembler::NotEqual);
@@ -586,9 +643,9 @@ void MacroAssemblerMIPS64::ma_sub32TestOverflow(Register rd, Register rs,
 
 void MacroAssemblerMIPS64::ma_subPtrTestOverflow(Register rd, Register rs,
                                                  Register rt, Label* overflow) {
-  SecondScratchRegisterScope scratch2(asMasm());
+  UseScratchRegisterScope temps(*this);
+  Register scratch2 = temps.Acquire();
   MOZ_ASSERT_IF(rs == rd, rs != rt);
-  MOZ_ASSERT(rd != rt);
   MOZ_ASSERT(rs != scratch2);
   MOZ_ASSERT(rt != scratch2);
   MOZ_ASSERT(rd != scratch2);
@@ -601,12 +658,14 @@ void MacroAssemblerMIPS64::ma_subPtrTestOverflow(Register rd, Register rs,
   }
 
   {
-    ScratchRegisterScope scratch(asMasm());
+    UseScratchRegisterScope temps(*this);
+    Register scratch = temps.Acquire();
     MOZ_ASSERT(rd != scratch);
 
+    ma_move(scratch, rt);
     as_dsubu(rd, rs, rt);
     // If the sign of rs and rt are the same, no overflow
-    as_xor(scratch, rs_copy, rt);
+    as_xor(scratch, rs_copy, scratch);
     // Check if the sign of rd and rs are the same
     as_xor(scratch2, rd, rs_copy);
     as_and(scratch2, scratch2, scratch);
@@ -617,8 +676,33 @@ void MacroAssemblerMIPS64::ma_subPtrTestOverflow(Register rd, Register rs,
 
 void MacroAssemblerMIPS64::ma_subPtrTestOverflow(Register rd, Register rs,
                                                  Imm32 imm, Label* overflow) {
-  ma_li(ScratchRegister, imm);
-  ma_subPtrTestOverflow(rd, rs, ScratchRegister, overflow);
+  UseScratchRegisterScope temps(*this);
+  Register scratch2 = temps.Acquire();
+  MOZ_ASSERT(rs != scratch2);
+  MOZ_ASSERT(rd != scratch2);
+
+  Register rs_copy = rs;
+
+  if (rs == rd) {
+    ma_move(scratch2, rs);
+    rs_copy = scratch2;
+  }
+
+  {
+    UseScratchRegisterScope temps(*this);
+    Register scratch = temps.Acquire();
+    MOZ_ASSERT(rd != scratch);
+
+    ma_li(scratch, imm);
+    as_dsubu(rd, rs, scratch);
+    // If the sign of rs and rt are the same, no overflow
+    as_xor(scratch, rs_copy, scratch);
+    // Check if the sign of rd and rs are the same
+    as_xor(scratch2, rd, rs_copy);
+    as_and(scratch2, scratch2, scratch);
+  }
+
+  ma_b(scratch2, zero, overflow, Assembler::LessThan);
 }
 
 void MacroAssemblerMIPS64::ma_dmulu(Register rd, Register rs, Register rt) {
@@ -631,12 +715,17 @@ void MacroAssemblerMIPS64::ma_dmulu(Register rd, Register rs, Register rt) {
 }
 
 void MacroAssemblerMIPS64::ma_dmulu(Register rd, Register rs, ImmWord imm) {
+  UseScratchRegisterScope temps(*this);
+  Register ScratchRegister = temps.Acquire();
   ma_li(ScratchRegister, imm);
   ma_dmulu(rd, rs, ScratchRegister);
 }
 
 void MacroAssemblerMIPS64::ma_mulPtrTestOverflow(Register rd, Register rs,
                                                  Register rt, Label* overflow) {
+  UseScratchRegisterScope temps(*this);
+  Register ScratchRegister = temps.Acquire();
+  Register SecondScratchReg = temps.Acquire();
 #ifdef MIPSR6
   if (rd == rs) {
     ma_move(SecondScratchReg, rs);
@@ -657,12 +746,15 @@ void MacroAssemblerMIPS64::ma_mulPtrTestOverflow(Register rd, Register rs,
 FaultingCodeOffset MacroAssemblerMIPS64::ma_load(Register dest, Address address,
                                                  LoadStoreSize size,
                                                  LoadStoreExtension extension) {
+  UseScratchRegisterScope temps(*this);
   int16_t encodedOffset;
   Register base;
   FaultingCodeOffset fco;
 
   if (isLoongson() && ZeroExtend != extension &&
       !Imm16::IsInSignedRange(address.offset)) {
+    UseScratchRegisterScope temps(*this);
+    Register ScratchRegister = temps.Acquire();
     ma_li(ScratchRegister, Imm32(address.offset));
     base = address.base;
 
@@ -687,6 +779,7 @@ FaultingCodeOffset MacroAssemblerMIPS64::ma_load(Register dest, Address address,
   }
 
   if (!Imm16::IsInSignedRange(address.offset)) {
+    Register ScratchRegister = temps.Acquire();
     ma_li(ScratchRegister, Imm32(address.offset));
     as_daddu(ScratchRegister, address.base, ScratchRegister);
     base = ScratchRegister;
@@ -731,13 +824,14 @@ FaultingCodeOffset MacroAssemblerMIPS64::ma_load(Register dest, Address address,
 void MacroAssemblerMIPS64::ma_store(ImmWord imm, const BaseIndex& dest,
                                     LoadStoreSize size,
                                     LoadStoreExtension extension) {
-  SecondScratchRegisterScope scratch2(asMasm());
+  UseScratchRegisterScope temps(*this);
+  Register scratch2 = temps.Acquire();
 
   // Make sure that SecondScratchReg contains absolute address so that
   // offset is 0.
   asMasm().computeEffectiveAddress(dest, scratch2);
   // Scrach register is free now, use it for loading imm value
-  ScratchRegisterScope scratch(asMasm());
+  Register scratch = temps.Acquire();
   ma_li(scratch, ImmWord(imm.value));
 
   // with offset=0 ScratchRegister will not be used in ma_store()
@@ -748,7 +842,8 @@ void MacroAssemblerMIPS64::ma_store(ImmWord imm, const BaseIndex& dest,
 void MacroAssemblerMIPS64::ma_store(ImmWord imm, Address address,
                                     LoadStoreSize size,
                                     LoadStoreExtension extension) {
-  SecondScratchRegisterScope scratch2(asMasm());
+  UseScratchRegisterScope temps(*this);
+  Register scratch2 = temps.Acquire();
   ma_li(scratch2, imm);
   ma_store(scratch2, address, size, extension);
 }
@@ -756,12 +851,14 @@ void MacroAssemblerMIPS64::ma_store(ImmWord imm, Address address,
 FaultingCodeOffset MacroAssemblerMIPS64::ma_store(
     Register data, Address address, LoadStoreSize size,
     LoadStoreExtension extension) {
+  UseScratchRegisterScope temps(*this);
   int16_t encodedOffset;
   Register base;
   FaultingCodeOffset fco;
 
   if (isLoongson() && !Imm16::IsInSignedRange(address.offset)) {
-    ScratchRegisterScope scratch(asMasm());
+    UseScratchRegisterScope temps(*this);
+    Register scratch = temps.Acquire();
     ma_li(scratch, Imm32(address.offset));
     base = address.base;
 
@@ -787,7 +884,7 @@ FaultingCodeOffset MacroAssemblerMIPS64::ma_store(
 
   if (!Imm16::IsInSignedRange(address.offset)) {
     // assert on scratch ownership
-    ScratchRegisterScope scratch(asMasm());
+    Register ScratchRegister = temps.Acquire();
     ma_li(ScratchRegister, Imm32(address.offset));
     as_daddu(ScratchRegister, address.base, ScratchRegister);
     base = ScratchRegister;
@@ -822,12 +919,12 @@ void MacroAssemblerMIPS64Compat::computeScaledAddress32(
   Register base = address.base;
   Register index = address.index;
   int32_t shift = Imm32::ShiftOf(address.scale).value;
-  ScratchRegisterScope scratch(asMasm());
   if (shift && base == zero) {
     MOZ_ASSERT(shift <= 4);
     ma_sll(dest, index, Imm32(shift));
   } else if (shift) {
-    Register tmp = dest == base ? scratch : dest;
+    UseScratchRegisterScope temps(*this);
+    Register tmp = temps.Acquire();
     MOZ_ASSERT(shift <= 4);
     ma_sll(tmp, index, Imm32(shift));
     as_addu(dest, base, tmp);
@@ -839,8 +936,9 @@ void MacroAssemblerMIPS64Compat::computeScaledAddress32(
 void MacroAssemblerMIPS64Compat::computeScaledAddress(const BaseIndex& address,
                                                       Register dest) {
   int32_t shift = Imm32::ShiftOf(address.scale).value;
-  ScratchRegisterScope scratch(asMasm());
   if (shift) {
+    UseScratchRegisterScope temps(*this);
+    Register scratch = temps.Acquire();
     ma_dsll(scratch, address.index, Imm32(shift));
     as_daddu(dest, address.base, scratch);
   } else {
@@ -863,7 +961,9 @@ void MacroAssemblerMIPS64::ma_pop(Register r) {
 }
 
 void MacroAssemblerMIPS64::ma_push(Register r) {
+  UseScratchRegisterScope temps(*this);
   if (r == sp) {
+    Register ScratchRegister = temps.Acquire();
     // Pushing sp requires one more instruction.
     ma_move(ScratchRegister, sp);
     r = ScratchRegister;
@@ -879,7 +979,8 @@ void MacroAssemblerMIPS64::ma_b(Register lhs, ImmWord imm, Label* label,
   if (imm.value <= INT32_MAX) {
     ma_b(lhs, Imm32(uint32_t(imm.value)), label, c, jumpKind);
   } else {
-    MOZ_ASSERT(lhs != ScratchRegister);
+    UseScratchRegisterScope temps(*this);
+    Register ScratchRegister = temps.Acquire();
     ma_li(ScratchRegister, imm);
     ma_b(lhs, ScratchRegister, label, c, jumpKind);
   }
@@ -887,19 +988,24 @@ void MacroAssemblerMIPS64::ma_b(Register lhs, ImmWord imm, Label* label,
 
 void MacroAssemblerMIPS64::ma_b(Register lhs, Address addr, Label* label,
                                 Condition c, JumpKind jumpKind) {
-  MOZ_ASSERT(lhs != ScratchRegister);
+  UseScratchRegisterScope temps(*this);
+  Register ScratchRegister = temps.Acquire();
   ma_load(ScratchRegister, addr, SizeDouble);
   ma_b(lhs, ScratchRegister, label, c, jumpKind);
 }
 
 void MacroAssemblerMIPS64::ma_b(Address addr, Imm32 imm, Label* label,
                                 Condition c, JumpKind jumpKind) {
+  UseScratchRegisterScope temps(*this);
+  Register SecondScratchReg = temps.Acquire();
   ma_load(SecondScratchReg, addr, SizeDouble);
   ma_b(SecondScratchReg, imm, label, c, jumpKind);
 }
 
 void MacroAssemblerMIPS64::ma_b(Address addr, ImmGCPtr imm, Label* label,
                                 Condition c, JumpKind jumpKind) {
+  UseScratchRegisterScope temps(*this);
+  Register SecondScratchReg = temps.Acquire();
   ma_load(SecondScratchReg, addr, SizeDouble);
   ma_b(SecondScratchReg, imm, label, c, jumpKind);
 }
@@ -907,9 +1013,11 @@ void MacroAssemblerMIPS64::ma_b(Address addr, ImmGCPtr imm, Label* label,
 void MacroAssemblerMIPS64::ma_bal(Label* label, DelaySlotFill delaySlotFill) {
   spew("branch .Llabel %p\n", label);
   if (label->bound()) {
+    UseScratchRegisterScope temps(*this);
     // Generate the long jump for calls because return address has to be
     // the address after the reserved block.
     addLongJump(nextOffset(), BufferOffset(label->offset()));
+    Register ScratchRegister = temps.Acquire();
     ma_liPatchable(ScratchRegister, ImmWord(LabelBase::INVALID_OFFSET));
     as_jalr(ScratchRegister);
     if (delaySlotFill == FillDelaySlot) {
@@ -969,8 +1077,10 @@ void MacroAssemblerMIPS64::branchWithCode(InstImm code, Label* label,
     }
 
     if (code.encode() == inst_beq.encode()) {
+      UseScratchRegisterScope temps(*this);
       // Handle long jump
       addLongJump(nextOffset(), BufferOffset(label->offset()));
+      Register ScratchRegister = temps.Acquire();
       ma_liPatchable(ScratchRegister, ImmWord(LabelBase::INVALID_OFFSET));
       as_jr(ScratchRegister);
       as_nop();
@@ -985,8 +1095,10 @@ void MacroAssemblerMIPS64::branchWithCode(InstImm code, Label* label,
     decodeBranchInstAndSpew(code_r);
 #endif
     writeInst(code_r.encode());
+    UseScratchRegisterScope temps(*this);
     // No need for a "nop" here because we can clobber scratch.
     addLongJump(nextOffset(), BufferOffset(label->offset()));
+    Register ScratchRegister = temps.Acquire();
     ma_liPatchable(ScratchRegister, ImmWord(LabelBase::INVALID_OFFSET));
     as_jr(ScratchRegister);
     as_nop();
@@ -1045,6 +1157,8 @@ void MacroAssemblerMIPS64::ma_cmp_set(Register rd, Register rs, ImmWord imm,
   if (imm.value <= INT32_MAX) {
     ma_cmp_set(rd, rs, Imm32(uint32_t(imm.value)), c);
   } else {
+    UseScratchRegisterScope temps(*this);
+    Register ScratchRegister = temps.Acquire();
     ma_li(ScratchRegister, imm);
     ma_cmp_set(rd, rs, ScratchRegister, c);
   }
@@ -1057,28 +1171,32 @@ void MacroAssemblerMIPS64::ma_cmp_set(Register rd, Register rs, ImmPtr imm,
 
 void MacroAssemblerMIPS64::ma_cmp_set(Register rd, Register rs, ImmGCPtr imm,
                                       Condition c) {
-  ScratchRegisterScope scratch(asMasm());
+  UseScratchRegisterScope temps(*this);
+  Register scratch = temps.Acquire();
   ma_li(scratch, imm);
   ma_cmp_set(rd, rs, scratch, c);
 }
 
 void MacroAssemblerMIPS64::ma_cmp_set(Register rd, Address address, Register rt,
                                       Condition c) {
-  SecondScratchRegisterScope scratch2(asMasm());
+  UseScratchRegisterScope temps(*this);
+  Register scratch2 = temps.Acquire();
   ma_load(scratch2, address, SizeDouble);
   ma_cmp_set(rd, scratch2, rt, c);
 }
 
 void MacroAssemblerMIPS64::ma_cmp_set(Register rd, Address address, ImmWord imm,
                                       Condition c) {
-  SecondScratchRegisterScope scratch2(asMasm());
+  UseScratchRegisterScope temps(*this);
+  Register scratch2 = temps.Acquire();
   ma_load(scratch2, address, SizeDouble);
   ma_cmp_set(rd, scratch2, imm, c);
 }
 
 void MacroAssemblerMIPS64::ma_cmp_set(Register rd, Address address, Imm32 imm,
                                       Condition c) {
-  SecondScratchRegisterScope scratch2(asMasm());
+  UseScratchRegisterScope temps(*this);
+  Register scratch2 = temps.Acquire();
   ma_load(scratch2, address, SizeWord, SignExtend);
   ma_cmp_set(rd, scratch2, imm, c);
 }
@@ -1088,6 +1206,8 @@ void MacroAssemblerMIPS64::ma_lid(FloatRegister dest, double value) {
   ImmWord imm(mozilla::BitwiseCast<uint64_t>(value));
 
   if (imm.value != 0) {
+    UseScratchRegisterScope temps(*this);
+    Register ScratchRegister = temps.Acquire();
     ma_li(ScratchRegister, imm);
     moveToDouble(ScratchRegister, dest);
   } else {
@@ -1105,11 +1225,13 @@ void MacroAssemblerMIPS64::ma_mv(ValueOperand src, FloatRegister dest) {
 
 FaultingCodeOffset MacroAssemblerMIPS64::ma_ls(FloatRegister ft,
                                                Address address) {
+  UseScratchRegisterScope temps(*this);
   FaultingCodeOffset fco;
   if (Imm16::IsInSignedRange(address.offset)) {
     fco = FaultingCodeOffset(currentOffset());
     as_lwc1(ft, address.base, address.offset);
   } else {
+    Register ScratchRegister = temps.Acquire();
     MOZ_ASSERT(address.base != ScratchRegister);
     ma_li(ScratchRegister, Imm32(address.offset));
     if (isLoongson()) {
@@ -1126,11 +1248,13 @@ FaultingCodeOffset MacroAssemblerMIPS64::ma_ls(FloatRegister ft,
 
 FaultingCodeOffset MacroAssemblerMIPS64::ma_ld(FloatRegister ft,
                                                Address address) {
+  UseScratchRegisterScope temps(*this);
   FaultingCodeOffset fco;
   if (Imm16::IsInSignedRange(address.offset)) {
     fco = FaultingCodeOffset(currentOffset());
     as_ldc1(ft, address.base, address.offset);
   } else {
+    Register ScratchRegister = temps.Acquire();
     MOZ_ASSERT(address.base != ScratchRegister);
     ma_li(ScratchRegister, Imm32(address.offset));
     if (isLoongson()) {
@@ -1147,11 +1271,13 @@ FaultingCodeOffset MacroAssemblerMIPS64::ma_ld(FloatRegister ft,
 
 FaultingCodeOffset MacroAssemblerMIPS64::ma_sd(FloatRegister ft,
                                                Address address) {
+  UseScratchRegisterScope temps(*this);
   FaultingCodeOffset fco;
   if (Imm16::IsInSignedRange(address.offset)) {
     fco = FaultingCodeOffset(currentOffset());
     as_sdc1(ft, address.base, address.offset);
   } else {
+    Register ScratchRegister = temps.Acquire();
     MOZ_ASSERT(address.base != ScratchRegister);
     ma_li(ScratchRegister, Imm32(address.offset));
     if (isLoongson()) {
@@ -1168,11 +1294,13 @@ FaultingCodeOffset MacroAssemblerMIPS64::ma_sd(FloatRegister ft,
 
 FaultingCodeOffset MacroAssemblerMIPS64::ma_ss(FloatRegister ft,
                                                Address address) {
+  UseScratchRegisterScope temps(*this);
   FaultingCodeOffset fco;
   if (Imm16::IsInSignedRange(address.offset)) {
     fco = FaultingCodeOffset(currentOffset());
     as_swc1(ft, address.base, address.offset);
   } else {
+    Register ScratchRegister = temps.Acquire();
     MOZ_ASSERT(address.base != ScratchRegister);
     ma_li(ScratchRegister, Imm32(address.offset));
     if (isLoongson()) {
@@ -1294,12 +1422,16 @@ FaultingCodeOffset MacroAssemblerMIPS64Compat::load32(const BaseIndex& address,
 
 void MacroAssemblerMIPS64Compat::load32(AbsoluteAddress address,
                                         Register dest) {
+  UseScratchRegisterScope temps(*this);
+  Register ScratchRegister = temps.Acquire();
   movePtr(ImmPtr(address.addr), ScratchRegister);
   load32(Address(ScratchRegister, 0), dest);
 }
 
 void MacroAssemblerMIPS64Compat::load32(wasm::SymbolicAddress address,
                                         Register dest) {
+  UseScratchRegisterScope temps(*this);
+  Register ScratchRegister = temps.Acquire();
   movePtr(address, ScratchRegister);
   load32(Address(ScratchRegister, 0), dest);
 }
@@ -1316,12 +1448,16 @@ FaultingCodeOffset MacroAssemblerMIPS64Compat::loadPtr(const BaseIndex& src,
 
 void MacroAssemblerMIPS64Compat::loadPtr(AbsoluteAddress address,
                                          Register dest) {
+  UseScratchRegisterScope temps(*this);
+  Register ScratchRegister = temps.Acquire();
   movePtr(ImmPtr(address.addr), ScratchRegister);
   loadPtr(Address(ScratchRegister, 0), dest);
 }
 
 void MacroAssemblerMIPS64Compat::loadPtr(wasm::SymbolicAddress address,
                                          Register dest) {
+  UseScratchRegisterScope temps(*this);
+  Register ScratchRegister = temps.Acquire();
   movePtr(address, ScratchRegister);
   loadPtr(Address(ScratchRegister, 0), dest);
 }
@@ -1334,6 +1470,8 @@ void MacroAssemblerMIPS64Compat::loadPrivate(const Address& address,
 void MacroAssemblerMIPS64Compat::loadUnalignedDouble(
     const wasm::MemoryAccessDesc& access, const BaseIndex& src, Register temp,
     FloatRegister dest) {
+  UseScratchRegisterScope temps(*this);
+  Register SecondScratchReg = temps.Acquire();
   computeScaledAddress(src, SecondScratchReg);
   BufferOffset load;
   if (Imm16::IsInSignedRange(src.offset) &&
@@ -1341,6 +1479,7 @@ void MacroAssemblerMIPS64Compat::loadUnalignedDouble(
     load = as_ldl(temp, SecondScratchReg, src.offset + 7);
     as_ldr(temp, SecondScratchReg, src.offset);
   } else {
+    Register ScratchRegister = temps.Acquire();
     ma_li(ScratchRegister, Imm32(src.offset));
     as_daddu(ScratchRegister, SecondScratchReg, ScratchRegister);
     load = as_ldl(temp, ScratchRegister, 7);
@@ -1354,6 +1493,8 @@ void MacroAssemblerMIPS64Compat::loadUnalignedDouble(
 void MacroAssemblerMIPS64Compat::loadUnalignedFloat32(
     const wasm::MemoryAccessDesc& access, const BaseIndex& src, Register temp,
     FloatRegister dest) {
+  UseScratchRegisterScope temps(*this);
+  Register SecondScratchReg = temps.Acquire();
   computeScaledAddress(src, SecondScratchReg);
   BufferOffset load;
   if (Imm16::IsInSignedRange(src.offset) &&
@@ -1361,6 +1502,7 @@ void MacroAssemblerMIPS64Compat::loadUnalignedFloat32(
     load = as_lwl(temp, SecondScratchReg, src.offset + 3);
     as_lwr(temp, SecondScratchReg, src.offset);
   } else {
+    Register ScratchRegister = temps.Acquire();
     ma_li(ScratchRegister, Imm32(src.offset));
     as_daddu(ScratchRegister, SecondScratchReg, ScratchRegister);
     load = as_lwl(temp, ScratchRegister, 3);
@@ -1372,6 +1514,8 @@ void MacroAssemblerMIPS64Compat::loadUnalignedFloat32(
 }
 
 void MacroAssemblerMIPS64Compat::store8(Imm32 imm, const Address& address) {
+  UseScratchRegisterScope temps(*this);
+  Register SecondScratchReg = temps.Acquire();
   ma_li(SecondScratchReg, imm);
   ma_store(SecondScratchReg, address, SizeByte);
 }
@@ -1391,6 +1535,8 @@ FaultingCodeOffset MacroAssemblerMIPS64Compat::store8(Register src,
 }
 
 void MacroAssemblerMIPS64Compat::store16(Imm32 imm, const Address& address) {
+  UseScratchRegisterScope temps(*this);
+  Register SecondScratchReg = temps.Acquire();
   ma_li(SecondScratchReg, imm);
   ma_store(SecondScratchReg, address, SizeHalfWord);
 }
@@ -1411,6 +1557,8 @@ FaultingCodeOffset MacroAssemblerMIPS64Compat::store16(
 
 void MacroAssemblerMIPS64Compat::store32(Register src,
                                          AbsoluteAddress address) {
+  UseScratchRegisterScope temps(*this);
+  Register ScratchRegister = temps.Acquire();
   movePtr(ImmPtr(address.addr), ScratchRegister);
   store32(src, Address(ScratchRegister, 0));
 }
@@ -1421,6 +1569,8 @@ FaultingCodeOffset MacroAssemblerMIPS64Compat::store32(Register src,
 }
 
 void MacroAssemblerMIPS64Compat::store32(Imm32 src, const Address& address) {
+  UseScratchRegisterScope temps(*this);
+  Register SecondScratchReg = temps.Acquire();
   move32(src, SecondScratchReg);
   ma_store(SecondScratchReg, address, SizeWord);
 }
@@ -1456,6 +1606,8 @@ template void MacroAssemblerMIPS64Compat::storePtr<BaseIndex>(
 
 template <typename T>
 void MacroAssemblerMIPS64Compat::storePtr(ImmGCPtr imm, T address) {
+  UseScratchRegisterScope temps(*this);
+  Register SecondScratchReg = temps.Acquire();
   movePtr(imm, SecondScratchReg);
   storePtr(SecondScratchReg, address);
 }
@@ -1476,6 +1628,8 @@ FaultingCodeOffset MacroAssemblerMIPS64Compat::storePtr(
 }
 
 void MacroAssemblerMIPS64Compat::storePtr(Register src, AbsoluteAddress dest) {
+  UseScratchRegisterScope temps(*this);
+  Register ScratchRegister = temps.Acquire();
   movePtr(ImmPtr(dest.addr), ScratchRegister);
   storePtr(src, Address(ScratchRegister, 0));
 }
@@ -1483,6 +1637,8 @@ void MacroAssemblerMIPS64Compat::storePtr(Register src, AbsoluteAddress dest) {
 void MacroAssemblerMIPS64Compat::storeUnalignedFloat32(
     const wasm::MemoryAccessDesc& access, FloatRegister src, Register temp,
     const BaseIndex& dest) {
+  UseScratchRegisterScope temps(*this);
+  Register SecondScratchReg = temps.Acquire();
   computeScaledAddress(dest, SecondScratchReg);
   moveFromFloat32(src, temp);
   BufferOffset store;
@@ -1491,6 +1647,7 @@ void MacroAssemblerMIPS64Compat::storeUnalignedFloat32(
     store = as_swl(temp, SecondScratchReg, dest.offset + 3);
     as_swr(temp, SecondScratchReg, dest.offset);
   } else {
+    Register ScratchRegister = temps.Acquire();
     ma_li(ScratchRegister, Imm32(dest.offset));
     as_daddu(ScratchRegister, SecondScratchReg, ScratchRegister);
     store = as_swl(temp, ScratchRegister, 3);
@@ -1503,6 +1660,8 @@ void MacroAssemblerMIPS64Compat::storeUnalignedFloat32(
 void MacroAssemblerMIPS64Compat::storeUnalignedDouble(
     const wasm::MemoryAccessDesc& access, FloatRegister src, Register temp,
     const BaseIndex& dest) {
+  UseScratchRegisterScope temps(*this);
+  Register SecondScratchReg = temps.Acquire();
   computeScaledAddress(dest, SecondScratchReg);
   moveFromDouble(src, temp);
 
@@ -1512,6 +1671,7 @@ void MacroAssemblerMIPS64Compat::storeUnalignedDouble(
     store = as_sdl(temp, SecondScratchReg, dest.offset + 7);
     as_sdr(temp, SecondScratchReg, dest.offset);
   } else {
+    Register ScratchRegister = temps.Acquire();
     ma_li(ScratchRegister, Imm32(dest.offset));
     as_daddu(ScratchRegister, SecondScratchReg, ScratchRegister);
     store = as_sdl(temp, ScratchRegister, 7);
@@ -1522,6 +1682,9 @@ void MacroAssemblerMIPS64Compat::storeUnalignedDouble(
 }
 
 void MacroAssembler::clampDoubleToUint8(FloatRegister input, Register output) {
+  UseScratchRegisterScope temps(*this);
+  Register ScratchRegister = temps.Acquire();
+  Register SecondScratchReg = temps.Acquire();
   as_roundwd(ScratchDoubleReg, input);
   ma_li(ScratchRegister, Imm32(255));
   as_mfc1(output, ScratchDoubleReg);
@@ -1547,6 +1710,8 @@ void MacroAssemblerMIPS64Compat::testNullSet(Condition cond,
                                              const ValueOperand& value,
                                              Register dest) {
   MOZ_ASSERT(cond == Equal || cond == NotEqual);
+  UseScratchRegisterScope temps(*this);
+  Register SecondScratchReg = temps.Acquire();
   splitTag(value, SecondScratchReg);
   ma_cmp_set(dest, SecondScratchReg, ImmTag(JSVAL_TAG_NULL), cond);
 }
@@ -1555,6 +1720,8 @@ void MacroAssemblerMIPS64Compat::testObjectSet(Condition cond,
                                                const ValueOperand& value,
                                                Register dest) {
   MOZ_ASSERT(cond == Equal || cond == NotEqual);
+  UseScratchRegisterScope temps(*this);
+  Register SecondScratchReg = temps.Acquire();
   splitTag(value, SecondScratchReg);
   ma_cmp_set(dest, SecondScratchReg, ImmTag(JSVAL_TAG_OBJECT), cond);
 }
@@ -1563,6 +1730,8 @@ void MacroAssemblerMIPS64Compat::testUndefinedSet(Condition cond,
                                                   const ValueOperand& value,
                                                   Register dest) {
   MOZ_ASSERT(cond == Equal || cond == NotEqual);
+  UseScratchRegisterScope temps(*this);
+  Register SecondScratchReg = temps.Acquire();
   splitTag(value, SecondScratchReg);
   ma_cmp_set(dest, SecondScratchReg, ImmTag(JSVAL_TAG_UNDEFINED), cond);
 }
@@ -1582,6 +1751,8 @@ void MacroAssemblerMIPS64Compat::unboxInt32(const Address& src, Register dest) {
 
 void MacroAssemblerMIPS64Compat::unboxInt32(const BaseIndex& src,
                                             Register dest) {
+  UseScratchRegisterScope temps(*this);
+  Register SecondScratchReg = temps.Acquire();
   computeScaledAddress(src, SecondScratchReg);
   load32(Address(SecondScratchReg, src.offset), dest);
 }
@@ -1602,6 +1773,8 @@ void MacroAssemblerMIPS64Compat::unboxBoolean(const Address& src,
 
 void MacroAssemblerMIPS64Compat::unboxBoolean(const BaseIndex& src,
                                               Register dest) {
+  UseScratchRegisterScope temps(*this);
+  Register SecondScratchReg = temps.Acquire();
   computeScaledAddress(src, SecondScratchReg);
   ma_load(dest, Address(SecondScratchReg, src.offset), SizeWord, ZeroExtend);
 }
@@ -1617,7 +1790,8 @@ void MacroAssemblerMIPS64Compat::unboxDouble(const Address& src,
 }
 void MacroAssemblerMIPS64Compat::unboxDouble(const BaseIndex& src,
                                              FloatRegister dest) {
-  SecondScratchRegisterScope scratch(asMasm());
+  UseScratchRegisterScope temps(*this);
+  Register scratch = temps.Acquire();
   loadPtr(src, scratch);
   unboxDouble(ValueOperand(scratch), dest);
 }
@@ -1801,7 +1975,8 @@ void MacroAssemblerMIPS64Compat::boxValue(Register type, Register src,
     bind(&isInt32OrMagic);
 
     // Ensure |src| is sign-extended.
-    ScratchRegisterScope scratch(asMasm());
+    UseScratchRegisterScope temps(*this);
+    Register scratch = temps.Acquire();
     ma_sll(scratch, src, Imm32(0));
     ma_b(src, scratch, &done, Assembler::Equal, ShortJump);
     breakpoint();
@@ -1821,10 +1996,16 @@ void MacroAssemblerMIPS64Compat::loadConstantFloat32(float f,
 
 void MacroAssemblerMIPS64Compat::loadInt32OrDouble(const Address& src,
                                                    FloatRegister dest) {
+  UseScratchRegisterScope temps(*this);
+  Register SecondScratchReg = temps.Acquire();
   Label notInt32, end;
   // If it's an int, convert it to double.
-  loadPtr(Address(src.base, src.offset), ScratchRegister);
-  ma_dsrl(SecondScratchReg, ScratchRegister, Imm32(JSVAL_TAG_SHIFT));
+  {
+    UseScratchRegisterScope temps(*this);
+    Register ScratchRegister = temps.Acquire();
+    loadPtr(Address(src.base, src.offset), ScratchRegister);
+    ma_dsrl(SecondScratchReg, ScratchRegister, Imm32(JSVAL_TAG_SHIFT));
+  }
   asMasm().branchTestInt32(Assembler::NotEqual, SecondScratchReg, &notInt32);
   loadPtr(Address(src.base, src.offset), SecondScratchReg);
   convertInt32ToDouble(SecondScratchReg, dest);
@@ -1840,6 +2021,9 @@ void MacroAssemblerMIPS64Compat::loadInt32OrDouble(const BaseIndex& addr,
                                                    FloatRegister dest) {
   Label notInt32, end;
 
+  UseScratchRegisterScope temps(*this);
+  Register ScratchRegister = temps.Acquire();
+  Register SecondScratchReg = temps.Acquire();
   // If it's an int, convert it to double.
   computeScaledAddress(addr, SecondScratchReg);
   // Since we only have one scratch, we need to stomp over it with the tag.
@@ -1896,16 +2080,21 @@ void MacroAssemblerMIPS64Compat::storeValue(ValueOperand val, Operand dst) {
 
 void MacroAssemblerMIPS64Compat::storeValue(ValueOperand val,
                                             const BaseIndex& dest) {
+  UseScratchRegisterScope temps(*this);
+  Register SecondScratchReg = temps.Acquire();
   computeScaledAddress(dest, SecondScratchReg);
   storeValue(val, Address(SecondScratchReg, dest.offset));
 }
 
 void MacroAssemblerMIPS64Compat::storeValue(JSValueType type, Register reg,
                                             BaseIndex dest) {
+  UseScratchRegisterScope temps(*this);
+  Register ScratchRegister = temps.Acquire();
   computeScaledAddress(dest, ScratchRegister);
 
   int32_t offset = dest.offset;
   if (!Imm16::IsInSignedRange(offset)) {
+    Register SecondScratchReg = temps.Acquire();
     ma_li(SecondScratchReg, Imm32(offset));
     as_daddu(ScratchRegister, ScratchRegister, SecondScratchReg);
     offset = 0;
@@ -1921,7 +2110,8 @@ void MacroAssemblerMIPS64Compat::storeValue(ValueOperand val,
 
 void MacroAssemblerMIPS64Compat::storeValue(JSValueType type, Register reg,
                                             Address dest) {
-  SecondScratchRegisterScope scratch2(asMasm());
+  UseScratchRegisterScope temps(*this);
+  Register scratch2 = temps.Acquire();
   MOZ_ASSERT(dest.base != scratch2);
 
   if (type == JSVAL_TYPE_INT32 || type == JSVAL_TYPE_BOOLEAN) {
@@ -1929,7 +2119,8 @@ void MacroAssemblerMIPS64Compat::storeValue(JSValueType type, Register reg,
 
     store32(reg, dest);
     JSValueShiftedTag tag = (JSValueShiftedTag)JSVAL_TYPE_TO_SHIFTED_TAG(type);
-    store32(Imm64(tag).hi(), Address(dest.base, dest.offset + 4));
+    move32(Imm64(tag).hi(), scratch2);
+    store32(scratch2, Address(dest.base, dest.offset + 4));
   } else {
     boxValue(type, reg, scratch2);
     storePtr(scratch2, Address(dest.base, dest.offset));
@@ -1937,6 +2128,8 @@ void MacroAssemblerMIPS64Compat::storeValue(JSValueType type, Register reg,
 }
 
 void MacroAssemblerMIPS64Compat::storeValue(const Value& val, Address dest) {
+  UseScratchRegisterScope temps(*this);
+  Register SecondScratchReg = temps.Acquire();
   if (val.isGCThing()) {
     writeDataRelocation(val);
     movWithPatch(ImmWord(val.asRawBits()), SecondScratchReg);
@@ -1947,10 +2140,13 @@ void MacroAssemblerMIPS64Compat::storeValue(const Value& val, Address dest) {
 }
 
 void MacroAssemblerMIPS64Compat::storeValue(const Value& val, BaseIndex dest) {
+  UseScratchRegisterScope temps(*this);
+  Register ScratchRegister = temps.Acquire();
   computeScaledAddress(dest, ScratchRegister);
 
   int32_t offset = dest.offset;
   if (!Imm16::IsInSignedRange(offset)) {
+    Register SecondScratchReg = temps.Acquire();
     ma_li(SecondScratchReg, Imm32(offset));
     as_daddu(ScratchRegister, ScratchRegister, SecondScratchReg);
     offset = 0;
@@ -1960,6 +2156,8 @@ void MacroAssemblerMIPS64Compat::storeValue(const Value& val, BaseIndex dest) {
 
 void MacroAssemblerMIPS64Compat::loadValue(const BaseIndex& addr,
                                            ValueOperand val) {
+  UseScratchRegisterScope temps(*this);
+  Register SecondScratchReg = temps.Acquire();
   computeScaledAddress(addr, SecondScratchReg);
   loadValue(Address(SecondScratchReg, addr.offset), val);
 }
@@ -1973,7 +2171,8 @@ void MacroAssemblerMIPS64Compat::tagValue(JSValueType type, Register payload,
   MOZ_ASSERT(type != JSVAL_TYPE_UNDEFINED && type != JSVAL_TYPE_NULL);
 
   if (payload == dest.valueReg()) {
-    ScratchRegisterScope scratch(asMasm());
+    UseScratchRegisterScope temps(*this);
+    Register scratch = temps.Acquire();
     MOZ_ASSERT(dest.valueReg() != scratch);
 
     AssertValidPayload(*this, type, payload, scratch);
@@ -2030,6 +2229,8 @@ void MacroAssemblerMIPS64Compat::pushValue(ValueOperand val) {
 }
 
 void MacroAssemblerMIPS64Compat::pushValue(const Address& addr) {
+  UseScratchRegisterScope temps(*this);
+  Register ScratchRegister = temps.Acquire();
   // Load value before allocate stack, addr.base may be is sp.
   loadPtr(Address(addr.base, addr.offset), ScratchRegister);
   ma_dsubu(StackPointer, StackPointer, Imm32(sizeof(Value)));
@@ -2045,6 +2246,8 @@ void MacroAssemblerMIPS64Compat::breakpoint() { as_break(0); }
 
 void MacroAssemblerMIPS64Compat::checkStackAlignment() {
 #ifdef DEBUG
+  UseScratchRegisterScope temps(*this);
+  Register ScratchRegister = temps.Acquire();
   Label aligned;
   as_andi(ScratchRegister, sp, ABIStackAlignment - 1);
   ma_b(ScratchRegister, zero, &aligned, Equal, ShortJump);
@@ -2220,9 +2423,11 @@ CodeOffset MacroAssemblerMIPS64Compat::toggledJump(Label* label) {
 
 CodeOffset MacroAssemblerMIPS64Compat::toggledCall(JitCode* target,
                                                    bool enabled) {
+  UseScratchRegisterScope temps(*this);
   BufferOffset bo = nextOffset();
   CodeOffset offset(bo.getOffset());
   addPendingJump(bo, ImmPtr(target->raw()), RelocationKind::JITCODE);
+  Register ScratchRegister = temps.Acquire();
   ma_liPatchable(ScratchRegister, ImmPtr(target->raw()));
   if (enabled) {
     as_jalr(ScratchRegister);
@@ -2437,19 +2642,19 @@ void MacroAssembler::callWithABINoProfiler(Register fun, ABIType result) {
   // Load the callee in t9, no instruction between the lw and call
   // should clobber it. Note that we can't use fun.base because it may
   // be one of the IntArg registers clobbered before the call.
-  ma_move(t9, fun);
+  ma_move(CallReg, fun);
   uint32_t stackAdjust;
   callWithABIPre(&stackAdjust);
-  call(t9);
+  call(CallReg);
   callWithABIPost(stackAdjust, result);
 }
 
 void MacroAssembler::callWithABINoProfiler(const Address& fun, ABIType result) {
   // Load the callee in t9, as above.
-  loadPtr(Address(fun.base, fun.offset), t9);
+  loadPtr(Address(fun.base, fun.offset), CallReg);
   uint32_t stackAdjust;
   callWithABIPre(&stackAdjust);
-  call(t9);
+  call(CallReg);
   callWithABIPost(stackAdjust, result);
 }
 
@@ -2499,7 +2704,8 @@ void MacroAssembler::branchValueIsNurseryCellImpl(Condition cond,
                     cond == Assembler::Equal ? &done : label);
 
   // temp may be InvalidReg, use scratch2 instead.
-  SecondScratchRegisterScope scratch2(*this);
+  UseScratchRegisterScope temps(*this);
+  Register scratch2 = temps.Acquire();
 
   getGCThingValueChunk(value, scratch2);
   loadPtr(Address(scratch2, gc::ChunkStoreBufferOffset), scratch2);
@@ -2516,7 +2722,8 @@ void MacroAssembler::branchTestValue(Condition cond, const ValueOperand& lhs,
   if (!rhs.isGCThing()) {
     ma_b(lhs.valueReg(), ImmWord(rhs.asRawBits()), label, cond);
   } else {
-    ScratchRegisterScope scratch(*this);
+    UseScratchRegisterScope temps(*this);
+    Register scratch = temps.Acquire();
     MOZ_ASSERT(lhs.valueReg() != scratch);
     moveValue(rhs, ValueOperand(scratch));
     ma_b(lhs.valueReg(), scratch, label, cond);
@@ -2526,7 +2733,8 @@ void MacroAssembler::branchTestValue(Condition cond, const ValueOperand& lhs,
 void MacroAssembler::branchTestNaNValue(Condition cond, const ValueOperand& val,
                                         Register temp, Label* label) {
   MOZ_ASSERT(cond == Equal || cond == NotEqual);
-  ScratchRegisterScope scratch(asMasm());
+  UseScratchRegisterScope temps(*this);
+  Register scratch = temps.Acquire();
   MOZ_ASSERT(val.valueReg() != scratch);
 
   // When testing for NaN, we want to ignore the sign bit.
@@ -2586,7 +2794,8 @@ void MacroAssembler::wasmBoundsCheck32(Condition cond, Register index,
 
 void MacroAssembler::wasmBoundsCheck32(Condition cond, Register index,
                                        Address boundsCheckLimit, Label* label) {
-  SecondScratchRegisterScope scratch2(*this);
+  UseScratchRegisterScope temps(*this);
+  Register scratch2 = temps.Acquire();
   load32(boundsCheckLimit, scratch2);
   ma_b(index, scratch2, label, cond);
 }
@@ -2599,7 +2808,8 @@ void MacroAssembler::wasmBoundsCheck64(Condition cond, Register64 index,
 
 void MacroAssembler::wasmBoundsCheck64(Condition cond, Register64 index,
                                        Address boundsCheckLimit, Label* label) {
-  SecondScratchRegisterScope scratch2(*this);
+  UseScratchRegisterScope temps(*this);
+  Register scratch2 = temps.Acquire();
   loadPtr(boundsCheckLimit, scratch2);
   ma_b(index.reg, scratch2, label, cond);
 }
@@ -2613,9 +2823,11 @@ void MacroAssembler::wasmTruncateDoubleToUInt32(FloatRegister input,
                                                 Register output,
                                                 bool isSaturating,
                                                 Label* oolEntry) {
+  UseScratchRegisterScope temps(*this);
   branchDouble(Assembler::DoubleUnordered, input, input, oolEntry);
   as_truncld(ScratchDoubleReg, input);
   moveFromDouble(ScratchDoubleReg, output);
+  Register ScratchRegister = temps.Acquire();
   ma_dsrl(ScratchRegister, output, Imm32(32));
   as_sll(output, output, 0);
   ma_b(ScratchRegister, Imm32(0), oolEntry, Assembler::NotEqual);
@@ -2625,9 +2837,11 @@ void MacroAssembler::wasmTruncateFloat32ToUInt32(FloatRegister input,
                                                  Register output,
                                                  bool isSaturating,
                                                  Label* oolEntry) {
+  UseScratchRegisterScope temps(*this);
   branchFloat(Assembler::DoubleUnordered, input, input, oolEntry);
   as_truncls(ScratchDoubleReg, input);
   moveFromDouble(ScratchDoubleReg, output);
+  Register ScratchRegister = temps.Acquire();
   ma_dsrl(ScratchRegister, output, Imm32(32));
   as_sll(output, output, 0);
   ma_b(ScratchRegister, Imm32(0), oolEntry, Assembler::NotEqual);
@@ -2663,6 +2877,8 @@ void MacroAssembler::wasmTruncateDoubleToInt64(
     FloatRegister input, Register64 output, bool isSaturating, Label* oolEntry,
     Label* oolRejoin, FloatRegister tempDouble) {
   MOZ_ASSERT(tempDouble.isInvalid());
+  UseScratchRegisterScope temps(*this);
+  Register ScratchRegister = temps.Acquire();
 
   as_truncld(ScratchDoubleReg, input);
   as_cfc1(ScratchRegister, Assembler::FCSR);
@@ -2683,31 +2899,37 @@ void MacroAssembler::wasmTruncateDoubleToUInt64(
 
   Label done;
 
+  UseScratchRegisterScope temps(*this);
+  Register ScratchRegister = temps.Acquire();
+
   // Guard against NaN.
   branchDouble(Assembler::DoubleUnordered, input, input, oolEntry);
 
   as_truncld(ScratchDoubleReg, input);
   // ma_li INT64_MAX
-  ma_li(SecondScratchReg, Imm32(-1));
-  ma_dext(SecondScratchReg, SecondScratchReg, Imm32(0), Imm32(63));
+  ma_li(ScratchRegister, Imm32(-1));
+  ma_dext(ScratchRegister, ScratchRegister, Imm32(0), Imm32(63));
   moveFromDouble(ScratchDoubleReg, output);
   // For numbers in  -1.[ : ]INT64_MAX range do nothing more
-  ma_b(output, SecondScratchReg, &done, Assembler::Below, ShortJump);
+  ma_b(output, ScratchRegister, &done, Assembler::Below, ShortJump);
 
   loadConstantDouble(double(INT64_MAX + 1ULL), ScratchDoubleReg);
-  // ma_li INT64_MIN
-  ma_daddu(SecondScratchReg, Imm32(1));
-  as_subd(ScratchDoubleReg, input, ScratchDoubleReg);
-  as_truncld(ScratchDoubleReg, ScratchDoubleReg);
-  as_cfc1(ScratchRegister, Assembler::FCSR);
-  moveFromDouble(ScratchDoubleReg, output);
-  ma_ext(ScratchRegister, ScratchRegister, Assembler::CauseV, 1);
-  ma_daddu(output, SecondScratchReg);
+  {
+    UseScratchRegisterScope temps(*this);
+    Register SecondScratchReg = temps.Acquire();
+    // ma_li INT64_MIN
+    ma_daddu(SecondScratchReg, ScratchRegister, Imm32(1));
+    as_subd(ScratchDoubleReg, input, ScratchDoubleReg);
+    as_truncld(ScratchDoubleReg, ScratchDoubleReg);
+    as_cfc1(ScratchRegister, Assembler::FCSR);
+    moveFromDouble(ScratchDoubleReg, output);
+    ma_ext(ScratchRegister, ScratchRegister, Assembler::CauseV, 1);
+    ma_daddu(output, SecondScratchReg);
 
-  // Guard against negative values that result in 0 due the precision loss.
-  as_sltiu(SecondScratchReg, output, 1);
-  ma_or(ScratchRegister, SecondScratchReg);
-
+    // Guard against negative values that result in 0 due the precision loss.
+    as_sltiu(SecondScratchReg, output, 1);
+    ma_or(ScratchRegister, SecondScratchReg);
+  }
   ma_b(ScratchRegister, Imm32(0), oolEntry, Assembler::NotEqual);
 
   bind(&done);
@@ -2721,6 +2943,8 @@ void MacroAssembler::wasmTruncateFloat32ToInt64(
     FloatRegister input, Register64 output, bool isSaturating, Label* oolEntry,
     Label* oolRejoin, FloatRegister tempFloat) {
   MOZ_ASSERT(tempFloat.isInvalid());
+  UseScratchRegisterScope temps(*this);
+  Register ScratchRegister = temps.Acquire();
 
   as_truncls(ScratchDoubleReg, input);
   as_cfc1(ScratchRegister, Assembler::FCSR);
@@ -2741,31 +2965,37 @@ void MacroAssembler::wasmTruncateFloat32ToUInt64(
 
   Label done;
 
+  UseScratchRegisterScope temps(*this);
+  Register ScratchRegister = temps.Acquire();
+
   // Guard against NaN.
   branchFloat(Assembler::DoubleUnordered, input, input, oolEntry);
 
   as_truncls(ScratchDoubleReg, input);
   // ma_li INT64_MAX
-  ma_li(SecondScratchReg, Imm32(-1));
-  ma_dext(SecondScratchReg, SecondScratchReg, Imm32(0), Imm32(63));
+  ma_li(ScratchRegister, Imm32(-1));
+  ma_dext(ScratchRegister, ScratchRegister, Imm32(0), Imm32(63));
   moveFromDouble(ScratchDoubleReg, output);
   // For numbers in  -1.[ : ]INT64_MAX range do nothing more
-  ma_b(output, SecondScratchReg, &done, Assembler::Below, ShortJump);
+  ma_b(output, ScratchRegister, &done, Assembler::Below, ShortJump);
 
   loadConstantFloat32(float(INT64_MAX + 1ULL), ScratchFloat32Reg);
-  // ma_li INT64_MIN
-  ma_daddu(SecondScratchReg, Imm32(1));
-  as_subs(ScratchFloat32Reg, input, ScratchFloat32Reg);
-  as_truncls(ScratchDoubleReg, ScratchFloat32Reg);
-  as_cfc1(ScratchRegister, Assembler::FCSR);
-  moveFromDouble(ScratchDoubleReg, output);
-  ma_ext(ScratchRegister, ScratchRegister, Assembler::CauseV, 1);
-  ma_daddu(output, SecondScratchReg);
+  {
+    // ma_li INT64_MIN
+    UseScratchRegisterScope temps(*this);
+    Register SecondScratchReg = temps.Acquire();
+    ma_daddu(SecondScratchReg, ScratchRegister, Imm32(1));
+    as_subs(ScratchFloat32Reg, input, ScratchFloat32Reg);
+    as_truncls(ScratchDoubleReg, ScratchFloat32Reg);
+    as_cfc1(ScratchRegister, Assembler::FCSR);
+    moveFromDouble(ScratchDoubleReg, output);
+    ma_ext(ScratchRegister, ScratchRegister, Assembler::CauseV, 1);
+    ma_daddu(output, SecondScratchReg);
 
-  // Guard against negative values that result in 0 due the precision loss.
-  as_sltiu(SecondScratchReg, output, 1);
-  ma_or(ScratchRegister, SecondScratchReg);
-
+    // Guard against negative values that result in 0 due the precision loss.
+    as_sltiu(SecondScratchReg, output, 1);
+    ma_or(ScratchRegister, SecondScratchReg);
+  }
   ma_b(ScratchRegister, Imm32(0), oolEntry, Assembler::NotEqual);
 
   bind(&done);
@@ -2857,6 +3087,10 @@ static void CompareExchange64(MacroAssembler& masm,
                               Register64 expect, Register64 replace,
                               Register64 output) {
   MOZ_ASSERT(expect != output && replace != output);
+
+  UseScratchRegisterScope temps(masm);
+  Register SecondScratchReg = temps.Acquire();
+
   masm.computeEffectiveAddress(mem, SecondScratchReg);
 
   Label tryAgain;
@@ -2870,8 +3104,9 @@ static void CompareExchange64(MacroAssembler& masm,
     masm.append(*access, wasm::TrapMachineInsn::Load64,
                 FaultingCodeOffset(masm.currentOffset()));
   }
-  masm.as_lld(output.reg, SecondScratchReg, 0);
 
+  Register ScratchRegister = temps.Acquire();
+  masm.as_lld(output.reg, SecondScratchReg, 0);
   masm.ma_b(output.reg, expect.reg, &exit, Assembler::NotEqual, ShortJump);
   masm.movePtr(replace.reg, ScratchRegister);
   masm.as_scd(ScratchRegister, SecondScratchReg, 0);
@@ -2919,6 +3154,10 @@ static void AtomicExchange64(MacroAssembler& masm,
                              Synchronization sync, const T& mem,
                              Register64 value, Register64 output) {
   MOZ_ASSERT(value != output);
+
+  UseScratchRegisterScope temps(masm);
+  Register SecondScratchReg = temps.Acquire();
+
   masm.computeEffectiveAddress(mem, SecondScratchReg);
 
   Label tryAgain;
@@ -2932,6 +3171,7 @@ static void AtomicExchange64(MacroAssembler& masm,
                 FaultingCodeOffset(masm.currentOffset()));
   }
 
+  Register ScratchRegister = temps.Acquire();
   masm.as_lld(output.reg, SecondScratchReg, 0);
   masm.movePtr(value.reg, ScratchRegister);
   masm.as_scd(ScratchRegister, SecondScratchReg, 0);
@@ -2979,6 +3219,10 @@ static void AtomicFetchOp64(MacroAssembler& masm,
                             const T& mem, Register64 temp, Register64 output) {
   MOZ_ASSERT(value != output);
   MOZ_ASSERT(value != temp);
+
+  UseScratchRegisterScope temps(masm);
+  Register SecondScratchReg = temps.Acquire();
+
   masm.computeEffectiveAddress(mem, SecondScratchReg);
 
   Label tryAgain;
@@ -3081,6 +3325,10 @@ void MacroAssembler::convertUInt64ToDouble(Register64 src, FloatRegister dest,
 void MacroAssembler::convertUInt64ToFloat32(Register64 src_, FloatRegister dest,
                                             Register temp) {
   MOZ_ASSERT(temp == Register::Invalid());
+
+  UseScratchRegisterScope temps(*this);
+  Register ScratchRegister = temps.Acquire();
+  Register SecondScratchReg = temps.Acquire();
 
   Register src = src_.reg;
   Label positive, done;

@@ -39,10 +39,10 @@ static_assert(1 << defaultShift == sizeof(JS::Value),
 // See documentation for ScratchTagScope and ScratchTagScopeRelease in
 // MacroAssembler-x64.h.
 
-class ScratchTagScope : public SecondScratchRegisterScope {
+class ScratchTagScope : public ScratchRegisterScope {
  public:
   ScratchTagScope(MacroAssembler& masm, const ValueOperand&)
-      : SecondScratchRegisterScope(masm) {}
+      : ScratchRegisterScope(masm) {}
 };
 
 class ScratchTagScopeRelease {
@@ -175,6 +175,8 @@ class MacroAssemblerMIPS64 : public MacroAssemblerMIPSShared {
             JumpKind jumpKind = LongJump);
   void ma_b(Address addr, Register rhs, Label* l, Condition c,
             JumpKind jumpKind = LongJump) {
+    UseScratchRegisterScope temps(*this);
+    Register ScratchRegister = temps.Acquire();
     MOZ_ASSERT(rhs != ScratchRegister);
     ma_load(ScratchRegister, addr, SizeDouble);
     ma_b(ScratchRegister, rhs, l, c, jumpKind);
@@ -303,8 +305,10 @@ class MacroAssemblerMIPS64Compat : public MacroAssemblerMIPS64 {
   }
 
   void branch(JitCode* c) {
+    UseScratchRegisterScope temps(*this);
     BufferOffset bo = m_buffer.nextOffset();
     addPendingJump(bo, ImmPtr(c->raw()), RelocationKind::JITCODE);
+    Register ScratchRegister = temps.Acquire();
     ma_liPatchable(ScratchRegister, ImmPtr(c->raw()));
     as_jr(ScratchRegister);
     as_nop();
@@ -322,18 +326,26 @@ class MacroAssemblerMIPS64Compat : public MacroAssemblerMIPS64 {
   }
   inline void retn(Imm32 n);
   void push(Imm32 imm) {
+    UseScratchRegisterScope temps(*this);
+    Register ScratchRegister = temps.Acquire();
     ma_li(ScratchRegister, imm);
     ma_push(ScratchRegister);
   }
   void push(ImmWord imm) {
+    UseScratchRegisterScope temps(*this);
+    Register ScratchRegister = temps.Acquire();
     ma_li(ScratchRegister, imm);
     ma_push(ScratchRegister);
   }
   void push(ImmGCPtr imm) {
+    UseScratchRegisterScope temps(*this);
+    Register ScratchRegister = temps.Acquire();
     ma_li(ScratchRegister, imm);
     ma_push(ScratchRegister);
   }
   void push(const Address& address) {
+    UseScratchRegisterScope temps(*this);
+    Register ScratchRegister = temps.Acquire();
     loadPtr(address, ScratchRegister);
     ma_push(ScratchRegister);
   }
@@ -357,6 +369,8 @@ class MacroAssemblerMIPS64Compat : public MacroAssemblerMIPS64 {
   }
 
   CodeOffset pushWithPatch(ImmWord imm) {
+    UseScratchRegisterScope temps(*this);
+    Register ScratchRegister = temps.Acquire();
     CodeOffset offset = movWithPatch(imm, ScratchRegister);
     ma_push(ScratchRegister);
     return offset;
@@ -387,6 +401,8 @@ class MacroAssemblerMIPS64Compat : public MacroAssemblerMIPS64 {
     as_nop();
   }
   void jump(const Address& address) {
+    UseScratchRegisterScope temps(*this);
+    Register ScratchRegister = temps.Acquire();
     loadPtr(address, ScratchRegister);
     as_jr(ScratchRegister);
     as_nop();
@@ -432,11 +448,13 @@ class MacroAssemblerMIPS64Compat : public MacroAssemblerMIPS64 {
   }
 
   void unboxNonDouble(Register src, Register dest, JSValueType type) {
+    UseScratchRegisterScope temps(*this);
     MOZ_ASSERT(type != JSVAL_TYPE_DOUBLE);
     if (type == JSVAL_TYPE_INT32 || type == JSVAL_TYPE_BOOLEAN) {
       ma_sll(dest, src, Imm32(0));
       return;
     }
+    Register ScratchRegister = temps.Acquire();
     MOZ_ASSERT(ScratchRegister != src);
     mov(ImmShiftedTag(type), ScratchRegister);
     as_xor(dest, src, ScratchRegister);
@@ -451,7 +469,8 @@ class MacroAssemblerMIPS64Compat : public MacroAssemblerMIPS64 {
   }
 
   void unboxWasmAnyRefGCThingForGCBarrier(const Address& src, Register dest) {
-    ScratchRegisterScope scratch(asMasm());
+    UseScratchRegisterScope temps(*this);
+    Register scratch = temps.Acquire();
     MOZ_ASSERT(scratch != dest);
     movePtr(ImmWord(wasm::AnyRef::GCThingMask), scratch);
     loadPtr(src, dest);
@@ -460,7 +479,8 @@ class MacroAssemblerMIPS64Compat : public MacroAssemblerMIPS64 {
 
   // Like unboxGCThingForGCBarrier, but loads the GC thing's chunk base.
   void getGCThingValueChunk(const Address& src, Register dest) {
-    ScratchRegisterScope scratch(asMasm());
+    UseScratchRegisterScope temps(*this);
+    Register scratch = temps.Acquire();
     MOZ_ASSERT(scratch != dest);
     loadPtr(src, dest);
     movePtr(ImmWord(JS::detail::ValueGCThingPayloadChunkMask), scratch);
@@ -554,7 +574,6 @@ class MacroAssemblerMIPS64Compat : public MacroAssemblerMIPS64 {
   [[nodiscard]] Register extractTag(const BaseIndex& address, Register scratch);
   [[nodiscard]] Register extractTag(const ValueOperand& value,
                                     Register scratch) {
-    MOZ_ASSERT(scratch != ScratchRegister);
     splitTag(value, scratch);
     return scratch;
   }
@@ -618,7 +637,9 @@ class MacroAssemblerMIPS64Compat : public MacroAssemblerMIPS64 {
   void popValue(ValueOperand val);
   void pushValue(const Value& val) {
     if (val.isGCThing()) {
+      UseScratchRegisterScope temps(*this);
       writeDataRelocation(val);
+      Register ScratchRegister = temps.Acquire();
       movWithPatch(ImmWord(val.asRawBits()), ScratchRegister);
       push(ScratchRegister);
     } else {
@@ -626,6 +647,8 @@ class MacroAssemblerMIPS64Compat : public MacroAssemblerMIPS64 {
     }
   }
   void pushValue(JSValueType type, Register reg) {
+    UseScratchRegisterScope temps(*this);
+    Register ScratchRegister = temps.Acquire();
     boxValue(type, reg, ScratchRegister);
     push(ScratchRegister);
   }
