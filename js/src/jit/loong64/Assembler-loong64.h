@@ -129,6 +129,7 @@ class Assembler;
 class UseScratchRegisterScope {
  public:
   explicit UseScratchRegisterScope(Assembler& assembler);
+  explicit UseScratchRegisterScope(Assembler* assembler);
   ~UseScratchRegisterScope();
 
   Register Acquire();
