@@ -928,8 +928,7 @@ bool Assembler::target_at_put(BufferOffset pos, BufferOffset target_pos,
         int32_t Hi20 = (((int32_t)offset + 0x800) >> 12);
         int32_t Lo12 = (int32_t)offset << 20 >> 20;
 
-        instr_auipc =
-            (instr_auipc & ~kImm31_12Mask) | ((Hi20 & kImm19_0Mask) << 12);
+        instr_auipc = SetAuipcOffset(Hi20, instr_auipc);
         instr_at_put(pos, instr_auipc);
 
         const int kImm31_20Mask = ((1 << 12) - 1) << 20;
@@ -1049,8 +1048,9 @@ void Assembler::bind(Label* label, BufferOffset boff) {
   if (label->used()) {
     uint32_t next;
 
-    // A used label holds a link to branch that uses it.
     do {
+      // A used label holds a link to branch that uses it.
+      // It's okay we use it here since next_link() mutates `label`.
       BufferOffset b(label);
       DEBUG_PRINTF("\tbind next:%d\n", b.getOffset());
       // Even a 0 offset may be invalid if we're out of memory.
@@ -1064,12 +1064,12 @@ void Assembler::bind(Label* label, BufferOffset boff) {
       DEBUG_PRINTF("\t   fixup: %d dest: %d dist: %d %d %d\n", fixup_pos,
                    dest.getOffset(), dist, nextOffset().getOffset(),
                    currentOffset());
-      Instruction* instruction = editSrc(b);
-      Instr instr = instruction->InstructionBits();
+      Instr instr = editSrc(b)->InstructionBits();
       if (IsBranch(instr)) {
-        if (dist > kMaxBranchOffset) {
+        if (!is_intn(dist, kBranchOffsetBits)) {
           MOZ_ASSERT(next != LabelBase::INVALID_OFFSET);
-          MOZ_RELEASE_ASSERT((next - fixup_pos) <= kMaxBranchOffset);
+          MOZ_RELEASE_ASSERT(
+              is_intn(static_cast<int>(next) - fixup_pos, kJumpOffsetBits));
           MOZ_ASSERT(IsAuipc(editSrc(BufferOffset(next))->InstructionBits()));
           MOZ_ASSERT(
               IsJalr(editSrc(BufferOffset(next + 4))->InstructionBits()));
@@ -1081,17 +1081,18 @@ void Assembler::bind(Label* label, BufferOffset boff) {
           m_buffer.unregisterBranchDeadline(CondBranchRangeType, deadline);
         }
       } else if (IsJal(instr)) {
-        if (dist > kMaxJumpOffset) {
+        if (!is_intn(dist, kJumpOffsetBits)) {
           MOZ_ASSERT(next != LabelBase::INVALID_OFFSET);
-          MOZ_RELEASE_ASSERT((next - fixup_pos) <= kMaxJumpOffset);
+          MOZ_RELEASE_ASSERT(
+              is_intn(static_cast<int>(next) - fixup_pos, kJumpOffsetBits));
           MOZ_ASSERT(IsAuipc(editSrc(BufferOffset(next))->InstructionBits()));
           MOZ_ASSERT(
               IsJalr(editSrc(BufferOffset(next + 4))->InstructionBits()));
           DEBUG_PRINTF("\t\ttrampolining: %d\n", next);
         } else {
           target_at_put(b, dest);
-          BufferOffset deadline(
-              b.getOffset() + ImmBranchMaxForwardOffset(UncondBranchRangeType));
+          BufferOffset deadline(b.getOffset() + ImmBranchMaxForwardOffset(
+                                                     UncondBranchRangeType));
           m_buffer.unregisterBranchDeadline(UncondBranchRangeType, deadline);
         }
       } else {
@@ -1534,41 +1535,43 @@ void Assembler::PatchShortRangeBranchToVeneer(Buffer* buffer, unsigned rangeIdx,
   BufferOffset branch(deadline.getOffset() -
                       ImmBranchMaxForwardOffset(branchRange));
   Instruction* branchInst = buffer->getInst(branch);
-  Instruction* veneerInst_1 = buffer->getInst(veneer);
-  Instruction* veneerInst_2 =
+  Instruction* veneerInstAuipc = buffer->getInst(veneer);
+  Instruction* veneerInstJalr =
       buffer->getInst(BufferOffset(veneer.getOffset() + 4));
   // Verify that the branch range matches what's encoded.
   DEBUG_PRINTF("\t%p(%x): ", branchInst, branch.getOffset());
   disassembleInstr(branchInst->InstructionBits(), JitSpew_Codegen);
-  DEBUG_PRINTF("\t instert veneer %x, branch:%x deadline: %x\n",
+  DEBUG_PRINTF("\t insert veneer %x, branch: %x deadline: %x\n",
                veneer.getOffset(), branch.getOffset(), deadline.getOffset());
   MOZ_ASSERT(branchRange <= UncondBranchRangeType);
   MOZ_ASSERT(branchInst->GetImmBranchRangeType() == branchRange);
   // emit a long jump slot
-  Instr auipc = AUIPC | (t6.code() << kRdShift) | (0x0 << kImm20Shift);
+  Instr auipc =
+      AUIPC | (SavedScratchRegister.code() << kRdShift) | (0x0 << kImm20Shift);
   Instr jalr = JALR | (zero_reg.code() << kRdShift) | (0x0 << kFunct3Shift) |
-               (t6.code() << kRs1Shift) | (0x0 << kImm12Shift);
+               (SavedScratchRegister.code() << kRs1Shift) |
+               (0x0 << kImm12Shift);
 
   // We want to insert veneer after branch in the linked list of instructions
   // that use the same unbound label.
   // The veneer should be an unconditional branch.
   int32_t nextElemOffset = target_at(buffer->getInst(branch), branch, false);
   int32_t dist;
-  // If offset is 0, this is the end of the linked list.
+  // If offset is kEndOfChain, this is the end of the linked list.
   if (nextElemOffset != kEndOfChain) {
     // Make the offset relative to veneer so it targets the same instruction
     // as branchInst.
     dist = nextElemOffset - veneer.getOffset();
   } else {
-    dist = 0;
+    dist = kEndOfJumpChain;
   }
   int32_t Hi20 = (((int32_t)dist + 0x800) >> 12);
   int32_t Lo12 = (int32_t)dist << 20 >> 20;
   auipc = SetAuipcOffset(Hi20, auipc);
   jalr = SetJalrOffset(Lo12, jalr);
   // insert veneer
-  veneerInst_1->SetInstructionBits(auipc);
-  veneerInst_2->SetInstructionBits(jalr);
+  veneerInstAuipc->SetInstructionBits(auipc);
+  veneerInstJalr->SetInstructionBits(jalr);
   // Now link branchInst to veneer.
   if (IsBranch(branchInst->InstructionBits())) {
     branchInst->SetInstructionBits(SetBranchOffset(

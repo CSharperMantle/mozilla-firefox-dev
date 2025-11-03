@@ -703,7 +703,7 @@ struct AssemblerBufferWithConstantPools
 
   // Check if it is possible to add numInst instructions and numPoolEntries
   // constant pool entries without needing to flush the current pool.
-  bool hasSpaceForInsts(unsigned numInsts, unsigned numPoolEntries) const {
+  bool hasSpaceForInsts(unsigned numInsts, unsigned numPoolEntries) {
     size_t nextOffset = sizeExcludingCurrentPool();
     // Earliest starting offset for the current pool after adding numInsts.
     // This is the beginning of the pool entries proper, after inserting a
@@ -751,7 +751,54 @@ struct AssemblerBufferWithConstantPools
           (branchDeadlines_.size() - branchDeadlines_.maxRangeSize()) *
           InstSize;
 
-      if (deadline < poolEnd + secondaryVeneers) {
+      size_t decompressPadding = 0;
+      if (guardSize_ > 1 && branchDeadlines_.size() > 1) {
+        // The decompression increment for a single branch.
+        const unsigned branchPadding = (guardSize_ - 1) * InstSize;
+        const unsigned guardSizeBytes = guardSize_ * InstSize;
+
+        const unsigned range_0 = branchDeadlines_.earliestDeadlineRange();
+        const BufferOffset deadline_0 = branchDeadlines_.earliestDeadline();
+        branchDeadlines_.removeDeadline(range_0, deadline_0);
+        if (branchDeadlines_.earliestDeadline().getOffset() -
+                deadline_0.getOffset() >=
+            static_cast<int>(guardSizeBytes)) {
+          // Fast case.
+          // No adjustment needed.
+          branchDeadlines_.addDeadline(range_0, deadline_0);
+        } else {
+          // Slow case.
+          // Find the smallest i > 0 such that:
+          //    d[i] - d[0] >= i * guardSize, or i = len(d)
+          size_t i = 1;
+          mozilla::Vector<std::pair<unsigned, BufferOffset>, 8,
+                          MallocAllocPolicy>
+              revStorage;
+          if (!revStorage.emplaceBack(range_0, deadline_0)) {
+            return false;
+          }
+          while (!branchDeadlines_.empty()) {
+            const unsigned range_i = branchDeadlines_.earliestDeadlineRange();
+            const BufferOffset deadline_i = branchDeadlines_.earliestDeadline();
+            if (!revStorage.emplaceBack(range_i, deadline_i)) {
+              return false;
+            }
+            branchDeadlines_.removeDeadline(range_i, deadline_i);
+            if (deadline_i.getOffset() - deadline_0.getOffset() >=
+                static_cast<int>(i * guardSizeBytes)) {
+              break;
+            }
+            i++;
+          }
+          decompressPadding = (i - 1) * branchPadding;
+          while (!revStorage.empty()) {
+            const auto [range_i, deadline_i] = revStorage.popCopy();
+            branchDeadlines_.addDeadline(range_i, deadline_i);
+          }
+        }
+      }
+
+      if (deadline < poolEnd + secondaryVeneers + decompressPadding) {
         return false;
       }
     }

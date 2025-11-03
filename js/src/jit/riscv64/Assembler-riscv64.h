@@ -184,7 +184,8 @@ class Assembler : public AssemblerShared,
 #ifdef JS_JITSPEW
         printer(nullptr),
 #endif
-        m_buffer(/*guardSize*/ 2, /*headerSize*/ 2, /*instBufferAlign*/ 8,
+        m_buffer(/*guardSize*/ 2, /*headerSize*/ HowMany(sizeof(PoolHeader), 4),
+                 /*instBufferAlign*/ 8,
                  /*poolMaxOffset*/ GetPoolMaxOffset(), /*pcBias*/ 8,
                  /*alignFillInst*/ kNopByte, /*nopFillInst*/ kNopByte),
         isFinished(false) {
