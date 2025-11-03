@@ -174,13 +174,14 @@ namespace jit {
 //
 template <unsigned NumRanges>
 class BranchDeadlineSet {
-  // Maintain a list of pending deadlines for each range separately.
+  // A deadline, a.k.a. (deadline, rangeIdx).
+  // The fields are ordered so that the deadline address weighs more in the
+  // total ordering.
+  using Deadline = std::pair<BufferOffset, unsigned>;
+
+  // Maintain a unified list of pending deadlines.
   //
-  // The offsets in each vector are always kept in ascending order.
-  //
-  // Because we have a separate vector for different ranges, as forward
-  // branches are added to the assembler buffer, their deadlines will
-  // always be appended to the vector corresponding to their range.
+  // The elements are kept in ascending order by BufferOffset.
   //
   // When binding labels, we expect a more-or-less LIFO order of branch
   // resolutions. This would always hold if we had strictly structured control
@@ -189,25 +190,13 @@ class BranchDeadlineSet {
   // We allow branch deadlines to be added and removed in any order, but
   // performance is best in the expected case of near LIFO order.
   //
-  using RangeVector = Vector<BufferOffset, 8, LifoAllocPolicy<Fallible>>;
+  using DeadlineVector = Vector<Deadline, 8, LifoAllocPolicy<Fallible>>;
 
-  // We really just want "RangeVector deadline_[NumRanges];", but each vector
-  // needs to be initialized with a LifoAlloc, and C++ doesn't bend that way.
-  //
-  // Use raw aligned storage instead and explicitly construct NumRanges
-  // vectors in our constructor.
-  mozilla::AlignedStorage2<RangeVector[NumRanges]> deadlineStorage_;
+  DeadlineVector deadlines_;
 
-  // Always access the range vectors through this method.
-  RangeVector& vectorForRange(unsigned rangeIdx) {
-    MOZ_ASSERT(rangeIdx < NumRanges, "Invalid branch range index");
-    return (*deadlineStorage_.addr())[rangeIdx];
-  }
-
-  const RangeVector& vectorForRange(unsigned rangeIdx) const {
-    MOZ_ASSERT(rangeIdx < NumRanges, "Invalid branch range index");
-    return (*deadlineStorage_.addr())[rangeIdx];
-  }
+  // Explicitly keeps a count cache for each rangeIdx.
+  // Should be maintained when adding and removing deadlines.
+  std::array<size_t, NumRanges> deadlinesCount_;
 
   // Maintain a precomputed earliest deadline at all times.
   // This is unassigned only when all deadline vectors are empty.
@@ -219,60 +208,36 @@ class BranchDeadlineSet {
   // Recompute the earliest deadline after it's been invalidated.
   void recomputeEarliest() {
     earliest_ = BufferOffset();
-    for (unsigned r = 0; r < NumRanges; r++) {
-      auto& vec = vectorForRange(r);
-      if (!vec.empty() && (!earliest_.assigned() || vec[0] < earliest_)) {
-        earliest_ = vec[0];
-        earliestRange_ = r;
-      }
+    if (!deadlines_.empty()) {
+      earliest_ = std::get<0>(deadlines_[0]);
+      earliestRange_ = std::get<1>(deadlines_[0]);
     }
   }
 
   // Update the earliest deadline if needed after inserting (rangeIdx,
-  // deadline). Always return true for convenience:
-  // return insert() && updateEarliest().
-  bool updateEarliest(unsigned rangeIdx, BufferOffset deadline) {
+  // deadline).
+  void updateEarliest(unsigned rangeIdx, BufferOffset deadline) {
     if (!earliest_.assigned() || deadline < earliest_) {
       earliest_ = deadline;
       earliestRange_ = rangeIdx;
     }
-    return true;
   }
 
  public:
-  explicit BranchDeadlineSet(LifoAlloc& alloc) : earliestRange_(0) {
-    // Manually construct vectors in the uninitialized aligned storage.
-    // This is because C++ arrays can otherwise only be constructed with
-    // the default constructor.
-    for (unsigned r = 0; r < NumRanges; r++) {
-      new (&vectorForRange(r)) RangeVector(alloc);
-    }
-  }
-
-  ~BranchDeadlineSet() {
-    // Aligned storage doesn't destruct its contents automatically.
-    for (unsigned r = 0; r < NumRanges; r++) {
-      vectorForRange(r).~RangeVector();
-    }
-  }
+  explicit BranchDeadlineSet(LifoAlloc& alloc)
+      : deadlines_(alloc), deadlinesCount_({0}), earliestRange_(0) {}
 
   // Is this set completely empty?
   bool empty() const { return !earliest_.assigned(); }
 
   // Get the total number of deadlines in the set.
-  size_t size() const {
-    size_t count = 0;
-    for (unsigned r = 0; r < NumRanges; r++) {
-      count += vectorForRange(r).length();
-    }
-    return count;
-  }
+  size_t size() const { return deadlines_.length(); }
 
   // Get the number of deadlines for the range with the most elements.
   size_t maxRangeSize() const {
     size_t count = 0;
-    for (unsigned r = 0; r < NumRanges; r++) {
-      count = std::max(count, vectorForRange(r).length());
+    for (size_t deadlineCount : deadlinesCount_) {
+      count = std::max(count, deadlineCount);
     }
     return count;
   }
@@ -299,18 +264,27 @@ class BranchDeadlineSet {
   // because of an OOM error.
   bool addDeadline(unsigned rangeIdx, BufferOffset deadline) {
     MOZ_ASSERT(deadline.assigned(), "Can only store assigned buffer offsets");
-    // This is the vector where deadline should be saved.
-    auto& vec = vectorForRange(rangeIdx);
 
-    // Fast case: Simple append to the relevant array. This never affects
+    // Fast case: Simple append to the array. This never affects
     // the earliest deadline.
-    if (!vec.empty() && vec.back() < deadline) {
-      return vec.append(deadline);
+    if (!deadlines_.empty() && std::get<0>(deadlines_.back()) < deadline) {
+      const bool okay = deadlines_.emplaceBack(deadline, rangeIdx);
+      if (okay) {
+        deadlinesCount_[rangeIdx] += 1;
+      }
+      return okay;
     }
 
     // Fast case: First entry to the vector. We need to update earliest_.
-    if (vec.empty()) {
-      return vec.append(deadline) && updateEarliest(rangeIdx, deadline);
+    if (deadlines_.empty()) {
+      MOZ_ASSERT(std::all_of(deadlinesCount_.cbegin(), deadlinesCount_.cend(),
+                             [](size_t e) { return e == 0; }));
+      const bool okay = deadlines_.emplaceBack(deadline, rangeIdx);
+      if (okay) {
+        deadlinesCount_[rangeIdx] += 1;
+        updateEarliest(rangeIdx, deadline);
+      }
+      return okay;
     }
 
     return addDeadlineSlow(rangeIdx, deadline);
@@ -321,42 +295,80 @@ class BranchDeadlineSet {
   // the common case in addDeadline can be inlined while this part probably
   // won't inline.
   bool addDeadlineSlow(unsigned rangeIdx, BufferOffset deadline) {
-    auto& vec = vectorForRange(rangeIdx);
-
     // Inserting into the middle of the vector. Use a log time binary search
     // and a linear time insert().
     // Is it worthwhile special-casing the empty vector?
-    auto at = std::lower_bound(vec.begin(), vec.end(), deadline);
-    MOZ_ASSERT(at == vec.end() || *at != deadline,
+    Deadline deadlinePair = Deadline(deadline, rangeIdx);
+    Deadline* at =
+        std::lower_bound(deadlines_.begin(), deadlines_.end(), deadlinePair);
+    MOZ_ASSERT(at == deadlines_.end() || *at != deadlinePair,
                "Cannot insert duplicate deadlines");
-    return vec.insert(at, deadline) && updateEarliest(rangeIdx, deadline);
+    const bool okay = deadlines_.insert(at, deadlinePair);
+    if (okay) {
+      deadlinesCount_[rangeIdx] += 1;
+      updateEarliest(rangeIdx, deadline);
+    }
+    return okay;
   }
 
  public:
   // Remove a deadline from the set.
   // If (rangeIdx, deadline) is not in the set, nothing happens.
   void removeDeadline(unsigned rangeIdx, BufferOffset deadline) {
-    auto& vec = vectorForRange(rangeIdx);
-
-    if (vec.empty()) {
+    if (deadlines_.empty()) {
+      MOZ_ASSERT(std::all_of(deadlinesCount_.cbegin(), deadlinesCount_.cend(),
+                             [](size_t e) { return e == 0; }));
       return;
     }
 
-    if (deadline == vec.back()) {
+    Deadline deadlinePair = Deadline(deadline, rangeIdx);
+    if (deadlinePair == deadlines_.back()) {
       // Expected fast case: Structured control flow causes forward
       // branches to be bound in reverse order.
-      vec.popBack();
+      deadlines_.popBack();
     } else {
-      // Slow case: Binary search + linear erase.
-      auto where = std::lower_bound(vec.begin(), vec.end(), deadline);
-      if (where == vec.end() || *where != deadline) {
+      Deadline* where =
+          std::lower_bound(deadlines_.begin(), deadlines_.end(), deadlinePair);
+      if (where == deadlines_.end() || *where != deadlinePair) {
         return;
       }
-      vec.erase(where);
+      deadlines_.erase(where);
     }
+    MOZ_ASSERT(deadlinesCount_[rangeIdx] >= 1);
+    deadlinesCount_[rangeIdx] -= 1;
     if (deadline == earliest_) {
       recomputeEarliest();
     }
+  }
+
+ public:
+  // Compute the index of the first deadline that is not affected by branch
+  // decompression.
+  mozilla::Maybe<size_t> computeDecompressIndex(size_t decompressFactor) const {
+    if (size() <= 1) {
+      // Empty or singleton vector, no decompression needed.
+      return mozilla::Nothing();
+    }
+
+    const int d0 = std::get<0>(deadlines_[0]).getOffset();
+
+    if (std::get<0>(deadlines_[1]).getOffset() - d0 >=
+        static_cast<int>(decompressFactor)) {
+      // Fast case: d[1] - d[0] >= i * decompressionFactor
+      // No decompression needed.
+      return mozilla::Nothing();
+    }
+
+    // Slow case.
+    // Find the smallest i > 0 such that:
+    //    d[i] - d[0] >= i * decompressionFactor, or i = len(d)
+    for (size_t i = 2; i < deadlines_.length(); i++) {
+      if (std::get<0>(deadlines_[i]).getOffset() - d0 >=
+          static_cast<int>(i * decompressFactor)) {
+        return mozilla::Some(i);
+      }
+    }
+    return mozilla::Some(deadlines_.length());
   }
 };
 
@@ -373,6 +385,9 @@ class BranchDeadlineSet<0u> {
   unsigned earliestDeadlineRange() const { MOZ_CRASH(); }
   bool addDeadline(unsigned rangeIdx, BufferOffset deadline) { MOZ_CRASH(); }
   void removeDeadline(unsigned rangeIdx, BufferOffset deadline) { MOZ_CRASH(); }
+  mozilla::Maybe<size_t> computeDecompressIndex(size_t decompressFactor) const {
+    return mozilla::Nothing();
+  }
 };
 
 // The allocation unit size for pools.
@@ -722,36 +737,54 @@ struct AssemblerBufferWithConstantPools
       size_t poolEnd = poolOffset + pool_.getPoolSize() +
                        numPoolEntries * sizeof(PoolAllocUnit);
 
-      // When NumShortBranchRanges > 1, is is possible for branch deadlines to
-      // expire faster than we can insert veneers. Suppose branches are 4 bytes
-      // each, we could have the following deadline set:
-      //
-      //   Range 0: 40, 44, 48
-      //   Range 1: 44, 48
-      //
-      // It is not good enough to start inserting veneers at the 40 deadline; we
-      // would not be able to create veneers for the second 44 deadline.
-      // Instead, we need to start at 32:
-      //
-      //   32: veneer(40)
-      //   36: veneer(44)
-      //   40: veneer(44)
-      //   44: veneer(48)
-      //   48: veneer(48)
-      //
-      // This is a pretty conservative solution to the problem: If we begin at
-      // the earliest deadline, we can always emit all veneers for the range
-      // that currently has the most pending deadlines. That may not leave room
-      // for veneers for the remaining ranges, so reserve space for those
-      // secondary range veneers assuming the worst case deadlines.
+      size_t decompressPadding = 0;
+      if (guardSize_ <= 1) {
+        // The case when veneers are not longer than the short branch itself.
+        // ARM and ARM64 belong here.
+        //
+        // When NumShortBranchRanges > 1, is is possible for branch deadlines to
+        // expire faster than we can insert veneers. Suppose branches are 4
+        // bytes each, we could have the following deadline set:
+        //
+        //   Range 0: 40, 44, 48
+        //   Range 1: 44, 48
+        //
+        // It is not good enough to start inserting veneers at the 40 deadline;
+        // we would not be able to create veneers for the second 44 deadline.
+        // Instead, we need to start at 32:
+        //
+        //   32: veneer(40)
+        //   36: veneer(44)
+        //   40: veneer(44)
+        //   44: veneer(48)
+        //   48: veneer(48)
+        //
+        // This is a pretty conservative solution to the problem: If we begin at
+        // the earliest deadline, we can always emit all veneers for the range
+        // that currently has the most pending deadlines. That may not leave
+        // room for veneers for the remaining ranges, so reserve space for those
+        // secondary range veneers assuming the worst case deadlines.
 
-      // Total pending secondary range veneer size.
-      size_t secondaryVeneers =
-          guardSize_ *
-          (branchDeadlines_.size() - branchDeadlines_.maxRangeSize()) *
-          InstSize;
+        // Total pending secondary range veneer size.
+        decompressPadding =
+            guardSize_ *
+            (branchDeadlines_.size() - branchDeadlines_.maxRangeSize()) *
+            InstSize;
+      } else {
+        // The case when veneers are longer than short branches.
+        // RISCV64 belongs here, where veneers are two instructions long.
 
-      if (deadline < poolEnd + secondaryVeneers) {
+        // The decompression increment for a single branch.
+        const unsigned branchPadding = (guardSize_ - 1) * InstSize;
+        const unsigned guardSizeBytes = guardSize_ * InstSize;
+
+        mozilla::Maybe<size_t> i =
+            branchDeadlines_.computeDecompressIndex(guardSizeBytes);
+        decompressPadding =
+            i.map([](size_t i) { return i - 1; }).valueOr(0) * branchPadding;
+      }
+
+      if (deadline < poolEnd + decompressPadding) {
         return false;
       }
     }
