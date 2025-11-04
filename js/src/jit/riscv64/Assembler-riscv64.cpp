@@ -126,22 +126,9 @@ void Assembler::processCodeLabels(uint8_t* rawCode) {
 void Assembler::WritePoolGuard(BufferOffset branch, Instruction* dest,
                                BufferOffset afterPool) {
   DEBUG_PRINTF("\tWritePoolGuard\n");
-  int32_t off = afterPool.getOffset() - branch.getOffset();
-  if (!is_int21(off) || !((off & 0x1) == 0)) {
-    printf("%d\n", off);
-    MOZ_CRASH("imm invalid");
-  }
-  // JAL encode is
-  //   31    | 30    21  |  20     | 19     12  | 11 7 |  6   0 |
-  // imm[20] | imm[10:1] | imm[11] | imm[19:12] |  rd  |  opcode|
-  //   1           10         1           8         5       7
-  //                   offset[20:1]               dest      JAL
-  int32_t imm20 = (off & 0xff000) |          // bits 19-12
-                  ((off & 0x800) << 9) |     // bit  11
-                  ((off & 0x7fe) << 20) |    // bits 10-1
-                  ((off & 0x100000) << 11);  // bit  20
-  Instr instr = JAL | (imm20 & kImm20Mask);
-  dest->SetInstructionBits(instr);
+  Instr jal = JAL | (0 & kImm20Mask);
+  jal = SetJalOffset(branch.getOffset(), afterPool.getOffset(), jal);
+  dest->SetInstructionBits(jal);
   DEBUG_PRINTF("%p(%x): ", dest, branch.getOffset());
   disassembleInstr(dest->InstructionBits(), JitSpew_Codegen);
 }
