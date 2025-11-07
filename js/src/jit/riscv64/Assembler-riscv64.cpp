@@ -1034,8 +1034,8 @@ void Assembler::bind(Label* label, BufferOffset boff) {
     return;
   }
 
-  JitSpew(JitSpew_Codegen, ".set Llabel %p %d", label, currentOffset());
-  DEBUG_PRINTF(".set Llabel %p\n", label);
+  JitSpew(JitSpew_Codegen, ".set Llabel %p %u", label, currentOffset());
+  DEBUG_PRINTF(".set Llabel %p %u\n", label, currentOffset());
   // If our caller didn't give us an explicit target to bind to
   // then we want to bind to the location of the next instruction
   BufferOffset dest = boff.assigned() ? boff : nextOffset();
@@ -1054,10 +1054,11 @@ void Assembler::bind(Label* label, BufferOffset boff) {
       int fixup_pos = b.getOffset();
       int dist = dest.getOffset() - fixup_pos;
       next = next_link(label, false);
-      DEBUG_PRINTF("\t%p fixup: %d next: %d\n", label, fixup_pos, next);
-      DEBUG_PRINTF("\t   fixup: %d dest: %d dist: %d %d %d\n", fixup_pos,
-                   dest.getOffset(), dist, nextOffset().getOffset(),
-                   currentOffset());
+      DEBUG_PRINTF(
+          "\t%p fixup: %d next: %u dest: %d dist: %d nextOffset: %d "
+          "currOffset: %d\n",
+          label, fixup_pos, next, dest.getOffset(), dist,
+          nextOffset().getOffset(), currentOffset());
       Instr instr = editSrc(b)->InstructionBits();
       if (IsBranch(instr)) {
         if (!is_intn(dist, kBranchOffsetBits)) {
