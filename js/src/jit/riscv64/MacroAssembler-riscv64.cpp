@@ -2626,7 +2626,8 @@ static void AtomicExchange(MacroAssembler& masm,
   if (nbytes == 4) {
     masm.memoryBarrierBefore(sync);
     masm.bind(&again);
-    BlockTrampolinePoolScope block_trampoline_pool(&masm, 5);
+    BlockTrampolinePoolScope block_trampoline_pool(&masm,
+                                                   /* 1 + 1 + 1 + 3 + 1 = */ 7);
     if (access) {
       masm.append(*access, wasm::TrapMachineInsn::Atomic,
                   FaultingCodeOffset(masm.currentOffset()));
@@ -2663,7 +2664,8 @@ static void AtomicExchange(MacroAssembler& masm,
 
   masm.bind(&again);
 
-  BlockTrampolinePoolScope block_trampoline_pool(&masm, 10);
+  BlockTrampolinePoolScope block_trampoline_pool(
+      &masm, /* 1 + 1 + 1 + 1 + 3 + 1 + 2 + 1 = */ 11);
   if (access) {
     masm.append(*access, wasm::TrapMachineInsn::Atomic,
                 FaultingCodeOffset(masm.currentOffset()));
@@ -2716,7 +2718,8 @@ static void AtomicExchange64(MacroAssembler& masm,
   masm.memoryBarrierBefore(sync);
 
   masm.bind(&tryAgain);
-  BlockTrampolinePoolScope block_trampoline_pool(&masm, 5);
+  BlockTrampolinePoolScope block_trampoline_pool(&masm,
+                                                 /* 1 + 1 + 1 + 3 + 1 = */ 7);
   if (access) {
     masm.append(*access, js::wasm::TrapMachineInsn::Load64,
                 FaultingCodeOffset(masm.currentOffset()));
@@ -2746,7 +2749,8 @@ static void AtomicFetchOp64(MacroAssembler& masm,
   masm.memoryBarrierBefore(sync);
 
   masm.bind(&tryAgain);
-  BlockTrampolinePoolScope block_trampoline_pool(&masm, 5);
+  BlockTrampolinePoolScope block_trampoline_pool(&masm,
+                                                 /* 1 + 1 + 1 + 3 + 1 = */ 7);
   if (access) {
     masm.append(*access, js::wasm::TrapMachineInsn::Load64,
                 FaultingCodeOffset(masm.currentOffset()));
@@ -4847,7 +4851,7 @@ bool MacroAssemblerRiscv64::BranchShortHelper(int32_t offset, Label* L,
     scratch = rt.rm();
   }
   {
-    BlockTrampolinePoolScope block_trampoline_pool(this, 2);
+    BlockTrampolinePoolScope block_trampoline_pool(this, 1);
     switch (cond) {
       case Always:
         if (!CalculateOffset(L, &offset, OffsetSize::kOffset21)) return false;
