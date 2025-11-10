@@ -555,6 +555,11 @@ struct AssemblerBufferWithConstantPools
   using Parent = AssemblerBuffer<SliceSize, Inst>;
   using typename Parent::Slice;
 
+  // The size of the longest short branch in instructions. This is used to
+  // calculate the worst-case minimal gap between two consecutive short
+  // branches.
+  const unsigned maxShortBranchSize_;
+
   // The size of a pool guard, in instructions. A branch around the pool.
   const unsigned guardSize_;
   // The size of the header that is put at the beginning of a full pool, in
@@ -643,11 +648,13 @@ struct AssemblerBufferWithConstantPools
   Slice* getTail() const { return this->tail; }
 
  public:
-  AssemblerBufferWithConstantPools(unsigned guardSize, unsigned headerSize,
+  AssemblerBufferWithConstantPools(unsigned maxShortBranchSize,
+                                   unsigned guardSize, unsigned headerSize,
                                    size_t instBufferAlign, size_t poolMaxOffset,
                                    unsigned pcBias, uint32_t alignFillInst,
                                    uint32_t nopFillInst, unsigned nopFill = 0)
       : poolEntryCount(0),
+        maxShortBranchSize_(maxShortBranchSize),
         guardSize_(guardSize),
         headerSize_(headerSize),
         poolMaxOffset_(poolMaxOffset),
@@ -751,7 +758,16 @@ struct AssemblerBufferWithConstantPools
           (branchDeadlines_.size() - branchDeadlines_.maxRangeSize()) *
           InstSize;
 
-      if (deadline < poolEnd + secondaryVeneers) {
+      // TO EXAMINE: Worst case approximation: all branches will expire.
+      const size_t firstOrderMargin =
+          guardSize_ * branchDeadlines_.size() * InstSize;
+
+      // TO EXAMINE
+      const size_t secondOrderMargin =
+          firstOrderMargin -
+          maxShortBranchSize_ * branchDeadlines_.maxRangeSize() * InstSize;
+
+      if (deadline < poolEnd + secondaryVeneers + secondOrderMargin) {
         return false;
       }
     }
@@ -760,7 +776,21 @@ struct AssemblerBufferWithConstantPools
   }
 
   unsigned insertEntryForwards(unsigned numInst, unsigned numPoolEntries,
-                               uint8_t* inst, uint8_t* data) {
+                               uint8_t* inst, uint8_t* data, bool* infFlushLoop,
+                               size_t level = 0) {
+    if (infFlushLoop != nullptr) {
+      *infFlushLoop = false;
+    }
+
+    if (level > 10) {
+      JitSpew(JitSpew_Pools,
+              "Too much recursion (%zu), must be in a flush loop", level);
+      if (infFlushLoop != nullptr) {
+        *infFlushLoop = true;
+      }
+      return OOM_FAIL;
+    }
+
     // If inserting pool entries then find a new limiter before we do the
     // range check.
     if (numPoolEntries) {
@@ -779,7 +809,8 @@ struct AssemblerBufferWithConstantPools
       if (this->oom()) {
         return OOM_FAIL;
       }
-      return insertEntryForwards(numInst, numPoolEntries, inst, data);
+      return insertEntryForwards(numInst, numPoolEntries, inst, data,
+                                 infFlushLoop, level + 1);
     }
     if (numPoolEntries) {
       unsigned result = pool_.insertEntry(numPoolEntries, data,
@@ -812,8 +843,8 @@ struct AssemblerBufferWithConstantPools
 
   MOZ_NEVER_INLINE
   BufferOffset allocEntry(size_t numInst, unsigned numPoolEntries,
-                          uint8_t* inst, uint8_t* data,
-                          PoolEntry* pe = nullptr) {
+                          uint8_t* inst, uint8_t* data, PoolEntry* pe = nullptr,
+                          bool* infFlushLoop = nullptr) {
     // The allocation of pool entries is not supported in a no-pool region,
     // check.
     MOZ_ASSERT_IF(numPoolEntries > 0, inhibitPools_ == 0);
@@ -840,7 +871,7 @@ struct AssemblerBufferWithConstantPools
 #endif
 
     // Insert the pool value.
-    unsigned index = insertEntryForwards(numInst, numPoolEntries, inst, data);
+    unsigned index = insertEntryForwards(numInst, numPoolEntries, inst, data, infFlushLoop);
     if (this->oom()) {
       return BufferOffset();
     }
@@ -879,10 +910,10 @@ struct AssemblerBufferWithConstantPools
   // will be checked anyway.
 
   MOZ_ALWAYS_INLINE
-  BufferOffset putInt(uint32_t value) {
+  BufferOffset putInt(uint32_t value, bool* infFlushLoop = nullptr) {
     if (nopFill_ ||
         !hasSpaceForInsts(/* numInsts= */ 1, /* numPoolEntries= */ 0)) {
-      return allocEntry(1, 0, (uint8_t*)&value, nullptr, nullptr);
+      return allocEntry(1, 0, (uint8_t*)&value, nullptr, nullptr, infFlushLoop);
     }
 
 #if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_ARM64) ||      \
@@ -1056,9 +1087,13 @@ struct AssemblerBufferWithConstantPools
     finishPool(SIZE_MAX);
   }
 
-  void enterNoPool(size_t maxInst) {
+  void enterNoPool(size_t maxInst, bool* infFlushLoop = nullptr) {
     // Calling this with a zero arg is pointless.
     MOZ_ASSERT(maxInst > 0);
+
+    if (infFlushLoop != nullptr) {
+      *infFlushLoop = false;
+    }
 
     if (this->oom()) {
       return;
@@ -1099,7 +1134,13 @@ struct AssemblerBufferWithConstantPools
       if (this->oom()) {
         return;
       }
-      MOZ_ASSERT(hasSpaceForInsts(maxInst, 0));
+      const bool hasSpaceNow = hasSpaceForInsts(maxInst, 0);
+      if (infFlushLoop != nullptr && !hasSpaceNow) {
+        JitSpew(JitSpew_Pools,
+                "No free space even after flush, must be in a flush loop");
+        *infFlushLoop = true;
+      }
+      MOZ_ASSERT_IF(infFlushLoop == nullptr, hasSpaceNow);
     }
 
 #ifdef DEBUG

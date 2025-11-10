@@ -1256,7 +1256,7 @@ class Assembler : public AssemblerShared {
   // For the alignment fill use NOP: 0x0320f000 or (Always | InstNOP::NopInst).
   // For the nopFill use a branch to the next instruction: 0xeaffffff.
   Assembler()
-      : m_buffer(1, 1, 8, GetPoolMaxOffset(), 8, 0xe320f000, 0xeaffffff,
+      : m_buffer(1, 1, 1, 8, GetPoolMaxOffset(), 8, 0xe320f000, 0xeaffffff,
                  GetNopFill()),
         isFinished(false),
         dtmActive(false),

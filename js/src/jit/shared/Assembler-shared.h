@@ -687,7 +687,10 @@ class AssemblerShared {
 
   void propagateOOM(bool success) { enoughMemory_ &= success; }
 
-  void setOOM() { enoughMemory_ = false; }
+  void setOOM() {
+    JitSpew(JitSpew_Codegen, "OOM!");
+    enoughMemory_ = false;
+  }
 
   bool oom() const { return !enoughMemory_; }
 

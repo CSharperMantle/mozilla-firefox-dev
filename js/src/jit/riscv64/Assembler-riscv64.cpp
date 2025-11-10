@@ -1041,6 +1041,13 @@ uint32_t Assembler::next_link(Label* L, bool is_internal) {
 }
 
 void Assembler::bind(Label* label, BufferOffset boff) {
+  if (oom()) {
+    // Ensure we always bind the label. This matches what we do on
+    // x86/x64/arm and silences the assert in ~Label.
+    label->bind(0);
+    return;
+  }
+
   JitSpew(JitSpew_Codegen, ".set Llabel %p %d", label, currentOffset());
   DEBUG_PRINTF(".set Llabel %p\n", label);
   // If our caller didn't give us an explicit target to bind to

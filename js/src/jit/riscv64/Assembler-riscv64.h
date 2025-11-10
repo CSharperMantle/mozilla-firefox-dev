@@ -184,7 +184,9 @@ class Assembler : public AssemblerShared,
 #ifdef JS_JITSPEW
         printer(nullptr),
 #endif
-        m_buffer(/*guardSize*/ 2, /*headerSize*/ 2, /*instBufferAlign*/ 8,
+        m_buffer(/*maxShortBranchSize*/ 1, /*guardSize*/ 2,
+                 /*headerSize*/ HowMany(sizeof(PoolHeader), 4),
+                 /*instBufferAlign*/ 8,
                  /*poolMaxOffset*/ GetPoolMaxOffset(), /*pcBias*/ 8,
                  /*alignFillInst*/ kNopByte, /*nopFillInst*/ kNopByte),
         isFinished(false) {
@@ -203,7 +205,13 @@ class Assembler : public AssemblerShared,
     MOZ_ASSERT(!isFinished);
     isFinished = true;
   }
-  void enterNoPool(size_t maxInst) { m_buffer.enterNoPool(maxInst); }
+  void enterNoPool(size_t maxInst) {
+    bool infFlushLoop = false;
+    m_buffer.enterNoPool(maxInst, &infFlushLoop);
+    if (infFlushLoop) {
+      setOOM();
+    }
+  }
   void leaveNoPool() { m_buffer.leaveNoPool(); }
   bool swapBuffer(wasm::Bytes& bytes);
   // Size of the instruction stream, in bytes.
@@ -384,8 +392,15 @@ class Assembler : public AssemblerShared,
     }
   }
   virtual BufferOffset emit(Instr x) {
+    if (oom()) {
+      return BufferOffset();
+    }
     MOZ_ASSERT(hasCreator());
-    BufferOffset offset = m_buffer.putInt(x);
+    bool infFlushLoop = false;
+    BufferOffset offset = m_buffer.putInt(x, &infFlushLoop);
+    if (infFlushLoop) {
+      setOOM();
+    }
 #if defined(DEBUG) || defined(JS_JITSPEW)
     if (!oom()) {
       DEBUG_PRINTF(
@@ -400,11 +415,19 @@ class Assembler : public AssemblerShared,
   virtual BufferOffset emit(ShortInstr x) { MOZ_CRASH(); }
   virtual BufferOffset emit(uint64_t x) { MOZ_CRASH(); }
   virtual BufferOffset emit(uint32_t x) {
+    if (oom()) {
+      return BufferOffset();
+    }
     DEBUG_PRINTF(
         "0x%" PRIx64 "(%" PRIxPTR "): uint32_t: %" PRId32 "\n",
         (uint64_t)editSrc(BufferOffset(currentOffset() - sizeof(Instr))),
         currentOffset() - sizeof(Instr), x);
-    return m_buffer.putInt(x);
+    bool infFlushLoop = false;
+    BufferOffset offset = m_buffer.putInt(x, &infFlushLoop);
+    if (infFlushLoop) {
+      setOOM();
+    }
+    return offset;
   }
 
   void instr_at_put(BufferOffset offset, Instr instr) {

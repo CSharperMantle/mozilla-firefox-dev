@@ -66,6 +66,7 @@ typedef js::jit::AssemblerBufferWithConstantPools<1024, 4, Instruction, MozBaseA
 // Base class for vixl::Assembler, for isolating Moz-specific changes to VIXL.
 class MozBaseAssembler : public js::jit::AssemblerShared {
   // Buffer initialization constants.
+  static const unsigned BufferMaxShortBranchSize = 1;
   static const unsigned BufferGuardSize = 1;
   static const unsigned BufferHeaderSize = 1;
   static const size_t   BufferCodeAlignment = 8;
@@ -83,20 +84,20 @@ class MozBaseAssembler : public js::jit::AssemblerShared {
 
  public:
   MozBaseAssembler()
-    : armbuffer_(BufferGuardSize,
-                 BufferHeaderSize,
-                 BufferCodeAlignment,
-                 BufferMaxPoolOffset,
-                 BufferPCBias,
-                 BufferAlignmentFillInstruction,
-                 BufferNopFillInstruction,
-                 BufferNumDebugNopsToInsert)
-  {
+      : armbuffer_(BufferMaxShortBranchSize,
+                   BufferGuardSize,
+                   BufferHeaderSize,
+                   BufferCodeAlignment,
+                   BufferMaxPoolOffset,
+                   BufferPCBias,
+                   BufferAlignmentFillInstruction,
+                   BufferNopFillInstruction,
+                   BufferNumDebugNopsToInsert) {
 #ifdef JS_DISASM_ARM64
-      spew_.setLabelIndent(LabelIndent);
-      spew_.setTargetIndent(TargetIndent);
+    spew_.setLabelIndent(LabelIndent);
+    spew_.setTargetIndent(TargetIndent);
 #endif
-}
+  }
   ~MozBaseAssembler()
   {
 #ifdef JS_DISASM_ARM64
