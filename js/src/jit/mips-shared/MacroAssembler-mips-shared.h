@@ -150,7 +150,7 @@ class MacroAssemblerMIPSShared : public Assembler {
   // fast mod, uses scratch registers, and thus needs to be in the assembler
   // implicitly assumes that we can overwrite dest at the beginning of the
   // sequence
-  void ma_mod_mask(Register src, Register dest, Register hold, Register remain,
+  void ma_mod_mask(Register src, Register dest, Register tmp0, Register tmp1,
                    int32_t shift, Label* negZero = nullptr);
 
   // branches when done from within mips-specific code
