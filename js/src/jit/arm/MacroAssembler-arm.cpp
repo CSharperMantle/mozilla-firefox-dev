@@ -862,63 +862,126 @@ void MacroAssemblerARM::ma_umull(Register src1, Register src2,
 }
 
 void MacroAssemblerARM::ma_mod_mask(Register src, Register dest, Register hold,
-                                    Register tmp, AutoRegisterScope& scratch,
+                                    Register tmp2, AutoRegisterScope& scratch1,
                                     AutoRegisterScope& scratch2,
                                     int32_t shift) {
-  // We wish to compute x % (1<<y) - 1 for a known constant, y.
-  //
-  // 1. Let b = (1<<y) and C = (1<<y)-1, then think of the 32 bit dividend as
-  // a number in base b, namely c_0*1 + c_1*b + c_2*b^2 ... c_n*b^n
-  //
-  // 2. Since both addition and multiplication commute with modulus:
-  //   x % C == (c_0 + c_1*b + ... + c_n*b^n) % C ==
-  //    (c_0 % C) + (c_1%C) * (b % C) + (c_2 % C) * (b^2 % C)...
-  //
-  // 3. Since b == C + 1, b % C == 1, and b^n % C == 1 the whole thing
-  // simplifies to: c_0 + c_1 + c_2 ... c_n % C
-  //
-  // Each c_n can easily be computed by a shift/bitextract, and the modulus
-  // can be maintained by simply subtracting by C whenever the number gets
-  // over C.
-  int32_t mask = (1 << shift) - 1;
-  Label head;
+  MOZ_ASSERT(0 < shift && shift < 31);
 
-  // Register 'hold' holds -1 if the value was negative, 1 otherwise. The
-  // scratch reg holds the remaining bits that have not been processed lr
-  // serves as a temporary location to store extracted bits into as well as
-  // holding the trial subtraction as a temp value dest is the accumulator
-  // (and holds the final result)
+  // "Compute modulus division by (1 << s) - 1 in parallel without a division
+  // operator"
   //
-  // Move the whole value into tmp, setting the codition codes so we can muck
-  // with them later.
-  as_mov(tmp, O2Reg(src), SetCC);
+  // <https://graphics.stanford.edu/~seander/bithacks.html#ModulusDivisionParallel>
+
+  static const std::array<uint32_t, 32> M = {
+      0x00000000, 0x55555555, 0x33333333, 0xc71c71c7, 0x0f0f0f0f, 0xc1f07c1f,
+      0x3f03f03f, 0xf01fc07f, 0x00ff00ff, 0x07fc01ff, 0x3ff003ff, 0xffc007ff,
+      0xff000fff, 0xfc001fff, 0xf0003fff, 0xc0007fff, 0x0000ffff, 0x0001ffff,
+      0x0003ffff, 0x0007ffff, 0x000fffff, 0x001fffff, 0x003fffff, 0x007fffff,
+      0x00ffffff, 0x01ffffff, 0x03ffffff, 0x07ffffff, 0x0fffffff, 0x1fffffff,
+      0x3fffffff, 0x7fffffff,
+  };
+
+  static const std::array<std::array<uint8_t, 6>, 32> Q = {{
+      {0, 0, 0, 0, 0, 0},       {16, 8, 4, 2, 1, 1},
+      {16, 8, 4, 2, 2, 2},      {15, 6, 3, 3, 3, 3},
+      {16, 8, 4, 4, 4, 4},      {15, 5, 5, 5, 5, 5},
+      {12, 6, 6, 6, 6, 6},      {14, 7, 7, 7, 7, 7},
+      {16, 8, 8, 8, 8, 8},      {9, 9, 9, 9, 9, 9},
+      {10, 10, 10, 10, 10, 10}, {11, 11, 11, 11, 11, 11},
+      {12, 12, 12, 12, 12, 12}, {13, 13, 13, 13, 13, 13},
+      {14, 14, 14, 14, 14, 14}, {15, 15, 15, 15, 15, 15},
+      {16, 16, 16, 16, 16, 16}, {17, 17, 17, 17, 17, 17},
+      {18, 18, 18, 18, 18, 18}, {19, 19, 19, 19, 19, 19},
+      {20, 20, 20, 20, 20, 20}, {21, 21, 21, 21, 21, 21},
+      {22, 22, 22, 22, 22, 22}, {23, 23, 23, 23, 23, 23},
+      {24, 24, 24, 24, 24, 24}, {25, 25, 25, 25, 25, 25},
+      {26, 26, 26, 26, 26, 26}, {27, 27, 27, 27, 27, 27},
+      {28, 28, 28, 28, 28, 28}, {29, 29, 29, 29, 29, 29},
+      {30, 30, 30, 30, 30, 30}, {31, 31, 31, 31, 31, 31},
+  }};
+
+  static const std::array<std::array<uint32_t, 6>, 32> R = {{
+      {0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000},
+      {0x0000ffff, 0x000000ff, 0x0000000f, 0x00000003, 0x00000001, 0x00000001},
+      {0x0000ffff, 0x000000ff, 0x0000000f, 0x00000003, 0x00000003, 0x00000003},
+      {0x00007fff, 0x0000003f, 0x00000007, 0x00000007, 0x00000007, 0x00000007},
+      {0x0000ffff, 0x000000ff, 0x0000000f, 0x0000000f, 0x0000000f, 0x0000000f},
+      {0x00007fff, 0x0000001f, 0x0000001f, 0x0000001f, 0x0000001f, 0x0000001f},
+      {0x00000fff, 0x0000003f, 0x0000003f, 0x0000003f, 0x0000003f, 0x0000003f},
+      {0x00003fff, 0x0000007f, 0x0000007f, 0x0000007f, 0x0000007f, 0x0000007f},
+      {0x0000ffff, 0x000000ff, 0x000000ff, 0x000000ff, 0x000000ff, 0x000000ff},
+      {0x000001ff, 0x000001ff, 0x000001ff, 0x000001ff, 0x000001ff, 0x000001ff},
+      {0x000003ff, 0x000003ff, 0x000003ff, 0x000003ff, 0x000003ff, 0x000003ff},
+      {0x000007ff, 0x000007ff, 0x000007ff, 0x000007ff, 0x000007ff, 0x000007ff},
+      {0x00000fff, 0x00000fff, 0x00000fff, 0x00000fff, 0x00000fff, 0x00000fff},
+      {0x00001fff, 0x00001fff, 0x00001fff, 0x00001fff, 0x00001fff, 0x00001fff},
+      {0x00003fff, 0x00003fff, 0x00003fff, 0x00003fff, 0x00003fff, 0x00003fff},
+      {0x00007fff, 0x00007fff, 0x00007fff, 0x00007fff, 0x00007fff, 0x00007fff},
+      {0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff},
+      {0x0001ffff, 0x0001ffff, 0x0001ffff, 0x0001ffff, 0x0001ffff, 0x0001ffff},
+      {0x0003ffff, 0x0003ffff, 0x0003ffff, 0x0003ffff, 0x0003ffff, 0x0003ffff},
+      {0x0007ffff, 0x0007ffff, 0x0007ffff, 0x0007ffff, 0x0007ffff, 0x0007ffff},
+      {0x000fffff, 0x000fffff, 0x000fffff, 0x000fffff, 0x000fffff, 0x000fffff},
+      {0x001fffff, 0x001fffff, 0x001fffff, 0x001fffff, 0x001fffff, 0x001fffff},
+      {0x003fffff, 0x003fffff, 0x003fffff, 0x003fffff, 0x003fffff, 0x003fffff},
+      {0x007fffff, 0x007fffff, 0x007fffff, 0x007fffff, 0x007fffff, 0x007fffff},
+      {0x00ffffff, 0x00ffffff, 0x00ffffff, 0x00ffffff, 0x00ffffff, 0x00ffffff},
+      {0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff},
+      {0x03ffffff, 0x03ffffff, 0x03ffffff, 0x03ffffff, 0x03ffffff, 0x03ffffff},
+      {0x07ffffff, 0x07ffffff, 0x07ffffff, 0x07ffffff, 0x07ffffff, 0x07ffffff},
+      {0x0fffffff, 0x0fffffff, 0x0fffffff, 0x0fffffff, 0x0fffffff, 0x0fffffff},
+      {0x1fffffff, 0x1fffffff, 0x1fffffff, 0x1fffffff, 0x1fffffff, 0x1fffffff},
+      {0x3fffffff, 0x3fffffff, 0x3fffffff, 0x3fffffff, 0x3fffffff, 0x3fffffff},
+      {0x7fffffff, 0x7fffffff, 0x7fffffff, 0x7fffffff, 0x7fffffff, 0x7fffffff},
+  }};
+
+  const uint32_t d = (1 << shift) - 1;
+
   // Zero out the dest.
   ma_mov(Imm32(0), dest);
-  // Set the hold appropriately.
+
+  Label loopDone;
+
+  const auto Ms = M[shift];
+  const auto& Qs = Q[shift];
+  const auto& Rs = R[shift];
+
+  // `scratch2`: `n`, then `d`.
+  // `hold`: 1 for a non-neg `n`, -1 otherwise.
+  // `dest`: `m`, holds the current sum. (and final result).
+  // `tmp2`, `scratch1`: for intermediate calculation.
+
+  as_mov(scratch2, O2Reg(src), SetCC);
   ma_mov(Imm32(1), hold);
   ma_mov(Imm32(-1), hold, Signed);
-  as_rsb(tmp, tmp, Imm8(0), SetCC, Signed);
+  ma_neg(scratch2, scratch2, LeaveCC, Signed);
 
-  // Begin the main loop.
-  bind(&head);
-  {
-    // Extract the bottom bits.
-    ma_and(Imm32(mask), tmp, scratch, scratch2);
-    // Add those bits to the accumulator.
-    ma_add(scratch, dest, dest);
-    // Do a trial subtraction, this is the same operation as cmp, but we store
-    // the dest.
-    ma_sub(dest, Imm32(mask), scratch, scratch2, SetCC);
-    // If (sum - C) > 0, store sum - C back into sum, thus performing a modulus.
-    ma_mov(scratch, dest, LeaveCC, NotSigned);
-    // Get rid of the bits that we extracted before, and set the condition
-    // codes.
-    as_mov(tmp, lsr(tmp, shift), SetCC);
-    // If the shift produced zero, finish, otherwise, continue in the loop.
-    ma_b(&head, NonZero);
+  // m = (n & M[s])
+  ma_mov(Imm32(mozilla::BitwiseCast<int32_t>(Ms)), tmp2);
+  as_and(dest, scratch2, O2Reg(tmp2));
+  // t1 = ((n >> s) & M[s])
+  // m += t1
+  ma_alu(tmp2, lsr(scratch2, static_cast<int>(shift)), scratch1, OpAnd);
+  ma_add(scratch1, dest);
+
+  ma_mov(Imm32(mozilla::BitwiseCast<int32_t>(d)), scratch2);
+  for (size_t j = 0; j < Qs.size(); j++) {
+    // if (m <= d) break
+    ma_cmp(dest, scratch2);
+    ma_b(&loopDone, LessThanOrEqual);
+    // t1 = m & R[s][j]
+    ma_mov(Imm32(mozilla::BitwiseCast<int32_t>(Rs[j])), tmp2);
+    as_and(scratch1, dest, O2Reg(tmp2));
+    // m = t1 + (m >> Q[s][j])
+    ma_alu(scratch1, lsr(dest, static_cast<int>(Qs[j])), dest, OpAdd);
   }
+  bind(&loopDone);
 
-  // Check the hold to see if we need to negate the result. Hold can only be
+  // m = m == d ? 0 : m
+  ma_cmp(dest, scratch2);
+  ma_mov(Imm32(0), dest, Equal);
+
+  // Check `hold` to see if we need to negate the result. Hold can only be
   // 1 or -1, so this will never set the 0 flag.
   as_cmp(hold, Imm8(0));
   // If the hold was non-zero, negate the result to be in line with what JS
