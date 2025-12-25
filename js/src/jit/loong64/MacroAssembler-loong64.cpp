@@ -1630,73 +1630,145 @@ void MacroAssemblerLOONG64::ma_mul32TestOverflow(Register rd, Register rj,
 }
 
 void MacroAssemblerLOONG64::ma_mod_mask(Register src, Register dest,
-                                        Register hold, Register remain,
+                                        Register tmp0, Register tmp1,
                                         int32_t shift, Label* negZero) {
-  // MATH:
-  // We wish to compute x % (1<<y) - 1 for a known constant, y.
-  // First, let b = (1<<y) and C = (1<<y)-1, then think of the 32 bit
-  // dividend as a number in base b, namely
-  // c_0*1 + c_1*b + c_2*b^2 ... c_n*b^n
-  // now, since both addition and multiplication commute with modulus,
-  // x % C == (c_0 + c_1*b + ... + c_n*b^n) % C ==
-  // (c_0 % C) + (c_1%C) * (b % C) + (c_2 % C) * (b^2 % C)...
-  // now, since b == C + 1, b % C == 1, and b^n % C == 1
-  // this means that the whole thing simplifies to:
-  // c_0 + c_1 + c_2 ... c_n % C
-  // each c_n can easily be computed by a shift/bitextract, and the modulus
-  // can be maintained by simply subtracting by C whenever the number gets
-  // over C.
-  int32_t mask = (1 << shift) - 1;
-  Label head, negative, sumSigned, done;
+  MOZ_ASSERT(0 <= shift && shift < 31);
 
-  // hold holds -1 if the value was negative, 1 otherwise.
-  // remain holds the remaining bits that have not been processed
-  // SecondScratchReg serves as a temporary location to store extracted bits
-  // into as well as holding the trial subtraction as a temp value dest is
-  // the accumulator (and holds the final result)
+  // "Compute modulus division by (1 << s) - 1 in parallel without a division
+  // operator"
+  //
+  // <https://graphics.stanford.edu/~seander/bithacks.html#ModulusDivisionParallel>
 
-  // move the whole value into the remain.
-  as_or(remain, src, zero);
+  static const std::array<uint32_t, 32> M = {
+      0x00000000, 0x55555555, 0x33333333, 0xc71c71c7, 0x0f0f0f0f, 0xc1f07c1f,
+      0x3f03f03f, 0xf01fc07f, 0x00ff00ff, 0x07fc01ff, 0x3ff003ff, 0xffc007ff,
+      0xff000fff, 0xfc001fff, 0xf0003fff, 0xc0007fff, 0x0000ffff, 0x0001ffff,
+      0x0003ffff, 0x0007ffff, 0x000fffff, 0x001fffff, 0x003fffff, 0x007fffff,
+      0x00ffffff, 0x01ffffff, 0x03ffffff, 0x07ffffff, 0x0fffffff, 0x1fffffff,
+      0x3fffffff, 0x7fffffff,
+  };
+
+  static const std::array<std::array<uint8_t, 6>, 32> Q = {{
+      {0, 0, 0, 0, 0, 0},       {16, 8, 4, 2, 1, 1},
+      {16, 8, 4, 2, 2, 2},      {15, 6, 3, 3, 3, 3},
+      {16, 8, 4, 4, 4, 4},      {15, 5, 5, 5, 5, 5},
+      {12, 6, 6, 6, 6, 6},      {14, 7, 7, 7, 7, 7},
+      {16, 8, 8, 8, 8, 8},      {9, 9, 9, 9, 9, 9},
+      {10, 10, 10, 10, 10, 10}, {11, 11, 11, 11, 11, 11},
+      {12, 12, 12, 12, 12, 12}, {13, 13, 13, 13, 13, 13},
+      {14, 14, 14, 14, 14, 14}, {15, 15, 15, 15, 15, 15},
+      {16, 16, 16, 16, 16, 16}, {17, 17, 17, 17, 17, 17},
+      {18, 18, 18, 18, 18, 18}, {19, 19, 19, 19, 19, 19},
+      {20, 20, 20, 20, 20, 20}, {21, 21, 21, 21, 21, 21},
+      {22, 22, 22, 22, 22, 22}, {23, 23, 23, 23, 23, 23},
+      {24, 24, 24, 24, 24, 24}, {25, 25, 25, 25, 25, 25},
+      {26, 26, 26, 26, 26, 26}, {27, 27, 27, 27, 27, 27},
+      {28, 28, 28, 28, 28, 28}, {29, 29, 29, 29, 29, 29},
+      {30, 30, 30, 30, 30, 30}, {31, 31, 31, 31, 31, 31},
+  }};
+
+  static const std::array<std::array<uint32_t, 6>, 32> R = {{
+      {0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000},
+      {0x0000ffff, 0x000000ff, 0x0000000f, 0x00000003, 0x00000001, 0x00000001},
+      {0x0000ffff, 0x000000ff, 0x0000000f, 0x00000003, 0x00000003, 0x00000003},
+      {0x00007fff, 0x0000003f, 0x00000007, 0x00000007, 0x00000007, 0x00000007},
+      {0x0000ffff, 0x000000ff, 0x0000000f, 0x0000000f, 0x0000000f, 0x0000000f},
+      {0x00007fff, 0x0000001f, 0x0000001f, 0x0000001f, 0x0000001f, 0x0000001f},
+      {0x00000fff, 0x0000003f, 0x0000003f, 0x0000003f, 0x0000003f, 0x0000003f},
+      {0x00003fff, 0x0000007f, 0x0000007f, 0x0000007f, 0x0000007f, 0x0000007f},
+      {0x0000ffff, 0x000000ff, 0x000000ff, 0x000000ff, 0x000000ff, 0x000000ff},
+      {0x000001ff, 0x000001ff, 0x000001ff, 0x000001ff, 0x000001ff, 0x000001ff},
+      {0x000003ff, 0x000003ff, 0x000003ff, 0x000003ff, 0x000003ff, 0x000003ff},
+      {0x000007ff, 0x000007ff, 0x000007ff, 0x000007ff, 0x000007ff, 0x000007ff},
+      {0x00000fff, 0x00000fff, 0x00000fff, 0x00000fff, 0x00000fff, 0x00000fff},
+      {0x00001fff, 0x00001fff, 0x00001fff, 0x00001fff, 0x00001fff, 0x00001fff},
+      {0x00003fff, 0x00003fff, 0x00003fff, 0x00003fff, 0x00003fff, 0x00003fff},
+      {0x00007fff, 0x00007fff, 0x00007fff, 0x00007fff, 0x00007fff, 0x00007fff},
+      {0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff},
+      {0x0001ffff, 0x0001ffff, 0x0001ffff, 0x0001ffff, 0x0001ffff, 0x0001ffff},
+      {0x0003ffff, 0x0003ffff, 0x0003ffff, 0x0003ffff, 0x0003ffff, 0x0003ffff},
+      {0x0007ffff, 0x0007ffff, 0x0007ffff, 0x0007ffff, 0x0007ffff, 0x0007ffff},
+      {0x000fffff, 0x000fffff, 0x000fffff, 0x000fffff, 0x000fffff, 0x000fffff},
+      {0x001fffff, 0x001fffff, 0x001fffff, 0x001fffff, 0x001fffff, 0x001fffff},
+      {0x003fffff, 0x003fffff, 0x003fffff, 0x003fffff, 0x003fffff, 0x003fffff},
+      {0x007fffff, 0x007fffff, 0x007fffff, 0x007fffff, 0x007fffff, 0x007fffff},
+      {0x00ffffff, 0x00ffffff, 0x00ffffff, 0x00ffffff, 0x00ffffff, 0x00ffffff},
+      {0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff},
+      {0x03ffffff, 0x03ffffff, 0x03ffffff, 0x03ffffff, 0x03ffffff, 0x03ffffff},
+      {0x07ffffff, 0x07ffffff, 0x07ffffff, 0x07ffffff, 0x07ffffff, 0x07ffffff},
+      {0x0fffffff, 0x0fffffff, 0x0fffffff, 0x0fffffff, 0x0fffffff, 0x0fffffff},
+      {0x1fffffff, 0x1fffffff, 0x1fffffff, 0x1fffffff, 0x1fffffff, 0x1fffffff},
+      {0x3fffffff, 0x3fffffff, 0x3fffffff, 0x3fffffff, 0x3fffffff, 0x3fffffff},
+      {0x7fffffff, 0x7fffffff, 0x7fffffff, 0x7fffffff, 0x7fffffff, 0x7fffffff},
+  }};
+
+  const uint32_t d = (1 << shift) - 1;
+
   // Zero out the dest.
-  ma_li(dest, Imm32(0));
-  // Set the hold appropriately.
-  ma_b(remain, remain, &negative, Signed, ShortJump);
-  ma_li(hold, Imm32(1));
-  ma_b(&head, ShortJump);
+  as_or(dest, dest, zero);
 
-  bind(&negative);
-  ma_li(hold, Imm32(-1));
-  as_sub_w(remain, zero, remain);
+  if (d == 1) {
+    // For x % 1 w/ any x, we just need to return +0 or -0 appropriately.
+    if (negZero != nullptr) {
+      // Jump out in case of negative zero.
+      ma_b(src, src, negZero, Signed);
+    }
+    return;
+  }
 
-  // Begin the main loop.
-  bind(&head);
+  UseScratchRegisterScope temps(*this);
+  const Register scratch1 = temps.Acquire();
 
-  UseScratchRegisterScope temps(asMasm());
-  Register scratch = temps.Acquire();
-  // Extract the bottom bits into SecondScratchReg.
-  ma_and(scratch, remain, Imm32(mask));
-  // Add those bits to the accumulator.
-  as_add_w(dest, dest, scratch);
-  // Do a trial subtraction
-  ma_sub_w(scratch, dest, Imm32(mask));
-  // If (sum - C) > 0, store sum - C back into sum, thus performing a
-  // modulus.
-  ma_b(scratch, Register(scratch), &sumSigned, Signed, ShortJump);
-  as_or(dest, scratch, zero);
-  bind(&sumSigned);
-  // Get rid of the bits that we extracted before.
-  as_srli_w(remain, remain, shift);
-  // If the shift produced zero, finish, otherwise, continue in the loop.
-  ma_b(remain, remain, &head, NonZero, ShortJump);
-  // Check the hold to see if we need to negate the result.
-  ma_b(hold, hold, &done, NotSigned, ShortJump);
+  Label noSrcNeg, loopDone, noEqAdjust, done;
 
+  const auto Ms = M[shift];
+  const auto& Qs = Q[shift];
+  const auto& Rs = R[shift];
+
+  // `tmp0`: `n`, then `d`.
+  // `dest`: `m`, holds the current sum. (and final result).
+  // `tmp1`, `scratch1`: for intermediate calculation.
+
+  // n = abs(x)
+  as_or(tmp0, src, zero);
+  ma_b(src, src, &noSrcNeg, NotSigned, ShortJump);
+  as_sub_w(tmp0, zero, tmp0);
+  bind(&noSrcNeg);
+
+  // m = (n & M[s])
+  ma_li(tmp1, Imm32(mozilla::BitwiseCast<int32_t>(Ms)));
+  as_and(dest, tmp0, tmp1);
+  // m += ((n >> s) & M[s])
+  as_srli_w(scratch1, tmp0, shift);
+  as_and(scratch1, scratch1, tmp1);
+  as_add_w(dest, dest, scratch1);
+
+  ma_li(tmp0, Imm32(mozilla::BitwiseCast<int32_t>(d)));
+  for (size_t j = 0; j < Qs.size(); j++) {
+    // if (m <= d) break
+    ma_b(dest, tmp0, &loopDone, LessThanOrEqual, ShortJump);
+    // t1 = m >> Q[s][j]
+    as_srli_w(scratch1, dest, Qs[j]);
+    // m = m & R[s][j]
+    ma_li(tmp1, Imm32(mozilla::BitwiseCast<int32_t>(Rs[j])));
+    as_and(dest, dest, tmp1);
+    // m += t1
+    as_add_w(dest, scratch1, dest);
+  }
+  bind(&loopDone);
+
+  // m = m == d ? 0 : m
+  ma_b(dest, tmp0, &noEqAdjust, NotEqual, ShortJump);
+  as_or(dest, zero, zero);
+  bind(&noEqAdjust);
+
+  // Check `x` to see if we need to negate the result.
+  ma_b(src, src, &done, NotSigned, ShortJump);
   if (negZero != nullptr) {
     // Jump out in case of negative zero.
     ma_b(dest, dest, negZero, Zero);
   }
-  // If the hold was non-zero, negate the result to be in line with
-  // what JS wants
+  // If `x` is negative, negate the result to be in line with what JS wants
   as_sub_w(dest, zero, dest);
 
   bind(&done);
