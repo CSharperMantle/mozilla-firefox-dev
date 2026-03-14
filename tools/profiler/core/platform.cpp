@@ -2834,21 +2834,21 @@ static void DoLULBacktrace(
   {
 #  if defined(GP_PLAT_amd64_linux) || defined(GP_PLAT_amd64_android) || \
       defined(GP_PLAT_amd64_freebsd)
-    uintptr_t rEDZONE_SIZE = 128;
-    uintptr_t start = startRegs.xsp.Value() - rEDZONE_SIZE;
+    uintptr_t REDZONE_SIZE = 128;
+    uintptr_t start = startRegs.xsp.Value() - REDZONE_SIZE;
 #  elif defined(GP_PLAT_arm_linux) || defined(GP_PLAT_arm_android)
-    uintptr_t rEDZONE_SIZE = 0;
-    uintptr_t start = startRegs.r13.Value() - rEDZONE_SIZE;
+    uintptr_t REDZONE_SIZE = 0;
+    uintptr_t start = startRegs.r13.Value() - REDZONE_SIZE;
 #  elif defined(GP_PLAT_arm64_linux) || defined(GP_PLAT_arm64_android) || \
       defined(GP_PLAT_arm64_freebsd)
-    uintptr_t rEDZONE_SIZE = 0;
-    uintptr_t start = startRegs.sp.Value() - rEDZONE_SIZE;
+    uintptr_t REDZONE_SIZE = 0;
+    uintptr_t start = startRegs.sp.Value() - REDZONE_SIZE;
 #  elif defined(GP_PLAT_x86_linux) || defined(GP_PLAT_x86_android)
-    uintptr_t rEDZONE_SIZE = 0;
-    uintptr_t start = startRegs.xsp.Value() - rEDZONE_SIZE;
+    uintptr_t REDZONE_SIZE = 0;
+    uintptr_t start = startRegs.xsp.Value() - REDZONE_SIZE;
 #  elif defined(GP_PLAT_mips64_linux)
-    uintptr_t rEDZONE_SIZE = 0;
-    uintptr_t start = startRegs.sp.Value() - rEDZONE_SIZE;
+    uintptr_t REDZONE_SIZE = 0;
+    uintptr_t start = startRegs.sp.Value() - REDZONE_SIZE;
 #  else
 #    error "Unknown plat"
 #  endif
