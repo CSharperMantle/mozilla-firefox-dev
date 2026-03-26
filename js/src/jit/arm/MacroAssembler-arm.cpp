@@ -879,45 +879,72 @@ void MacroAssemblerARM::ma_mod_mask(Register src, Register dest, Register hold,
   // Each c_n can easily be computed by a shift/bitextract, and the modulus
   // can be maintained by simply subtracting by C whenever the number gets
   // over C.
-  int32_t mask = (1 << shift) - 1;
-  Label head;
-
-  // Register 'hold' holds -1 if the value was negative, 1 otherwise. The
-  // scratch reg holds the remaining bits that have not been processed lr
-  // serves as a temporary location to store extracted bits into as well as
-  // holding the trial subtraction as a temp value dest is the accumulator
-  // (and holds the final result)
   //
-  // Move the whole value into tmp, setting the codition codes so we can muck
-  // with them later.
-  as_mov(tmp, O2Reg(src), SetCC);
-  // Zero out the dest.
-  ma_mov(Imm32(0), dest);
+  // The idea comes from "Compute modulus division by (1 << s) - 1 in parallel
+  // without a division operator" at
+  // <https://graphics.stanford.edu/~seander/bithacks.html#ModulusDivisionParallel>,
+  // but without hard-coded tables.
+
+  MOZ_ASSERT(0 < shift && shift < 31);
+
+  const uint32_t d = (1 << shift) - 1;
+
+  Label loopDone;
+
+  as_mov(scratch2, O2Reg(src), SetCC);
+
   // Set the hold appropriately.
   ma_mov(Imm32(1), hold);
   ma_mov(Imm32(-1), hold, Signed);
-  as_rsb(tmp, tmp, Imm8(0), SetCC, Signed);
+  ma_neg(scratch2, scratch2, LeaveCC, Signed);
 
-  // Begin the main loop.
-  bind(&head);
-  {
-    // Extract the bottom bits.
-    ma_and(Imm32(mask), tmp, scratch, scratch2);
-    // Add those bits to the accumulator.
-    ma_add(scratch, dest, dest);
-    // Do a trial subtraction, this is the same operation as cmp, but we store
-    // the dest.
-    ma_sub(dest, Imm32(mask), scratch, scratch2, SetCC);
-    // If (sum - C) > 0, store sum - C back into sum, thus performing a modulus.
-    ma_mov(scratch, dest, LeaveCC, NotSigned);
-    // Get rid of the bits that we extracted before, and set the condition
-    // codes.
-    as_mov(tmp, lsr(tmp, shift), SetCC);
-    // If the shift produced zero, finish, otherwise, continue in the loop.
-    ma_b(&head, NonZero);
+  // Compute M[s].
+  uint32_t m_s = d;
+  int32_t q_iter = shift;
+  while (q_iter < 16) {
+    q_iter *= 2;
+    m_s |= (m_s << q_iter);
   }
 
-  // Check the hold to see if we need to negate the result. Hold can only be
+  // m = (n & M[s])
+  ma_mov(Imm32(mozilla::BitwiseCast<int32_t>(m_s)), tmp);
+  as_and(dest, scratch2, O2Reg(tmp));
+  // t1 = ((n >> s) & M[s])
+  // m += t1
+  ma_alu(tmp, lsr(scratch2, shift), scratch, OpAnd);
+  ma_add(scratch, dest);
+
+  ma_mov(Imm32(mozilla::BitwiseCast<int32_t>(d)), scratch2);
+
+  int32_t q = 32;
+  // The upper bound 9 is derived from tracing through the worse case scenario,
+  // where shift=1, x=0xFFFFFFFF (i.e. d=1, M[s]=0x55555555, m=0xAAAAAAAA).
+  for (int i = 0; i < 9; i++) {
+    // if (m <= d) break
+    ma_cmp(dest, scratch2);
+    ma_b(&loopDone, LessThanOrEqual);
+
+    // q = q > shift ? (q / 2) - ((q / 2) % shift) : q
+    // When q/2 < shift, the formula gives 0, thus the std::max clamping.
+    if (q > shift) {
+      q = std::max((q / 2) - ((q / 2) % shift), shift);
+    }
+    // r = (1 << q) - 1
+    uint32_t r = (1 << q) - 1;
+    // m = (m >> q) + (m & r)
+    ma_mov(Imm32(mozilla::BitwiseCast<int32_t>(r)), tmp);
+    // t1 = m & r
+    as_and(scratch, dest, O2Reg(tmp));
+    // m = t1 + (m >> q)
+    ma_alu(scratch, lsr(dest, q), dest, OpAdd);
+  }
+  bind(&loopDone);
+
+  // m = m == d ? 0 : m
+  ma_cmp(dest, scratch2);
+  ma_mov(Imm32(0), dest, Equal);
+
+  // Check `hold` to see if we need to negate the result. Hold can only be
   // 1 or -1, so this will never set the 0 flag.
   as_cmp(hold, Imm8(0));
   // If the hold was non-zero, negate the result to be in line with what JS
