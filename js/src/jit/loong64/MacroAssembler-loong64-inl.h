@@ -2297,8 +2297,35 @@ FaultingCodeOffset MacroAssembler::storeFloat16(FloatRegister src,
 }
 
 void MacroAssembler::memoryBarrier(MemoryBarrier barrier) {
+  // https://github.com/loongson/LoongArch-Documentation/releases/latest/download/LoongArch-Vol1-v1.10-CN.pdf
   if (!barrier.isNone()) {
-    as_dbar(0);
+    // In LoongArch, DBAR instructions always fence observable effects.
+    // So, there's no separate sync operations.
+    //
+    // As per the docs, the `hint` field is encoded as follows:
+    //    Bit 0: 1 if succeeding stores should NOT be affected by the barrier.
+    //    Bit 1: 1 if succeeding loads should NOT be affected by the barrier.
+    //    Bit 2: 1 if preceding stores should NOT be considered by the barrier.
+    //    Bit 3: 1 if preceding loads should NOT be considered by the barrier.
+    //    Bit 4: 1 if uncached loads and stores should NOT be considered by the
+    //    barrier.
+
+    // By default, all mem/MMIO operations are excluded.
+    uint8_t hint = 0b11111;
+    if (barrier.hasLoadLoad()) {
+      hint &= ~0b01010;  // Include prec and succ loads.
+    }
+    if (barrier.hasLoadStore()) {
+      hint &= ~0b01001;  // Include prec loads and succ stores.
+    }
+    if (barrier.hasStoreLoad()) {
+      hint &= ~0b00110;  // Include prec stores and succ loads.
+    }
+    if (barrier.hasStoreStore()) {
+      hint &= ~0b00101;  // Include prec and succ stores.
+    }
+
+    as_dbar(hint);
   }
 }
 
