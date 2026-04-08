@@ -58,6 +58,12 @@ class MemoryBarrier {
 
   constexpr bool hasSync() const { return bits_ & MembarSynchronizing; }
 
+  constexpr bool hasLoadLoad() const { return bits_ & MembarLoadLoad; }
+
+  constexpr bool hasLoadStore() const { return bits_ & MembarLoadStore; }
+
+  constexpr bool hasStoreStore() const { return bits_ & MembarStoreStore; }
+
   constexpr bool hasStoreLoad() const { return bits_ & MembarStoreLoad; }
 
   // No memory barrier.
