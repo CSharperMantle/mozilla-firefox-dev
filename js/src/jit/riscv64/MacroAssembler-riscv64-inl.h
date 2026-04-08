@@ -1679,8 +1679,31 @@ void MacroAssembler::maxFloat32(FloatRegister other, FloatRegister srcDest,
   Float32Max(srcDest, srcDest, other);
 }
 void MacroAssembler::memoryBarrier(MemoryBarrier barrier) {
+  // https://riscv.github.io/riscv-isa-manual/snapshot/spec/#fence
   if (!barrier.isNone()) {
-    sync();
+    // In RISC-V, fence instructions always guarantee completion.
+    // So, there's no separate sync operations.
+
+    uint8_t pred = 0b0000;  // PI PO PR PW
+    uint8_t succ = 0b0000;  // SI SO SR SW
+    if (barrier.hasLoadLoad()) {
+      pred |= 0b0010;  // PR+
+      succ |= 0b0010;  // SR+
+    }
+    if (barrier.hasLoadStore()) {
+      pred |= 0b0010;  // PR+
+      succ |= 0b0001;  // SW+
+    }
+    if (barrier.hasStoreLoad()) {
+      pred |= 0b0001;  // PW+
+      succ |= 0b0010;  // SR+
+    }
+    if (barrier.hasStoreStore()) {
+      pred |= 0b0001;  // PW+
+      succ |= 0b0001;  // SW+
+    }
+
+    fence(pred, succ);
   }
 }
 void MacroAssembler::minDouble(FloatRegister other, FloatRegister srcDest,
