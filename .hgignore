@@ -79,6 +79,7 @@
 
 # Build directories
 ^obj.*/
+^obj.*
 
 # Hazard analysis results
 ^haz-.*/
@@ -421,3 +422,7 @@ toolkit/themes/shared/design-system/dist/token-audit
 
 # MFBT test result logs
 ^mfbt/zmij/test/output
+
+# Ignore .json.gz (typically profiles) in the root directory
+# lint-ignore-next-line: git-only
+^.*\.json\.gz
