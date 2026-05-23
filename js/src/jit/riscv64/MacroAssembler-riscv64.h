@@ -87,6 +87,19 @@ struct ImmShiftedTag : public ImmWord {
   }
 };
 
+// The negated shifted tag. Adding it to a Value unboxes the Value and
+// subtracting it from a payload boxes the payload. Like xoring with the
+// shifted tag, adding it clears the bits above the payload if and only if the
+// tag matches, so a mistyped Value still unboxes to a pointer with high bits
+// set. The negated shifted tags of booleans, objects, strings and symbols are
+// a single bit, which ma_li loads with one bseti when Zbs is available. The
+// other negated shifted tags, like all shifted tags, take two instructions.
+struct ImmNegatedShiftedTag : public ImmWord {
+  explicit ImmNegatedShiftedTag(JSValueType type)
+      : ImmWord(
+            -uintptr_t(JSValueShiftedTag(JSVAL_TYPE_TO_SHIFTED_TAG(type)))) {}
+};
+
 struct ImmTag : public Imm32 {
   explicit ImmTag(JSValueTag mask) : Imm32(int32_t(mask)) {}
 };
@@ -171,7 +184,12 @@ class MacroAssemblerRiscv64 : public Assembler {
   BufferOffset ma_liPatchable(Register dest, ImmPtr imm) {
     return li_ptr(dest, uintptr_t(imm.value));
   }
+  // Use the shorter li_ptr when the value fits, as pointers and placeholders
+  // such as -1 do. Any value patched in later must fit too.
   BufferOffset ma_liPatchable(Register dest, ImmWord imm) {
+    if (IsLiPtrImmediate(imm.value)) {
+      return li_ptr(dest, imm.value);
+    }
     return li_constant(dest, imm.value);
   }
   void ma_li(Register dest, ImmGCPtr ptr);
@@ -352,6 +370,11 @@ class MacroAssemblerRiscv64 : public Assembler {
   Address computeScaledAddress(
       const BaseIndex& address, UseScratchRegisterScope& temps,
       wasm::ZeroExtendIndex zeroExtend = wasm::ZeroExtendIndex::No);
+
+  // Load |address| without its low twelve bits into |scratch| and return an
+  // Address through |scratch| whose offset holds them, so that the access
+  // absorbs the ADDI which would otherwise end the materialization.
+  Address computeAbsoluteAddress(AbsoluteAddress address, Register scratch);
 
  private:
   bool UseShortBranch(Label* L, JumpKind jumpKind, OffsetSize bits,
@@ -878,8 +901,8 @@ class MacroAssemblerRiscv64Compat : public MacroAssemblerRiscv64 {
     UseScratchRegisterScope temps(this);
     Register scratch = temps.Acquire();
     MOZ_ASSERT(scratch != src);
-    mov(ImmShiftedTag(type), scratch);
-    xor_(dest, src, scratch);
+    mov(ImmNegatedShiftedTag(type), scratch);
+    add(dest, src, scratch);
   }
 
   void unboxGCThingForGCBarrier(const Address& src, Register dest) {

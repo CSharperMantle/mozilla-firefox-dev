@@ -325,11 +325,9 @@ void MacroAssembler::addPtr(Imm32 imm, Register dest) {
 }
 
 void MacroAssembler::addPtr(ImmWord imm, Register dest) {
-  UseScratchRegisterScope temps(this);
-  Register scratch = temps.Acquire();
-  movePtr(imm, scratch);
-  addPtr(scratch, dest);
+  ma_add64(dest, dest, Imm64(imm.value));
 }
+
 void MacroAssembler::addPtr(Imm32 imm, const Address& dest) {
   UseScratchRegisterScope temps(this);
   Register scratch = temps.Acquire();
@@ -1565,7 +1563,7 @@ void MacroAssembler::fallibleUnboxPtr(const ValueOperand& src, Register dest,
                                       JSValueType type, Label* fail) {
   MOZ_ASSERT(type == JSVAL_TYPE_OBJECT || type == JSVAL_TYPE_STRING ||
              type == JSVAL_TYPE_SYMBOL || type == JSVAL_TYPE_BIGINT);
-  // dest := src XOR mask
+  // dest := src + negated shifted tag (see ImmNegatedShiftedTag)
   // scratch := dest >> JSVAL_TAG_SHIFT
   // fail if scratch != 0
   //
@@ -1573,8 +1571,8 @@ void MacroAssembler::fallibleUnboxPtr(const ValueOperand& src, Register dest,
   UseScratchRegisterScope temps(this);
   Register scratch = temps.Acquire();
   MOZ_ASSERT(src.valueReg() != scratch);
-  mov(ImmShiftedTag(type), scratch);
-  xor_(dest, src.valueReg(), scratch);
+  mov(ImmNegatedShiftedTag(type), scratch);
+  add(dest, src.valueReg(), scratch);
   srli(scratch, dest, JSVAL_TAG_SHIFT);
   ma_b(scratch, Imm32(0), fail, Assembler::NotEqual, ShortJump);
 }
@@ -1603,10 +1601,10 @@ void MacroAssembler::inc64(AbsoluteAddress dest) {
   UseScratchRegisterScope temps(this);
   Register scratch = temps.Acquire();
   Register scratch2 = temps.Acquire();
-  ma_li(scratch, ImmWord(uintptr_t(dest.addr)));
-  ld(scratch2, scratch, 0);
+  Address address = computeAbsoluteAddress(dest, scratch);
+  ld(scratch2, address.base, address.offset);
   addi(scratch2, scratch2, 1);
-  sd(scratch2, scratch, 0);
+  sd(scratch2, address.base, address.offset);
 }
 
 void MacroAssembler::load32SignExtendToPtr(const Address& src, Register dest) {
@@ -1809,11 +1807,7 @@ void MacroAssembler::mul64(const Register64& src, const Register64& dest,
 }
 
 void MacroAssembler::mulBy3(Register src, Register dest) {
-  UseScratchRegisterScope temps(this);
-  Register scratch = temps.Acquire();
-  MOZ_ASSERT(src != scratch);
-  add(scratch, src, src);
-  add(dest, scratch, src);
+  ma_mul64(dest, src, Imm64(3));
 }
 void MacroAssembler::mulDouble(FloatRegister src, FloatRegister dest) {
   fmul_d(dest, dest, src);

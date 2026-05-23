@@ -234,8 +234,8 @@ class MacroAssemblerLOONG64 : public Assembler {
   FaultingCodeRange ma_fld_d(FloatRegister ft, Address address);
   FaultingCodeRange ma_fst_d(FloatRegister ft, Address address);
   FaultingCodeRange ma_fst_s(FloatRegister ft, Address address);
-  FaultingCodeRange ma_vld(FloatRegister vd, Address address);
-  FaultingCodeRange ma_vst(FloatRegister vd, Address address);
+  FaultingCodeRange ma_vld(VRegister vd, Address address);
+  FaultingCodeRange ma_vst(VRegister vd, Address address);
 
   void ma_pop(FloatRegister f);
   void ma_push(FloatRegister f);
@@ -562,6 +562,9 @@ class MacroAssemblerLOONG64Compat : public MacroAssemblerLOONG64 {
 
   Address computeScaledAddress(const BaseIndex& address,
                                UseScratchRegisterScope& temps);
+
+  Address computeAbsoluteAddress(AbsoluteAddress address,
+                                 UseScratchRegisterScope& temps);
 
   void j(Label* dest) { ma_b(dest); }
 
