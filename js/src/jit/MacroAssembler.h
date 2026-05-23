@@ -1143,6 +1143,11 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
   inline void nor32(Imm32 imm, Register src, Register dest) PER_SHARED_ARCH;
 
+  inline void andNot32(Register lhs, Register rhs, Register dest,
+                       Register scratch) PER_SHARED_ARCH;
+  inline void andNot64(Register64 lhs, Register64 rhs, Register64 dest,
+                       Register scratch) PER_ARCH;
+
   // ===============================================================
   // Swap instructions
 

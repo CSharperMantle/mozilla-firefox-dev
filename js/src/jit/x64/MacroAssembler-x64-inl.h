@@ -181,6 +181,22 @@ void MacroAssembler::xor64(const Operand& src, Register64 dest) {
   xorq(src, dest.reg);
 }
 
+void MacroAssembler::andNot64(Register64 lhs, Register64 rhs, Register64 dest,
+                              Register scratch) {
+  if (HasBMI1()) {
+    MOZ_ASSERT(scratch == InvalidReg);
+    andnq(rhs.reg, lhs.reg, dest.reg);
+    return;
+  }
+  MOZ_ASSERT(scratch != InvalidReg);
+  MOZ_ASSERT(scratch != dest.reg);
+  MOZ_ASSERT(scratch != lhs.reg);
+  movePtr(rhs.reg, scratch);
+  notPtr(scratch);
+  movePtr(lhs.reg, dest.reg);
+  andPtr(scratch, dest.reg);
+}
+
 // ===============================================================
 // Swap instructions
 

@@ -4015,6 +4015,28 @@ set_config("LSX_FLAGS", ["-mlsx"])
 set_config("LASX_FLAGS", ["-mlasx"])
 
 
+@depends(target)
+def is_riscv64_target(target):
+    return target.cpu == "riscv64"
+
+
+# RISC-V Vector Extension, for code that checks for it at runtime (see
+# mozglue/misc/RVV.h).
+have_rvv_intrinsics = try_compile(
+    check_msg="for RISC-V vector intrinsics",
+    flags=["-march=rv64gcv"],
+    includes=["riscv_vector.h"],
+    body="""
+      size_t vl = __riscv_vsetvl_e8m4(1);
+      vuint8m4_t v = __riscv_vmv_v_x_u8m4(0, vl);
+      return __riscv_vfirst_m_b2(__riscv_vmseq_vx_u8m4_b2(v, 0, vl), vl);
+    """,
+    when=is_riscv64_target,
+)
+set_config("RVV_FLAGS", ["-march=rv64gcv"], when=have_rvv_intrinsics)
+set_define("HAVE_RVV_INTRINSICS", True, when=have_rvv_intrinsics)
+
+
 @depends(target, c_compiler)
 def htmlaccel_config(target, c_compiler):
     # Keep this is sync with the mozilla::htmlaccel::htmlaccelEnabled function.

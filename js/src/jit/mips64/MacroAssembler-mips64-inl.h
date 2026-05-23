@@ -109,6 +109,15 @@ void MacroAssembler::and64(Register64 src, Register64 dest) {
   ma_and(dest.reg, src.reg);
 }
 
+void MacroAssembler::andNot64(Register64 lhs, Register64 rhs, Register64 dest,
+                              Register scratch) {
+  MOZ_ASSERT(scratch == InvalidReg);
+  UseScratchRegisterScope temps(*this);
+  const Register tmp = dest.reg == lhs.reg ? temps.Acquire() : dest.reg;
+  ma_not(tmp, rhs.reg);
+  as_and(dest.reg, lhs.reg, tmp);
+}
+
 void MacroAssembler::or64(Imm64 imm, Register64 dest) {
   UseScratchRegisterScope temps(*this);
   Register scratch = temps.Acquire();

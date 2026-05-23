@@ -20,6 +20,7 @@ EXPORTS.mozilla += [
     "PlatformRWLock.h",
     "Printf.h",
     "RoundedMulDiv.h",
+    "RVV.h",
     "SIMD.h",
     "Sprintf.h",
     "SSE.h",
@@ -68,6 +69,13 @@ if CONFIG["TARGET_CPU"] == "loongarch64":
         "SIMD_lsx.cpp",
     ]
     SOURCES["SIMD_lsx.cpp"].flags += CONFIG["LSX_FLAGS"]
+
+if CONFIG["TARGET_CPU"] == "riscv64" and CONFIG["RVV_FLAGS"]:
+    SOURCES += [
+        "RVV.cpp",
+        "SIMD_rvv.cpp",
+    ]
+    SOURCES["SIMD_rvv.cpp"].flags += CONFIG["RVV_FLAGS"]
 
 if not CONFIG["JS_STANDALONE"]:
     EXPORTS.mozilla += [

@@ -290,6 +290,19 @@ void MacroAssembler::nor32(Imm32 imm, Register src, Register dest) {
   not32(dest);
 }
 
+void MacroAssembler::andNot32(Register lhs, Register rhs, Register dest,
+                              Register scratch) {
+  MOZ_ASSERT(scratch == InvalidReg);
+  Bic(ARMRegister(dest, 32), ARMRegister(lhs, 32), ARMRegister(rhs, 32));
+}
+
+void MacroAssembler::andNot64(Register64 lhs, Register64 rhs, Register64 dest,
+                              Register scratch) {
+  MOZ_ASSERT(scratch == InvalidReg);
+  Bic(ARMRegister(dest.reg, 64), ARMRegister(lhs.reg, 64),
+      ARMRegister(rhs.reg, 64));
+}
+
 // ===============================================================
 // Swap instructions
 
