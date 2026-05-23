@@ -981,7 +981,7 @@ void MacroAssembler::popcnt64(Register64 input, Register64 output,
     ScratchSimd128Scope scratch(asMasm());
     as_vreplgr2vr_d(scratch, input.reg);
     as_vpcnt_d(scratch, scratch);
-    as_vpickve2gr_d(output.reg, scratch, 0);
+    as_movfr2gr_d(output.reg, scratch);
     return;
   }
 #endif
@@ -1024,7 +1024,7 @@ void MacroAssembler::popcnt32(Register input, Register output, Register tmp) {
     ScratchSimd128Scope scratch(asMasm());
     as_vreplgr2vr_w(scratch, input);
     as_vpcnt_w(scratch, scratch);
-    as_vpickve2gr_wu(output, scratch, 0);
+    as_movfr2gr_s(output, scratch);
     return;
   }
 #endif
@@ -3320,42 +3320,28 @@ void MacroAssembler::bitwiseNotAndSimd128(FloatRegister rhs,
 }
 
 void MacroAssembler::anyTrueSimd128(FloatRegister src, Register dest) {
-  ScratchSimd128Scope scratch(*this);
-  as_vmsknz_b(scratch, src);
-  as_vpickve2gr_wu(dest, scratch, 0);
-  cmp32Set(Assembler::NotEqual, dest, Imm32(0), dest);
+  as_vsetnez_v(FCC0, src);
+  as_movcf2gr(dest, FCC0);
 }
 
 void MacroAssembler::allTrueInt8x16(FloatRegister src, Register dest) {
-  ScratchSimd128Scope scratch(*this);
-  as_vslei_bu(scratch, src, 0);
-  as_vmsknz_b(scratch, scratch);
-  as_vpickve2gr_wu(dest, scratch, 0);
-  cmp32Set(Assembler::Equal, dest, Imm32(0), dest);
+  as_vsetallnez_b(FCC0, src);
+  as_movcf2gr(dest, FCC0);
 }
 
 void MacroAssembler::allTrueInt16x8(FloatRegister src, Register dest) {
-  ScratchSimd128Scope scratch(*this);
-  as_vslei_hu(scratch, src, 0);
-  as_vmsknz_b(scratch, scratch);
-  as_vpickve2gr_wu(dest, scratch, 0);
-  cmp32Set(Assembler::Equal, dest, Imm32(0), dest);
+  as_vsetallnez_h(FCC0, src);
+  as_movcf2gr(dest, FCC0);
 }
 
 void MacroAssembler::allTrueInt32x4(FloatRegister src, Register dest) {
-  ScratchSimd128Scope scratch(*this);
-  as_vslei_wu(scratch, src, 0);
-  as_vmsknz_b(scratch, scratch);
-  as_vpickve2gr_wu(dest, scratch, 0);
-  cmp32Set(Assembler::Equal, dest, Imm32(0), dest);
+  as_vsetallnez_w(FCC0, src);
+  as_movcf2gr(dest, FCC0);
 }
 
 void MacroAssembler::allTrueInt64x2(FloatRegister src, Register dest) {
-  ScratchSimd128Scope scratch(*this);
-  as_vslei_du(scratch, src, 0);
-  as_vmsknz_b(scratch, scratch);
-  as_vpickve2gr_wu(dest, scratch, 0);
-  cmp32Set(Assembler::Equal, dest, Imm32(0), dest);
+  as_vsetallnez_d(FCC0, src);
+  as_movcf2gr(dest, FCC0);
 }
 
 void MacroAssembler::compareInt8x16(Assembler::Condition cond,
@@ -4549,25 +4535,31 @@ void MacroAssembler::maxFloat64x2(FloatRegister lhs, FloatRegister rhs,
 void MacroAssembler::bitmaskInt8x16(FloatRegister src, Register dest) {
   ScratchSimd128Scope scratch(*this);
   as_vmskltz_b(scratch, src);
-  as_vpickve2gr_wu(dest, scratch, 0);
+  // Lane i correspond to LSB i in |scratch|, and other bits are zeroed. Since
+  // we only have 16 lanes, sign-extending on bit 31 is correct.
+  // <https://jia.je/unofficial-loongarch-intrinsics-guide/lsx/misc/#__m128i-__lsx_vmskltz_b-__m128i-a>
+  as_movfr2gr_s(dest, scratch);
 }
 
 void MacroAssembler::bitmaskInt16x8(FloatRegister src, Register dest) {
   ScratchSimd128Scope scratch(*this);
   as_vmskltz_h(scratch, src);
-  as_vpickve2gr_wu(dest, scratch, 0);
+  // Ditto. See MacroAssembler::bitmaskInt8x16().
+  as_movfr2gr_s(dest, scratch);
 }
 
 void MacroAssembler::bitmaskInt32x4(FloatRegister src, Register dest) {
   ScratchSimd128Scope scratch(*this);
   as_vmskltz_w(scratch, src);
-  as_vpickve2gr_wu(dest, scratch, 0);
+  // Ditto. See MacroAssembler::bitmaskInt8x16().
+  as_movfr2gr_s(dest, scratch);
 }
 
 void MacroAssembler::bitmaskInt64x2(FloatRegister src, Register dest) {
   ScratchSimd128Scope scratch(*this);
   as_vmskltz_d(scratch, src);
-  as_vpickve2gr_wu(dest, scratch, 0);
+  // Ditto. See MacroAssembler::bitmaskInt8x16().
+  as_movfr2gr_s(dest, scratch);
 }
 
 void MacroAssembler::popcntInt8x16(FloatRegister src, FloatRegister dest) {

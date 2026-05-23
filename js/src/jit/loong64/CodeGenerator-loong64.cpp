@@ -1651,7 +1651,7 @@ void CodeGenerator::visitModPowTwoI(LModPowTwoI* ins) {
     // an answer of 0 means the correct result is actually -0. Bail out.
     if (!mir->isTruncated()) {
       MOZ_ASSERT(mir->fallible());
-      bailoutCmp32(Assembler::Equal, out, zero, ins->snapshot());
+      bailoutCmp32(Assembler::Zero, out, out, ins->snapshot());
     }
     masm.bind(&done);
   }
@@ -4093,35 +4093,54 @@ void CodeGenerator::visitWasmReduceAndBranchSimd128(
 #ifdef ENABLE_JIT_SIMD
   FloatRegister src = ToFloatRegister(ins->src());
 
-  UseScratchRegisterScope temps(&masm);
-  Register test = temps.Acquire();
-
   switch (ins->simdOp()) {
     case wasm::SimdOp::V128AnyTrue:
-      masm.anyTrueSimd128(src, test);
+      masm.as_vsetnez_v(Assembler::FCC0, src);
       break;
     case wasm::SimdOp::I8x16AllTrue:
-      masm.allTrueInt8x16(src, test);
+      masm.as_vsetallnez_b(Assembler::FCC0, src);
       break;
     case wasm::SimdOp::I16x8AllTrue:
-      masm.allTrueInt16x8(src, test);
+      masm.as_vsetallnez_h(Assembler::FCC0, src);
       break;
     case wasm::SimdOp::I32x4AllTrue:
-      masm.allTrueInt32x4(src, test);
+      masm.as_vsetallnez_w(Assembler::FCC0, src);
       break;
     case wasm::SimdOp::I64x2AllTrue:
-      masm.allTrueInt64x2(src, test);
+      masm.as_vsetallnez_d(Assembler::FCC0, src);
       break;
-    case wasm::SimdOp::I16x8Bitmask:
+    case wasm::SimdOp::I16x8Bitmask: {
+      UseScratchRegisterScope temps(&masm);
+      const Register test = temps.Acquire();
       masm.bitmaskInt16x8(src, test);
-      break;
+      if (isNextBlock(ins->ifFalse()->lir())) {
+        masm.branch32(Assembler::NotEqual, test, Imm32(0),
+                      getJumpLabelForBranch(ins->ifTrue()));
+      } else if (isNextBlock(ins->ifTrue()->lir())) {
+        masm.branch32(Assembler::Equal, test, Imm32(0),
+                      getJumpLabelForBranch(ins->ifFalse()));
+      } else {
+        masm.branch32(Assembler::Equal, test, Imm32(0),
+                      getJumpLabelForBranch(ins->ifFalse()));
+        jumpToBlock(ins->ifTrue());
+      }
+      return;
+    }
     default:
       MOZ_CRASH("Reduce-and-branch SimdOp not implemented");
   }
 
-  masm.branch32(Assembler::Equal, test, Imm32(0),
-                getJumpLabelForBranch(ins->ifFalse()));
-  jumpToBlock(ins->ifTrue());
+  if (isNextBlock(ins->ifFalse()->lir())) {
+    masm.branchWithCode(masm.getBranchCode(Assembler::FCC0, Assembler::NonZero),
+                        getJumpLabelForBranch(ins->ifTrue()), LongJump);
+  } else if (isNextBlock(ins->ifTrue()->lir())) {
+    masm.branchWithCode(masm.getBranchCode(Assembler::FCC0, Assembler::Zero),
+                        getJumpLabelForBranch(ins->ifFalse()), LongJump);
+  } else {
+    masm.branchWithCode(masm.getBranchCode(Assembler::FCC0, Assembler::NonZero),
+                        getJumpLabelForBranch(ins->ifTrue()), LongJump);
+    jumpToBlock(ins->ifFalse());
+  }
 #else
   MOZ_CRASH("No SIMD");
 #endif
