@@ -127,7 +127,8 @@ struct AccessCheck {
   AccessCheck()
       : omitBoundsCheck(false),
         omitAlignmentCheck(false),
-        onlyPointerAlignment(false) {}
+        onlyPointerAlignment(false),
+        i32IndexZeroExtended(false) {}
 
   // If `omitAlignmentCheck` is true then we need check neither the
   // pointer nor the offset.  Otherwise, if `onlyPointerAlignment` is true
@@ -137,6 +138,10 @@ struct AccessCheck {
   bool omitBoundsCheck;
   bool omitAlignmentCheck;
   bool onlyPointerAlignment;
+
+  // The index register is already zero-extended. Only meaningful for I32. See
+  // also ToValidIndex(MacroAssembler&, RegI32).
+  bool i32IndexZeroExtended;
 };
 
 // Encapsulate all the information about a function call.
@@ -565,6 +570,8 @@ struct BaseCompiler final {
   inline void loadConstI32(const Stk& src, RegI32 dest);
   inline void loadMemI32(const Stk& src, RegI32 dest);
   inline void loadLocalI32(const Stk& src, RegI32 dest);
+  inline void loadLocalI32ZeroExtend(const Stk& src, RegI32 dest);
+  inline void loadLocalI32SignExtend(const Stk& src, RegI32 dest);
   inline void loadRegisterI32(const Stk& src, RegI32 dest);
   inline void loadConstI64(const Stk& src, RegI64 dest);
   inline void loadMemI64(const Stk& src, RegI64 dest);
@@ -723,6 +730,16 @@ struct BaseCompiler final {
 
   [[nodiscard]] inline RegI32 popI32();
   inline RegI32 popI32(RegI32 specific);
+
+#ifdef JS_64BIT
+  // Call only from other popI32ExtendToPtr() variants.  v must be the stack
+  // top.  May pop the CPU stack.
+  template <bool ZeroExtend>
+  inline void popI32ExtendToPtr(const Stk& v, RegI32 dest);
+
+  template <bool ZeroExtend>
+  [[nodiscard]] inline RegI32 popI32ExtendToPtr();
+#endif
 
 #ifdef ENABLE_JIT_SIMD
   // Call only from other popV128() variants.  v must be the stack top.  May pop
@@ -1384,8 +1401,10 @@ struct BaseCompiler final {
   RegI64 popI64RhsForShift();
   RegI32 popI32RhsForRotate();
   RegI64 popI64RhsForRotate();
-  void popI32ForSignExtendI64(RegI64* r0);
   void popI64ForSignExtendI64(RegI64* r0);
+
+  template <bool ZeroExtend>
+  void popI32ExtendI64(RegI64* r0);
 
   ////////////////////////////////////////////////////////////
   //

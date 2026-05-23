@@ -1098,6 +1098,8 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
   inline void load32SignExtendToPtr(const Address& src, Register dest) PER_ARCH;
 
+  inline void load32ZeroExtendToPtr(const Address& src, Register dest) PER_ARCH;
+
   inline void loadAbiReturnAddress(Register dest) PER_SHARED_ARCH;
 
   // ===============================================================

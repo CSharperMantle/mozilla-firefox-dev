@@ -20,6 +20,8 @@
 #include "wasm/WasmConstants.h"
 #include "wasm/WasmMemory.h"
 
+#include <type_traits>
+
 #include "jit/MacroAssembler-inl.h"
 #include "wasm/WasmBCClass-inl.h"
 #include "wasm/WasmBCCodegen-inl.h"
@@ -217,6 +219,7 @@ RegType BaseCompiler::popMemoryAccess(MemoryAccessDesc* access,
                                       AccessCheck* check) {
   check->onlyPointerAlignment =
       (access->offset64() & (access->byteSize() - 1)) == 0;
+  check->i32IndexZeroExtended = false;
 
   // If there's a constant it will have the correct type for RegType.
   if (hasConst()) {
@@ -228,6 +231,14 @@ RegType BaseCompiler::popMemoryAccess(MemoryAccessDesc* access,
   if (peekLocal(&local)) {
     bceCheckLocal(access, check, local);
   }
+
+#ifdef JS_64BIT
+  // Zero-extend when popping to avoid doing it later.
+  if constexpr (std::is_same_v<RegType, RegI32>) {
+    check->i32IndexZeroExtended = true;
+    return popI32ExtendToPtr<true>();
+  }
+#endif
 
   return pop<RegType>();
 }
@@ -407,6 +418,10 @@ void BaseCompiler::prepareMemoryAccess(MemoryAccessDesc* access,
     masm.bind(&ok);
     access->clearOffset();
     check->onlyPointerAlignment = true;
+    // branchAddNoOverflow() adds into |ptr|, so need to zero-extend again.
+    if (std::is_same_v<RegAddressType, RegI32>) {
+      check->i32IndexZeroExtended = false;
+    }
   }
 
   // Alignment check if required.
@@ -455,6 +470,13 @@ void BaseCompiler::prepareMemoryAccess(MemoryAccessDesc* access,
             0x100000000) {
       boundsCheck4GBOrLargerAccess(access->memoryIndex(), access->byteSize(),
                                    instance, ptr, &ok);
+#  ifndef RABALDR_ZERO_EXTENDS
+      // boundsCheck4GBOrLargerAccess() sets |ptr| to the platform-specific
+      // canonical i64, which is not always zero-extended.
+      if (std::is_same_v<RegAddressType, RegI32>) {
+        check->i32IndexZeroExtended = false;
+      }
+#  endif
     } else {
       boundsCheckBelow4GBAccess(access->memoryIndex(), access->byteSize(),
                                 instance, ptr, &ok);
@@ -713,8 +735,9 @@ void BaseCompiler::load(MemoryAccessDesc* access, AccessCheck* check,
                         RegPtr instance, RegPtr memoryBase, RegI32 ptr,
                         AnyReg dest, RegI32 temp) {
   prepareMemoryAccess(access, check, instance, ptr);
-  executeLoad(access, instance, memoryBase, ptr, dest, temp,
-              ZeroExtendIndex::Yes);
+  executeLoad(
+      access, instance, memoryBase, ptr, dest, temp,
+      check->i32IndexZeroExtended ? ZeroExtendIndex::No : ZeroExtendIndex::Yes);
 }
 
 void BaseCompiler::load(MemoryAccessDesc* access, AccessCheck* check,
@@ -872,8 +895,9 @@ void BaseCompiler::store(MemoryAccessDesc* access, AccessCheck* check,
                          RegPtr instance, RegPtr memoryBase, RegI32 ptr,
                          AnyReg src, RegI32 temp) {
   prepareMemoryAccess(access, check, instance, ptr);
-  executeStore(access, instance, memoryBase, ptr, src, temp,
-               ZeroExtendIndex::Yes);
+  executeStore(
+      access, instance, memoryBase, ptr, src, temp,
+      check->i32IndexZeroExtended ? ZeroExtendIndex::No : ZeroExtendIndex::Yes);
 }
 
 void BaseCompiler::store(MemoryAccessDesc* access, AccessCheck* check,
