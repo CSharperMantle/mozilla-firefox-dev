@@ -3,7 +3,10 @@
     "moz": {
       "type": "http",
       "url": "https://mcp-dev.moz.tools/mcp",
-      "directTools": ["get_bugzilla_bug", "get_phabricator_revision"],
+      "directTools": [
+        "get_bugzilla_bug",
+        "get_phabricator_revision"
+      ],
       "exposure": "direct"
     },
     "firefox-devtools": {
