@@ -1382,6 +1382,46 @@ FaultingCodeRange MacroAssemblerLOONG64::ma_fst_d(FloatRegister src,
   return fcr;
 }
 
+FaultingCodeRange MacroAssemblerLOONG64::ma_vld(FloatRegister vd,
+                                                Address address) {
+  int32_t offset = address.offset;
+  Register base = address.base;
+  js::wasm::FaultingCodeRange fcr;
+
+  if (is_intN(offset, 12)) {
+    fcr = js::wasm::FaultingCodeRange(currentOffset());
+    as_vld(vd, base, uint32_t(offset));
+  } else {
+    UseScratchRegisterScope temps(asMasm());
+    Register scratch = temps.Acquire();
+    MOZ_ASSERT(base != scratch);
+    ma_li(scratch, Imm32(offset));
+    fcr = js::wasm::FaultingCodeRange(currentOffset());
+    as_vldx(vd, base, scratch);
+  }
+  return fcr;
+}
+
+FaultingCodeRange MacroAssemblerLOONG64::ma_vst(FloatRegister vd,
+                                                Address address) {
+  int32_t offset = address.offset;
+  Register base = address.base;
+  js::wasm::FaultingCodeRange fcr;
+
+  if (is_intN(offset, 12)) {
+    fcr = js::wasm::FaultingCodeRange(currentOffset());
+    as_vst(vd, base, uint32_t(offset));
+  } else {
+    UseScratchRegisterScope temps(asMasm());
+    Register scratch = temps.Acquire();
+    MOZ_ASSERT(base != scratch);
+    ma_li(scratch, Imm32(offset));
+    fcr = js::wasm::FaultingCodeRange(currentOffset());
+    as_vstx(vd, base, scratch);
+  }
+  return fcr;
+}
+
 void MacroAssemblerLOONG64::ma_pop(FloatRegister f) {
   if (f.isDouble()) {
     as_fld_d(f, StackPointer, 0);
@@ -2863,14 +2903,16 @@ void MacroAssembler::PushRegsInMask(LiveRegisterSet set) {
     storePtr(*iter, Address(StackPointer, diff));
   }
 
-#ifdef ENABLE_JIT_SIMD
-#  error "Needs more careful logic if SIMD is enabled"
-#endif
-
   for (FloatRegisterBackwardIterator iter(set.fpus().reduceSetForPush());
        iter.more(); ++iter) {
-    diff -= sizeof(double);
-    storeDouble(*iter, Address(StackPointer, diff));
+    FloatRegister reg = *iter;
+    diff -= reg.size();
+    if (reg.isSimd128()) {
+      storeUnalignedSimd128(reg, Address(StackPointer, diff));
+    } else {
+      MOZ_ASSERT(reg.isDouble());
+      storeDouble(reg, Address(StackPointer, diff));
+    }
   }
   MOZ_ASSERT(diff == 0);
 }
@@ -2888,15 +2930,28 @@ void MacroAssembler::PopRegsInMaskIgnore(LiveRegisterSet set,
     }
   }
 
-#ifdef ENABLE_JIT_SIMD
-#  error "Needs more careful logic if SIMD is enabled"
-#endif
-
   for (FloatRegisterBackwardIterator iter(set.fpus().reduceSetForPush());
        iter.more(); ++iter) {
-    diff -= sizeof(double);
-    if (!ignore.has(*iter)) {
-      loadDouble(Address(StackPointer, diff), *iter);
+    FloatRegister reg = *iter;
+    diff -= reg.size();
+
+    // Any view of a register in the ignore set suppresses the restore.
+    bool ignored = false;
+    for (uint32_t i = 0; i < reg.numAliased(); i++) {
+      if (ignore.has(reg.aliased(i))) {
+        ignored = true;
+        break;
+      }
+    }
+    if (ignored) {
+      continue;
+    }
+
+    if (reg.isSimd128()) {
+      loadUnalignedSimd128(Address(StackPointer, diff), reg);
+    } else {
+      MOZ_ASSERT(reg.isDouble());
+      loadDouble(Address(StackPointer, diff), reg);
     }
   }
   MOZ_ASSERT(diff == 0);
@@ -2919,21 +2974,16 @@ void MacroAssembler::storeRegsInMask(LiveRegisterSet set, Address dest,
   }
   MOZ_ASSERT(diffG == 0);
 
-#ifdef ENABLE_JIT_SIMD
-#  error "Needs more careful logic if SIMD is enabled"
-#endif
-
   for (FloatRegisterBackwardIterator iter(fpuSet); iter.more(); ++iter) {
     FloatRegister reg = *iter;
     diffF -= reg.size();
     numFpu -= 1;
     dest.offset -= reg.size();
-    if (reg.isDouble()) {
-      storeDouble(reg, dest);
-    } else if (reg.isSingle()) {
-      storeFloat32(reg, dest);
+    if (reg.isSimd128()) {
+      storeUnalignedSimd128(reg, dest);
     } else {
-      MOZ_CRASH("Unknown register type.");
+      MOZ_ASSERT(reg.isDouble());
+      storeDouble(reg, dest);
     }
   }
   MOZ_ASSERT(numFpu == 0);

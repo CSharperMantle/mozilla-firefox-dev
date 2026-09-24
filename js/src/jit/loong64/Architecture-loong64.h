@@ -677,11 +677,13 @@ FloatRegister::LiveAsIndexableSet<RegTypeName::Float64>(SetType set) {
   return set & FloatRegisters::AllDoubleMask;
 }
 
+#if defined(ENABLE_JIT_SIMD)
 template <>
 inline FloatRegister::SetType
 FloatRegister::LiveAsIndexableSet<RegTypeName::Vector128>(SetType set) {
   return set & FloatRegisters::AllSimd128Mask;
 }
+#endif
 
 template <>
 inline FloatRegister::SetType

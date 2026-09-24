@@ -83,31 +83,69 @@ FloatRegisters::Code FloatRegisters::FromName(const char* name) {
 }
 
 FloatRegisterSet FloatRegister::ReduceSetForPush(const FloatRegisterSet& s) {
-#ifdef ENABLE_JIT_SIMD
-#  error "Needs more careful logic if SIMD is enabled"
+  SetType all = s.bits();
+
+#if defined(ENABLE_JIT_SIMD)
+  SetType set128b =
+      (all & FloatRegisters::AllSimd128Mask) >> FloatRegisters::ShiftSimd128;
+  SetType doubleSet =
+      (all & FloatRegisters::AllDoubleMask) >> FloatRegisters::ShiftDouble;
+  SetType singleSet =
+      (all & FloatRegisters::AllSingleMask) >> FloatRegisters::ShiftSingle;
+
+  // A register that is present as a 128-bit register is pushed once, as a
+  // 16-byte value; singles and doubles are pushed as 8-byte values.
+  SetType set64b = (singleSet | doubleSet) & ~set128b;
+
+  SetType reduced = (set128b << FloatRegisters::ShiftSimd128) |
+                    (set64b << FloatRegisters::ShiftDouble);
+#else
+  SetType doubleSet =
+      (all & FloatRegisters::AllDoubleMask) >> FloatRegisters::ShiftDouble;
+  SetType singleSet =
+      (all & FloatRegisters::AllSingleMask) >> FloatRegisters::ShiftSingle;
+
+  SetType set64b = singleSet | doubleSet;
+
+  SetType reduced = set64b << FloatRegisters::ShiftDouble;
 #endif
 
-  LiveFloatRegisterSet ret;
-  for (FloatRegisterIterator iter(s); iter.more(); ++iter) {
-    ret.addUnchecked(FromCode((*iter).encoding()));
-  }
-  return ret.set();
+  return FloatRegisterSet(reduced);
 }
 
 uint32_t FloatRegister::GetPushSizeInBytes(const FloatRegisterSet& s) {
-#ifdef ENABLE_JIT_SIMD
-#  error "Needs more careful logic if SIMD is enabled"
-#endif
+  SetType all = s.bits();
 
-  return s.size() * sizeof(double);
+#if defined(ENABLE_JIT_SIMD)
+  SetType set128b =
+      (all & FloatRegisters::AllSimd128Mask) >> FloatRegisters::ShiftSimd128;
+  SetType doubleSet =
+      (all & FloatRegisters::AllDoubleMask) >> FloatRegisters::ShiftDouble;
+  SetType singleSet =
+      (all & FloatRegisters::AllSingleMask) >> FloatRegisters::ShiftSingle;
+
+  SetType set64b = (singleSet | doubleSet) & ~set128b;
+
+  return set128b.size() * SizeOfSimd128 + set64b.size() * sizeof(double);
+#else
+  SetType doubleSet =
+      (all & FloatRegisters::AllDoubleMask) >> FloatRegisters::ShiftDouble;
+  SetType singleSet =
+      (all & FloatRegisters::AllSingleMask) >> FloatRegisters::ShiftSingle;
+
+  SetType set64b = singleSet | doubleSet;
+
+  return set64b.size() * sizeof(double);
+#endif
 }
 
 uint32_t FloatRegister::getRegisterDumpOffsetInBytes() {
-#ifdef ENABLE_JIT_SIMD
-#  error "Needs more careful logic if SIMD is enabled"
+#if defined(ENABLE_JIT_SIMD)
+  static_assert(sizeof(FloatRegisters::RegisterContent) == 16);
+#else
+  static_assert(sizeof(FloatRegisters::RegisterContent) == 8);
 #endif
-
-  return encoding() * sizeof(double);
+  return encoding() * sizeof(FloatRegisters::RegisterContent);
 }
 
 void FlushICache(void* code, size_t size) {

@@ -97,7 +97,10 @@ static constexpr Register64 ReturnReg64(ReturnReg);
 static constexpr FloatRegister ReturnFloat32Reg{FloatRegisters::f0,
                                                 FloatRegisters::Single};
 static constexpr FloatRegister ReturnDoubleReg = f0;
-static constexpr FloatRegister ReturnSimd128Reg = InvalidFloatReg;
+#if defined(ENABLE_JIT_SIMD)
+static constexpr FloatRegister ReturnSimd128Reg{FloatRegisters::f0,
+                                                FloatRegisters::Simd128};
+#endif
 
 // Scratch register used for runtime call patching.
 // See MacroAssembler::patchNopToCall and MacroAssembler::PatchWrite_NearCall.
@@ -109,7 +112,12 @@ static constexpr FloatRegister ScratchDoubleReg = f23;
 static constexpr FloatRegister ScratchFloat32Reg2{FloatRegisters::f22,
                                                   FloatRegisters::Single};
 static constexpr FloatRegister ScratchDoubleReg2 = f22;
-static constexpr FloatRegister ScratchSimd128Reg = InvalidFloatReg;
+#if defined(ENABLE_JIT_SIMD)
+static constexpr FloatRegister ScratchSimd128Reg{FloatRegisters::f23,
+                                                 FloatRegisters::Simd128};
+static constexpr FloatRegister ScratchSimd128Reg2{FloatRegisters::f22,
+                                                  FloatRegisters::Simd128};
+#endif
 
 struct ScratchFloat32Scope : public AutoFloatRegisterScope {
   explicit ScratchFloat32Scope(MacroAssembler& masm)
@@ -130,6 +138,28 @@ struct ScratchDoubleScope2 : public AutoFloatRegisterScope {
   explicit ScratchDoubleScope2(MacroAssembler& masm)
       : AutoFloatRegisterScope(masm, ScratchDoubleReg2) {}
 };
+
+#if defined(ENABLE_JIT_SIMD)
+struct ScratchSimd128Scope : public AutoFloatRegisterScope {
+  explicit ScratchSimd128Scope(MacroAssembler& masm)
+      : AutoFloatRegisterScope(masm, ScratchSimd128Reg) {}
+};
+
+struct ScratchSimd128Scope2 : public AutoFloatRegisterScope {
+  explicit ScratchSimd128Scope2(MacroAssembler& masm)
+      : AutoFloatRegisterScope(masm, ScratchSimd128Reg2) {}
+};
+#else
+struct ScratchSimd128Scope : public AutoFloatRegisterScope {
+  explicit ScratchSimd128Scope(MacroAssembler& masm)
+      : AutoFloatRegisterScope(masm, InvalidFloatReg) {}
+};
+
+struct ScratchSimd128Scope2 : public AutoFloatRegisterScope {
+  explicit ScratchSimd128Scope2(MacroAssembler& masm)
+      : AutoFloatRegisterScope(masm, InvalidFloatReg) {}
+};
+#endif
 
 class Assembler;
 

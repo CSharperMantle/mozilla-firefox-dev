@@ -2414,7 +2414,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // Moves
 
   inline void moveSimd128(FloatRegister src, FloatRegister dest)
-      DEFINED_ON(x86_shared, arm64);
+      DEFINED_ON(x86_shared, arm64, loong64);
 
   // Constants
 
@@ -3332,7 +3332,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
   inline FaultingCodeRange loadUnalignedSimd128(const Address& src,
                                                 FloatRegister dest)
-      DEFINED_ON(x86_shared, arm64);
+      DEFINED_ON(x86_shared, arm64, loong64);
 
   inline FaultingCodeRange loadUnalignedSimd128(const BaseIndex& src,
                                                 FloatRegister dest)
@@ -3342,7 +3342,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
   inline FaultingCodeRange storeUnalignedSimd128(FloatRegister src,
                                                  const Address& dest)
-      DEFINED_ON(x86_shared, arm64);
+      DEFINED_ON(x86_shared, arm64, loong64);
 
   inline FaultingCodeRange storeUnalignedSimd128(FloatRegister src,
                                                  const BaseIndex& dest)

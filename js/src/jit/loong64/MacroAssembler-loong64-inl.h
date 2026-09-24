@@ -62,6 +62,12 @@ void MacroAssembler::moveGPR64ToDouble(Register64 src, FloatRegister dest) {
   moveToDouble(src.reg, dest);
 }
 
+void MacroAssembler::moveSimd128(FloatRegister src, FloatRegister dest) {
+  if (src != dest) {
+    as_vori_b(dest, src, 0);
+  }
+}
+
 void MacroAssembler::moveLowDoubleToGPR(FloatRegister src, Register dest) {
   MOZ_CRASH("Not supported for this target");
 }
@@ -2391,6 +2397,16 @@ FaultingCodeRange MacroAssembler::storeDouble(FloatRegister src,
 FaultingCodeRange MacroAssembler::storeDouble(FloatRegister src,
                                               const BaseIndex& addr) {
   return ma_fst_d(src, addr);
+}
+
+FaultingCodeRange MacroAssembler::loadUnalignedSimd128(const Address& src,
+                                                       FloatRegister dest) {
+  return ma_vld(dest, src);
+}
+
+FaultingCodeRange MacroAssembler::storeUnalignedSimd128(FloatRegister src,
+                                                        const Address& dest) {
+  return ma_vst(src, dest);
 }
 
 FaultingCodeRange MacroAssembler::storeFloat16(FloatRegister src,
