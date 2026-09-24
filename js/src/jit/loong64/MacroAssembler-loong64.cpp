@@ -2879,6 +2879,14 @@ void MacroAssembler::subFromStackPtr(Imm32 imm32) {
   }
 }
 
+#ifdef ENABLE_JIT_SIMD
+bool MacroAssembler::MustMaskShiftCountSimd128(wasm::SimdOp, int32_t*) {
+  // LSX vector shifts already mask the shift count by the lane width.
+  // <https://jia.je/unofficial-loongarch-intrinsics-guide/lsx/shift/>
+  return false;
+}
+#endif
+
 //{{{ check_macroassembler_style
 // ===============================================================
 // MacroAssembler high-level usage.

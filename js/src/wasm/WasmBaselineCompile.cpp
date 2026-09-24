@@ -9649,6 +9649,10 @@ static void MulI64x2(MacroAssembler& masm, RegV128 rs, RegV128 rsd,
                      RegV128 temp1, RegV128 temp2) {
   masm.mulInt64x2(rsd, rs, rsd, temp1, temp2);
 }
+#  elif defined(JS_CODEGEN_LOONG64)
+static void MulI64x2(MacroAssembler& masm, RegV128 rs, RegV128 rsd) {
+  MOZ_CRASH("loong64 SIMD NYI");
+}
 #  endif
 
 static void MulF64x2(MacroAssembler& masm, RegV128 rs, RegV128 rsd) {
@@ -9735,6 +9739,38 @@ static void PMaxF32x4(MacroAssembler& masm, RegV128 rs, RegV128 rsd) {
 static void PMaxF64x2(MacroAssembler& masm, RegV128 rs, RegV128 rsd) {
   masm.pseudoMaxFloat64x2(rs, rsd);
 }
+#  elif defined(JS_CODEGEN_LOONG64)
+static void MinF32x4(MacroAssembler& masm, RegV128 rs, RegV128 rsd) {
+  MOZ_CRASH("loong64 SIMD NYI");
+}
+
+static void MinF64x2(MacroAssembler& masm, RegV128 rs, RegV128 rsd) {
+  MOZ_CRASH("loong64 SIMD NYI");
+}
+
+static void MaxF32x4(MacroAssembler& masm, RegV128 rs, RegV128 rsd) {
+  MOZ_CRASH("loong64 SIMD NYI");
+}
+
+static void MaxF64x2(MacroAssembler& masm, RegV128 rs, RegV128 rsd) {
+  MOZ_CRASH("loong64 SIMD NYI");
+}
+
+static void PMinF32x4(MacroAssembler& masm, RegV128 rs, RegV128 rsd) {
+  MOZ_CRASH("loong64 SIMD NYI");
+}
+
+static void PMinF64x2(MacroAssembler& masm, RegV128 rs, RegV128 rsd) {
+  MOZ_CRASH("loong64 SIMD NYI");
+}
+
+static void PMaxF32x4(MacroAssembler& masm, RegV128 rs, RegV128 rsd) {
+  MOZ_CRASH("loong64 SIMD NYI");
+}
+
+static void PMaxF64x2(MacroAssembler& masm, RegV128 rs, RegV128 rsd) {
+  MOZ_CRASH("loong64 SIMD NYI");
+}
 #  endif
 
 static void DotI16x8(MacroAssembler& masm, RegV128 rs, RegV128 rsd) {
@@ -9818,6 +9854,16 @@ static void CmpI64x2ForOrdering(MacroAssembler& masm, Assembler::Condition cond,
                                 RegV128 rs, RegV128 rsd, RegV128 temp1,
                                 RegV128 temp2) {
   masm.compareForOrderingInt64x2(cond, rsd, rs, rsd, temp1, temp2);
+}
+#  elif defined(JS_CODEGEN_LOONG64)
+static void CmpI64x2ForEquality(MacroAssembler& masm, Assembler::Condition cond,
+                                RegV128 rs, RegV128 rsd) {
+  MOZ_CRASH("loong64 SIMD NYI");
+}
+
+static void CmpI64x2ForOrdering(MacroAssembler& masm, Assembler::Condition cond,
+                                RegV128 rs, RegV128 rsd) {
+  MOZ_CRASH("loong64 SIMD NYI");
 }
 #  else
 static void CmpI64x2ForEquality(MacroAssembler& masm, Assembler::Condition cond,
@@ -10026,7 +10072,7 @@ static void ShiftRightUI64x2(MacroAssembler& masm, RegI32 rs, RegV128 rsd,
   ShiftOpMask(masm, SimdOp::I64x2ShrU, rs, temp);
   masm.unsignedRightShiftInt64x2(temp, rsd);
 }
-#  elif defined(JS_CODEGEN_ARM64)
+#  elif defined(JS_CODEGEN_ARM64) || defined(JS_CODEGEN_LOONG64)
 static void ShiftLeftI8x16(MacroAssembler& masm, RegI32 rs, RegV128 rsd,
                            RegI32 temp) {
   ShiftOpMask(masm, SimdOp::I8x16Shl, rs, temp);
@@ -10224,6 +10270,10 @@ static void WidenHighUI32x4(MacroAssembler& masm, RegV128 rs, RegV128 rd) {
 static void PopcntI8x16(MacroAssembler& masm, RegV128 rs, RegV128 rd) {
   masm.popcntInt8x16(rs, rd);
 }
+#  elif defined(JS_CODEGEN_LOONG64)
+static void PopcntI8x16(MacroAssembler& masm, RegV128 rs, RegV128 rd) {
+  MOZ_CRASH("loong64 SIMD NYI");
+}
 #  else
 static void PopcntI8x16(MacroAssembler& masm, RegV128 rs, RegV128 rd,
                         RegV128 temp) {
@@ -10398,6 +10448,22 @@ static void BitmaskI64x2(MacroAssembler& masm, RegV128 rs, RegI32 rd,
                          RegV128 temp) {
   masm.bitmaskInt64x2(rs, rd, temp);
 }
+#  elif defined(JS_CODEGEN_LOONG64)
+static void BitmaskI8x16(MacroAssembler& masm, RegV128 rs, RegI32 rd) {
+  MOZ_CRASH("loong64 SIMD NYI");
+}
+
+static void BitmaskI16x8(MacroAssembler& masm, RegV128 rs, RegI32 rd) {
+  MOZ_CRASH("loong64 SIMD NYI");
+}
+
+static void BitmaskI32x4(MacroAssembler& masm, RegV128 rs, RegI32 rd) {
+  MOZ_CRASH("loong64 SIMD NYI");
+}
+
+static void BitmaskI64x2(MacroAssembler& masm, RegV128 rs, RegI32 rd) {
+  MOZ_CRASH("loong64 SIMD NYI");
+}
 #  endif
 
 static void Swizzle(MacroAssembler& masm, RegV128 rs, RegV128 rsd) {
@@ -10419,6 +10485,10 @@ static void ConvertF32x4ToI32x4(MacroAssembler& masm, RegV128 rs, RegV128 rd) {
 #  if defined(JS_CODEGEN_ARM64)
 static void ConvertF32x4ToUI32x4(MacroAssembler& masm, RegV128 rs, RegV128 rd) {
   masm.unsignedTruncSatFloat32x4ToInt32x4(rs, rd);
+}
+#  elif defined(JS_CODEGEN_LOONG64)
+static void ConvertF32x4ToUI32x4(MacroAssembler& masm, RegV128 rs, RegV128 rd) {
+  MOZ_CRASH("loong64 SIMD NYI");
 }
 #  else
 static void ConvertF32x4ToUI32x4(MacroAssembler& masm, RegV128 rs, RegV128 rd,
@@ -10468,6 +10538,11 @@ static void BitselectV128(MacroAssembler& masm, RegV128 rhs, RegV128 control,
   masm.moveSimd128(control, temp);
   masm.bitwiseSelectSimd128(lhsDest, rhs, temp);
   masm.moveSimd128(temp, lhsDest);
+}
+#  elif defined(JS_CODEGEN_LOONG64)
+static void BitselectV128(MacroAssembler& masm, RegV128 rhs, RegV128 control,
+                          RegV128 lhsDest, RegV128 temp) {
+  MOZ_CRASH("loong64 SIMD NYI");
 }
 #  endif
 
@@ -10548,6 +10623,8 @@ void BaseCompiler::emitDotI8x16I7x16AddS() {
   RegV128 temp = needV128();
   masm.dotInt8x16Int7x16ThenAdd(rs0, rs1, rsd, temp);
   freeV128(temp);
+#    elif defined(JS_CODEGEN_LOONG64)
+  MOZ_CRASH("loong64 SIMD NYI");
 #    else
   masm.dotInt8x16Int7x16ThenAdd(rs0, rs1, rsd);
 #    endif

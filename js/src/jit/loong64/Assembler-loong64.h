@@ -288,8 +288,6 @@ static_assert(JitStackAlignment % sizeof(Value) == 0 &&
                   JitStackValueAlignment >= 1,
               "Stack alignment should be a non-zero multiple of sizeof(Value)");
 
-// TODO(loong64): this is just a filler to prevent a build failure. The
-// LoongArch SIMD alignment requirements still need to be explored.
 static constexpr uint32_t SimdMemoryAlignment = 16;
 
 static_assert(CodeAlignment % SimdMemoryAlignment == 0,
@@ -2095,6 +2093,7 @@ class AssemblerLOONG64 : public AssemblerShared {
   }
   static bool SupportsUnalignedAccesses() { return true; }
   static bool SupportsFastUnalignedFPAccesses() { return true; }
+  static bool SupportsWasmSimd() { return true; }
   static bool SupportsFloat64To16() { return false; }
   static bool SupportsFloat32To16() { return false; }
 
