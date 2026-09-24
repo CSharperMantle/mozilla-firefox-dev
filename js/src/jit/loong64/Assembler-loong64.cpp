@@ -57,10 +57,22 @@ ABIArg ABIArgGenerator::next(MIRType type) {
       floatRegIndex_++;
       break;
     }
+#ifdef ENABLE_JIT_SIMD
     case MIRType::Simd128: {
-      MOZ_CRASH("LoongArch does not support simd yet.");
+      MOZ_ASSERT(kind_ != ABIKind::System, "psABI vector arg-passing NYI");
+      if (floatRegIndex_ == NumFloatArgRegs) {
+        stackOffset_ = AlignBytes(stackOffset_, SimdMemoryAlignment);
+        current_ = ABIArg(stackOffset_);
+        stackOffset_ += FloatRegister::SizeOfSimd128;
+        break;
+      }
+      current_ = ABIArg(FloatRegister(
+          FloatRegisters::Encoding(floatRegIndex_ + f0.encoding()),
+          FloatRegisters::Simd128));
+      floatRegIndex_++;
       break;
     }
+#endif
     default:
       MOZ_CRASH("Unexpected argument type");
   }

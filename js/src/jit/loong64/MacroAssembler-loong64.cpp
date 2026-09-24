@@ -2482,11 +2482,66 @@ FaultingCodeRange MacroAssemblerLOONG64::wasmLoadImpl(
     case Scalar::Int64:
       as_ldx_d(output.gpr(), memoryBase, ptr);
       break;
-    case Scalar::Float64:
-      as_fldx_d(output.fpu(), memoryBase, ptr);
-      break;
     case Scalar::Float32:
-      as_fldx_s(output.fpu(), memoryBase, ptr);
+      if (access.isZeroExtendSimd128Load()) {
+        UseScratchRegisterScope temps(asMasm());
+        const Register scratch = temps.Acquire();
+        as_vxor_v(output.fpu(), output.fpu(), output.fpu());
+        fcr = FaultingCodeRange(currentOffset());
+        as_ldx_wu(scratch, memoryBase, ptr);
+        as_vinsgr2vr_w(output.fpu(), scratch, 0);
+      } else {
+        as_fldx_s(output.fpu(), memoryBase, ptr);
+      }
+      break;
+    case Scalar::Float64:
+      if (access.isSplatSimd128Load()) {
+        UseScratchRegisterScope temps(asMasm());
+        const Register scratch = temps.Acquire();
+        fcr = FaultingCodeRange(currentOffset());
+        as_ldx_d(scratch, memoryBase, ptr);
+        as_vreplgr2vr_d(output.fpu(), scratch);
+      } else if (access.isWidenSimd128Load()) {
+        UseScratchRegisterScope temps(asMasm());
+        const Register scratch = temps.Acquire();
+        fcr = FaultingCodeRange(currentOffset());
+        as_ldx_d(scratch, memoryBase, ptr);
+        asMasm().moveGPR64ToDouble(Register64(scratch), output.fpu());
+        switch (access.widenSimdOp()) {
+          case wasm::SimdOp::V128Load8x8S:
+            asMasm().widenLowInt8x16(output.fpu(), output.fpu());
+            break;
+          case wasm::SimdOp::V128Load8x8U:
+            asMasm().unsignedWidenLowInt8x16(output.fpu(), output.fpu());
+            break;
+          case wasm::SimdOp::V128Load16x4S:
+            asMasm().widenLowInt16x8(output.fpu(), output.fpu());
+            break;
+          case wasm::SimdOp::V128Load16x4U:
+            asMasm().unsignedWidenLowInt16x8(output.fpu(), output.fpu());
+            break;
+          case wasm::SimdOp::V128Load32x2S:
+            asMasm().widenLowInt32x4(output.fpu(), output.fpu());
+            break;
+          case wasm::SimdOp::V128Load32x2U:
+            asMasm().unsignedWidenLowInt32x4(output.fpu(), output.fpu());
+            break;
+          default:
+            MOZ_CRASH("unexpected widening op");
+        }
+      } else if (access.isZeroExtendSimd128Load()) {
+        UseScratchRegisterScope temps(asMasm());
+        const Register scratch = temps.Acquire();
+        as_vxor_v(output.fpu(), output.fpu(), output.fpu());
+        fcr = FaultingCodeRange(currentOffset());
+        as_ldx_d(scratch, memoryBase, ptr);
+        as_vinsgr2vr_d(output.fpu(), scratch, 0);
+      } else {
+        as_fldx_d(output.fpu(), memoryBase, ptr);
+      }
+      break;
+    case Scalar::Simd128:
+      as_vldx(output.fpu(), memoryBase, ptr);
       break;
     default:
       MOZ_CRASH("unexpected array type");
@@ -2527,10 +2582,61 @@ FaultingCodeRange MacroAssemblerLOONG64::wasmLoadImpl(
       fcr = ma_load(output.gpr(), address, SizeDouble);
       break;
     case Scalar::Float64:
-      fcr = ma_fld_d(output.fpu(), address);
+      if (access.isSplatSimd128Load()) {
+        UseScratchRegisterScope temps(asMasm());
+        const Register scratch = temps.Acquire();
+        fcr = ma_load(scratch, address, SizeDouble);
+        as_vreplgr2vr_d(output.fpu(), scratch);
+      } else if (access.isWidenSimd128Load()) {
+        UseScratchRegisterScope temps(asMasm());
+        const Register scratch = temps.Acquire();
+        fcr = ma_load(scratch, address, SizeDouble);
+        asMasm().moveGPR64ToDouble(Register64(scratch), output.fpu());
+        switch (access.widenSimdOp()) {
+          case wasm::SimdOp::V128Load8x8S:
+            asMasm().widenLowInt8x16(output.fpu(), output.fpu());
+            break;
+          case wasm::SimdOp::V128Load8x8U:
+            asMasm().unsignedWidenLowInt8x16(output.fpu(), output.fpu());
+            break;
+          case wasm::SimdOp::V128Load16x4S:
+            asMasm().widenLowInt16x8(output.fpu(), output.fpu());
+            break;
+          case wasm::SimdOp::V128Load16x4U:
+            asMasm().unsignedWidenLowInt16x8(output.fpu(), output.fpu());
+            break;
+          case wasm::SimdOp::V128Load32x2S:
+            asMasm().widenLowInt32x4(output.fpu(), output.fpu());
+            break;
+          case wasm::SimdOp::V128Load32x2U:
+            asMasm().unsignedWidenLowInt32x4(output.fpu(), output.fpu());
+            break;
+          default:
+            MOZ_CRASH("unexpected widening op");
+        }
+      } else if (access.isZeroExtendSimd128Load()) {
+        UseScratchRegisterScope temps(asMasm());
+        const Register scratch = temps.Acquire();
+        as_vxor_v(output.fpu(), output.fpu(), output.fpu());
+        fcr = ma_load(scratch, address, SizeDouble, ZeroExtend);
+        as_vinsgr2vr_d(output.fpu(), scratch, 0);
+      } else {
+        fcr = ma_fld_d(output.fpu(), address);
+      }
       break;
     case Scalar::Float32:
-      fcr = ma_fld_s(output.fpu(), address);
+      if (access.isZeroExtendSimd128Load()) {
+        UseScratchRegisterScope temps(asMasm());
+        const Register scratch = temps.Acquire();
+        as_vxor_v(output.fpu(), output.fpu(), output.fpu());
+        fcr = ma_load(scratch, address, SizeWord, ZeroExtend);
+        as_vinsgr2vr_w(output.fpu(), scratch, 0);
+      } else {
+        fcr = ma_fld_s(output.fpu(), address);
+      }
+      break;
+    case Scalar::Simd128:
+      fcr = ma_vld(output.fpu(), address);
       break;
     default:
       MOZ_CRASH("unexpected array type");
@@ -2599,6 +2705,9 @@ FaultingCodeRange MacroAssemblerLOONG64::wasmStoreImpl(
     case Scalar::Float32:
       as_fstx_s(value.fpu(), memoryBase, ptr);
       break;
+    case Scalar::Simd128:
+      as_vstx(value.fpu(), memoryBase, ptr);
+      break;
     default:
       MOZ_CRASH("unexpected array type");
   }
@@ -2636,6 +2745,9 @@ FaultingCodeRange MacroAssemblerLOONG64::wasmStoreImpl(
       break;
     case Scalar::Float32:
       fcr = ma_fst_s(value.fpu(), address);
+      break;
+    case Scalar::Simd128:
+      fcr = ma_vst(value.fpu(), address);
       break;
     default:
       MOZ_CRASH("unexpected array type");

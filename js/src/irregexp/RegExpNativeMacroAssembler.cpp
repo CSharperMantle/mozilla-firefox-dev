@@ -473,7 +473,7 @@ void SMRegExpMacroAssembler::EmitSkipUntilBitInTableSimd(
 #  elif defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_X64)
   masm_.bitmaskInt8x16(result, temp1_);
 #  elif defined(JS_CODEGEN_LOONG64)
-  MOZ_CRASH("loong64 SIMD NYI");
+  masm_.bitmaskInt8x16(result, temp1_);
 #  else
 #    error Unsupported SIMD architecture
 #  endif
