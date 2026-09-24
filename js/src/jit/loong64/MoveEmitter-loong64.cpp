@@ -200,7 +200,11 @@ void MoveEmitterLOONG64::emit(const MoveResolver& moves) {
       cycleGeneralReg_ = temps.Acquire();
     } else {
       // Reserve stack for cycle resolution
+#if defined(ENABLE_JIT_SIMD)
+      static_assert(SpillSlotSize == 16);
+#else
       static_assert(SpillSlotSize == 8);
+#endif
       masm.reserveStack(SpillSlotSize);
       pushedAtCycle_ = masm.framePushed();
     }
