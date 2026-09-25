@@ -1924,7 +1924,8 @@ export const PREFS_CONFIG = new Map([
     "widgets.pictureOfTheDay.enabled",
     {
       title: "Enables the picture of the day widget",
-      value: true,
+      // pref is dynamic
+      getValue: marketGate("widgets.pictureOfTheDay.enabled"),
     },
   ],
   [
@@ -1958,8 +1959,9 @@ export const PREFS_CONFIG = new Map([
   [
     "widgets.system.pictureOfTheDay.enabled",
     {
-      title: "Enables the picture of the day widget experiment in Nimbus",
-      value: false,
+      title: "Makes the picture of the day widget available",
+      // pref is dynamic
+      getValue: marketGate("widgets.system.pictureOfTheDay.enabled"),
     },
   ],
   [
