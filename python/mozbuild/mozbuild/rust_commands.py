@@ -64,6 +64,7 @@ CARGO_CONFIG_KEYS = {
     "MOZ_CARGO_CC_ENV_SUFFIX": _as_str,
     "MOZ_CARGO_CFLAGS_BASE": _as_list,
     "MOZ_CARGO_CFLAGS_FILTER": _as_list,
+    "MOZ_CARGO_CLIPPY_WRAPPER": _as_str,
     "MOZ_CARGO_CXX": _as_list,
     "MOZ_CARGO_CXXFLAGS_BASE": _as_list,
     "MOZ_CARGO_CXXFLAGS_FILTER": _as_list,
@@ -171,6 +172,8 @@ class CargoCommand:
     def __post_init__(self):
         if self.kind not in CARGO_SPEC_FILES:
             raise ValueError(f"Unknown Rust build kind: {self.kind!r}")
+        if not self.working_directory:
+            raise ValueError(f"Rust build edge {self.kind!r} has no working directory")
         for field in fields(self):
             if field.type is tuple:
                 setattr(self, field.name, tuple(getattr(self, field.name)))
@@ -465,7 +468,16 @@ def _cargo_wrap_ldflags(cmd, substs):
     return " ".join(ldflags)
 
 
-def compose_env(cmd, substs, environ, invocation, topsrcdir, topobjdir, ltoable=None):
+def compose_env(
+    cmd,
+    substs,
+    environ,
+    invocation,
+    topsrcdir,
+    topobjdir,
+    ltoable=None,
+    subcommand="build",
+):
     substs = _cargo_config(substs)
     env = dict(environ)
 
@@ -507,6 +519,8 @@ def compose_env(cmd, substs, environ, invocation, topsrcdir, topobjdir, ltoable=
 
     if rustc_wrapper := substs.get("MOZ_RUSTC_WRAPPER"):
         env["RUSTC_WRAPPER"] = rustc_wrapper
+    if subcommand == "clippy":
+        env["RUSTC_WRAPPER"] = substs.get("MOZ_CARGO_CLIPPY_WRAPPER")
 
     env["CARGO_TARGET_DIR"] = topobjdir
     if ltoable is None:
@@ -653,6 +667,7 @@ def compose_mach_cargo_argv(
     build_flags_override=(),
     extra_cli_flags=(),
     jobs=0,
+    auto_args=True,
 ):
     substs = _cargo_config(substs)
     argv = [substs.get("CARGO"), subcommand]
@@ -672,11 +687,12 @@ def compose_mach_cargo_argv(
     argv.extend(invocation.cargo_extra_flags)
     argv.extend(extra_cli_flags)
 
-    if cmd.kind in ("library", "host-library"):
-        argv.append("--lib")
-    else:
-        argv.extend(_subcommand_args(cmd))
-    argv.extend(_target_args(cmd, substs))
-    argv.extend(_features_arg(cmd))
+    if auto_args:
+        if cmd.kind in ("library", "host-library"):
+            argv.append("--lib")
+        else:
+            argv.extend(_subcommand_args(cmd))
+        argv.extend(_target_args(cmd, substs))
+        argv.extend(_features_arg(cmd))
 
     return argv

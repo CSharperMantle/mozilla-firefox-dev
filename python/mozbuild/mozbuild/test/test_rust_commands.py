@@ -75,6 +75,15 @@ class TestCargoCommand(unittest.TestCase):
         with self.assertRaises(TypeError):
             CargoCommand(**data)
 
+    def test_missing_working_directory_rejected(self):
+        data = {
+            "kind": "library",
+            "manifest_path": "x",
+            "working_directory": "",
+        }
+        with self.assertRaises(ValueError):
+            CargoCommand(**data)
+
     def test_bad_kind_rejected(self):
         data = {
             "kind": "nope",
@@ -625,6 +634,18 @@ class TestComposeEnv(unittest.TestCase):
         env = _env(_cmd(), {}, {"RUSTC_WRAPPER": "/inherited/sccache"})
         self.assertEqual(env["RUSTC_WRAPPER"], "/inherited/sccache")
 
+    def test_clippy_replaces_the_rustc_wrapper(self):
+        substs = {
+            "MOZ_RUSTC_WRAPPER": "/usr/bin/sccache",
+            "MOZ_CARGO_CLIPPY_WRAPPER": "/src/build/cargo-clippy-wrapper",
+        }
+        env = _env(_cmd(), substs, subcommand="clippy")
+        self.assertEqual(env["RUSTC_WRAPPER"], "/src/build/cargo-clippy-wrapper")
+        env = _env(_cmd(), substs, {"RUSTC_WRAPPER": "/inherited"}, subcommand="clippy")
+        self.assertEqual(env["RUSTC_WRAPPER"], "/src/build/cargo-clippy-wrapper")
+        env = _env(_cmd(), substs, subcommand="check")
+        self.assertEqual(env["RUSTC_WRAPPER"], "/usr/bin/sccache")
+
     def test_pkg_config_vars_only_set_when_configured(self):
         env = _env(_cmd(), {"PKG_CONFIG_PATH": "/from/configure"})
         self.assertEqual(env["PKG_CONFIG_PATH"], "/from/configure")
@@ -904,6 +925,31 @@ class TestComposeMachCargo(unittest.TestCase):
             _cmd(), {"CARGO": "cargo"}, "check", CargoInvocation(verbose=True)
         )
         self.assertIn("-vv", argv)
+
+    def test_auto_args_can_be_dropped_without_a_build_flags_override(self):
+        cmd = _cmd(features=("f",))
+        argv = self._mach_argv(
+            cmd,
+            _substs(),
+            "check",
+            extra_cli_flags=("-p", "gkrust-shared", "--target=t"),
+            jobs=4,
+            auto_args=False,
+        )
+        self.assertEqual(
+            argv,
+            [
+                "cargo",
+                "check",
+                "--manifest-path",
+                cmd.manifest_path,
+                "-j",
+                "4",
+                "-p",
+                "gkrust-shared",
+                "--target=t",
+            ],
+        )
 
     def test_build_flags_override_replaces_computed(self):
         argv = self._mach_argv(
