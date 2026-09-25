@@ -991,7 +991,10 @@ class BackupTest(MarionetteTestCase):
             """
           const isCustom = Services.prefs.getStringPref("browser.newtabpage.activity-stream.newtabWallpapers.wallpaper", "") == "custom";
           const wallpaperUUID = Services.prefs.getStringPref("browser.newtabpage.activity-stream.newtabWallpapers.customWallpaper.uuid", "");
-          const wallpaperPath = PathUtils.join(PathUtils.profileDir, "wallpaper", wallpaperUUID);
+          // Ask the feed where saved images live rather than spelling the
+          // folder out here, so this cannot drift from where they are written.
+          const feed = AboutNewTab.activityStream.store.feeds.get("feeds.wallpaperfeed");
+          const wallpaperPath = PathUtils.join(feed.libraryDirectory, wallpaperUUID);
           return [isCustom, wallpaperPath];
         """
         )
