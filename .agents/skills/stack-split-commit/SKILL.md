@@ -13,6 +13,7 @@ allowed-tools:
   - Bash(git rebase:*)
   - Bash(git reset:*)
   - Bash(git apply:*)
+  - Bash(git mv:*)
   - Bash(jj log:*)
   - Bash(jj show:*)
   - Bash(jj diff:*)
@@ -56,6 +57,15 @@ code it replaces, so both go in the **same** commit.
   one commit, old-out and new-in side by side.
 - A genuine **shape change**, such as an IPDL message or a data-format swap, is
   a separate commit, again with old and new together.
+- A **renamed file** whose content also changes is two commits, even when the
+  rename exists only to serve the change: the rename, with only the edits that
+  update what names the old file (inside the file as well as outside it), then
+  the change. Git stores no renames; its diff pairs a deleted path with an
+  added one only when their contents are at least half the same, so a rename
+  folded into a rewrite shows as a whole-file deletion beside a whole-file
+  addition, with no diff between them, and blame and `git log --follow` stop
+  at the new name. The target's diff hides such a pair the same way; the
+  mechanics reference says how to find one.
 - A piece that both moves and changes behavior is split into the neutral move
   and the behavior change.
 

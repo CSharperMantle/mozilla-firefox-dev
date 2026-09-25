@@ -10,7 +10,9 @@ your VCS, under "Fold-resplit".
 
 Plan from the final state's concerns, not the input commits' units; a boundary
 between two of them that the input also drew is a candidate leaf boundary even
-where the fold erased it. A leaf no input commit held is the tip minus the
+where the fold erased it. The `stack-split-commit` skill's concern rules pick
+the cuts, including the one that gives a renamed and rewritten file a rename
+leaf of its own. A leaf no input commit held is the tip minus the
 leaves above it: restore its paths whole, take out what the later leaves add,
 and let the leaf above be the plain restore. Text that describes the tree
 (docs, comments) has to describe the tree at that depth; where an input commit
