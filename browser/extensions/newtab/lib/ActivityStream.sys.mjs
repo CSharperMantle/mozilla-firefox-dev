@@ -80,6 +80,7 @@ import {
   actionTypes as at,
 } from "resource://newtab/common/Actions.mjs";
 import { RegionLocaleMap } from "moz-src:///toolkit/modules/RegionLocaleMap.sys.mjs";
+import { WIDGET_REGISTRY } from "resource://newtab/common/WidgetsRegistry.mjs";
 
 const REGION_INFERRED_PERSONALIZATION_CONFIG =
   "browser.newtabpage.activity-stream.discoverystream.sections.personalization.inferred.region-config";
@@ -166,6 +167,8 @@ const REGION_SECTIONS_CONFIG =
   "browser.newtabpage.activity-stream.discoverystream.sections.region-content-config";
 const LOCALE_SECTIONS_CONFIG =
   "browser.newtabpage.activity-stream.discoverystream.sections.locale-content-config";
+
+const ACTIVITY_STREAM_PREF_BRANCH = "browser.newtabpage.activity-stream.";
 
 const PREF_SHOULD_AS_INITIALIZE_FEEDS =
   "browser.newtabpage.activity-stream.testing.shouldInitializeFeeds";
@@ -447,6 +450,77 @@ function showSectionLayout({ geo, locale }) {
     csvPrefHasValue(REGION_SECTIONS_CONFIG, geo) &&
     csvPrefHasValue(LOCALE_SECTIONS_CONFIG, locale)
   );
+}
+
+/**
+ * Whether a market passes one axis of a widget gate. An empty allow list means
+ * no restriction, so a widget that ships everywhere declares no prefs at all.
+ * The block list wins, matching discoverystream.region-stories-block.
+ *
+ * @param {string} allowPref - full name of the `-config` pref
+ * @param {string} blockPref - full name of the `-block` pref
+ * @param {string} value - the profile's region or locale
+ * @returns {boolean}
+ */
+function marketAllows(allowPref, blockPref, value) {
+  if (csvPrefHasValue(blockPref, value)) {
+    return false;
+  }
+  const allowed = Services.prefs.getStringPref(allowPref, "") || "";
+  return !allowed.trim() || csvHasValue(allowed, value);
+}
+
+function prefIsSet(prefName) {
+  return Boolean(Services.prefs.getStringPref(prefName, "")?.trim());
+}
+
+/**
+ * Whether a widget opts out of being on everywhere in Nightly, declared as
+ * `skipNightlyDefault` on its WIDGET_REGISTRY entry. The container prefs match
+ * no entry and so never opt out.
+ *
+ * @param {string} prefKey - PREFS_CONFIG key, ending in ".enabled"
+ * @returns {boolean}
+ */
+function skipsNightlyDefault(prefKey) {
+  return WIDGET_REGISTRY.some(
+    widget =>
+      widget.skipNightlyDefault &&
+      (widget.enabledPref === prefKey || widget.systemEnabledPref === prefKey)
+  );
+}
+
+/**
+ * Gates a pref's default on the `.region-config`, `.region-block`,
+ * `.locale-config` and `.locale-block` prefs sitting alongside it, e.g.
+ * widgets.system.lists.enabled reads widgets.system.lists.region-block.
+ *
+ * @param {string} prefKey - PREFS_CONFIG key, ending in ".enabled"
+ * @returns {function({geo: string, locale: string}): boolean}
+ */
+function marketGate(prefKey) {
+  const base = ACTIVITY_STREAM_PREF_BRANCH + prefKey.replace(/\.enabled$/, "");
+  return ({ geo, locale }) => {
+    // Nightly gets every widget in every market so the team sees the whole
+    // feature, which is why no widget pref carries an #ifdef in firefox.js.
+    if (AppConstants.NIGHTLY_BUILD && !skipsNightlyDefault(prefKey)) {
+      return true;
+    }
+    // With nothing restricting the region, geo cannot change the answer, so a
+    // profile whose region never resolves still gets the widget. Where a list
+    // does restrict it, wait for geo rather than showing the widget and then
+    // taking it away (see bug 2063361).
+    if (
+      !geo &&
+      (prefIsSet(`${base}.region-config`) || prefIsSet(`${base}.region-block`))
+    ) {
+      return false;
+    }
+    return (
+      marketAllows(`${base}.region-config`, `${base}.region-block`, geo) &&
+      marketAllows(`${base}.locale-config`, `${base}.locale-block`, locale)
+    );
+  };
 }
 
 // Configure default Activity Stream prefs with a plain `value` or a `getValue`
@@ -1495,15 +1569,17 @@ export const PREFS_CONFIG = new Map([
   [
     "widgets.system.enabled",
     {
-      title: "Enables visibility of all widgets and controls to enable them",
-      value: false,
+      title: "Makes widgets available: shows the controls that turn them on",
+      // pref is dynamic
+      getValue: marketGate("widgets.system.enabled"),
     },
   ],
   [
     "widgets.enabled",
     {
       title: "Allows users to toggle all widgets on and off at once",
-      value: true,
+      // pref is dynamic
+      getValue: marketGate("widgets.enabled"),
     },
   ],
   [

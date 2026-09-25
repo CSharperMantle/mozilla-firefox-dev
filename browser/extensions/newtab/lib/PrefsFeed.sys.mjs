@@ -400,6 +400,16 @@ export class PrefsFeed {
       }
     }
 
+    // Nothing falls back to trainhopConfig when reading widgets.enabled, so
+    // this is the only remote override. widgetsSettings wins if both are sent.
+    const containerEnabled =
+      valueObj.widgetsSettings?.enabled ?? valueObj.widgets?.enabled;
+    if (typeof containerEnabled === "boolean") {
+      Services.prefs
+        .getDefaultBranch(this._prefs._branchStr)
+        .setBoolPref("widgets.enabled", containerEnabled);
+    }
+
     // A widget with a dedicated trainhop namespace ships its whole config in one
     // object (trainhopConfig.<namespace>). Its `enabled` overrides the default
     // value of the widget's user-facing enabled pref on the default branch (an
