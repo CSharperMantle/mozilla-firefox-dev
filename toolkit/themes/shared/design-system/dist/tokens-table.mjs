@@ -2409,7 +2409,7 @@ export const tokensTable = {
       name: "--button-text-color-ghost-hover",
     },
     {
-      value: "var(--button-text-color-ghost-active)",
+      value: { default: "var(--button-text-color-ghost-active)" },
       name: "--button-text-color-ghost-selected",
     },
     { value: "var(--button-text-color)", name: "--button-text-color-muted" },
@@ -4363,7 +4363,9 @@ export const variableLookupTable = {
     prefersContrast: "var(--button-text-color-hover)",
     forcedColors: "var(--button-text-color-hover)",
   },
-  "button-text-color-ghost-selected": "var(--button-text-color-ghost-active)",
+  "button-text-color-ghost-selected": {
+    default: "var(--button-text-color-ghost-active)",
+  },
   "button-text-color-muted": "var(--button-text-color)",
   "button-text-color-muted-active": "var(--button-text-color-active)",
   "button-text-color-muted-hover": "var(--button-text-color-hover)",
