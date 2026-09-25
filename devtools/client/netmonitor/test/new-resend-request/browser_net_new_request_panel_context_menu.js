@@ -48,7 +48,7 @@ add_task(async function () {
   const waitForHeaders = waitUntil(() =>
     document.querySelector(".headers-overview")
   );
-  clickOnRequestRow(firstRequestItem);
+  EventUtils.sendMouseEvent({ type: "mousedown" }, firstRequestItem);
   await waitForHeaders;
   EventUtils.sendMouseEvent({ type: "contextmenu" }, firstRequestItem);
 
@@ -197,7 +197,7 @@ add_task(async function () {
     "Change the request selected to make sure the request in the custom request panel does not change"
   );
   const previousRequest = document.querySelectorAll(".request-list-item")[0];
-  clickOnRequestRow(previousRequest);
+  EventUtils.sendMouseEvent({ type: "mousedown" }, previousRequest);
 
   const urlValueChanged = document.querySelector(".http-custom-url-value");
   is(

@@ -33,7 +33,7 @@ add_task(async function () {
 
   info("selecting first request");
   const firstRequestItem = document.querySelectorAll(".request-list-item")[0];
-  clickOnRequestRow(firstRequestItem);
+  EventUtils.sendMouseEvent({ type: "mousedown" }, firstRequestItem);
   EventUtils.sendMouseEvent({ type: "contextmenu" }, firstRequestItem);
 
   info("Opening the new request panel");

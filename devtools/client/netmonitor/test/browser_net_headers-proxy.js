@@ -20,7 +20,10 @@ add_task(async function () {
   const waitForTab = waitUntil(() =>
     document.querySelector(".tabpanel-summary-label")
   );
-  clickOnRequestRow(document.querySelector(".request-list-item"));
+  EventUtils.sendMouseEvent(
+    { type: "mousedown" },
+    document.querySelector(".request-list-item")
+  );
   await waitForTab;
 
   // Expand preview
@@ -93,7 +96,10 @@ add_task(async function () {
   const waitForTab = waitUntil(() =>
     document.querySelector(".tabpanel-summary-label")
   );
-  clickOnRequestRow(document.querySelector(".request-list-item"));
+  EventUtils.sendMouseEvent(
+    { type: "mousedown" },
+    document.querySelector(".request-list-item")
+  );
   await waitForTab;
 
   // Expand preview
@@ -187,7 +193,7 @@ add_task(async function () {
   const requestEl = await waitFor(() =>
     document.querySelector(".request-list-item")
   );
-  clickOnRequestRow(requestEl);
+  EventUtils.sendMouseEvent({ type: "mousedown" }, requestEl);
 
   await waitUntil(() => document.querySelector(".headers-overview"));
 

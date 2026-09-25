@@ -39,7 +39,7 @@ add_task(async function () {
     );
 
     const firstRequest = document.querySelectorAll(".request-list-item")[0];
-    clickOnRequestRow(firstRequest);
+    EventUtils.sendMouseEvent({ type: "mousedown" }, firstRequest);
 
     await waitForHeaderSections;
 
@@ -92,7 +92,7 @@ add_task(async function () {
     );
 
     const firstRequest = document.querySelectorAll(".request-list-item")[0];
-    clickOnRequestRow(firstRequest);
+    EventUtils.sendMouseEvent({ type: "mousedown" }, firstRequest);
 
     await waitForHeaderSections;
 
@@ -138,7 +138,7 @@ add_task(async function () {
     unblockedRequestSize = firstRequest.querySelector(
       ".requests-list-transferred"
     ).textContent;
-    clickOnRequestRow(firstRequest);
+    EventUtils.sendMouseEvent({ type: "mousedown" }, firstRequest);
     unblockedRequestState = getSelectedRequest(store.getState());
     info("Captured unblocked request");
   }

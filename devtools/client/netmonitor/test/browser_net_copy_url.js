@@ -21,7 +21,10 @@ add_task(async function () {
   // Execute requests.
   await performRequests(monitor, tab, 1);
 
-  clickOnRequestRow(document.querySelectorAll(".request-list-item")[0]);
+  EventUtils.sendMouseEvent(
+    { type: "mousedown" },
+    document.querySelectorAll(".request-list-item")[0]
+  );
 
   const requestItem = getSortedRequests(store.getState())[0];
 

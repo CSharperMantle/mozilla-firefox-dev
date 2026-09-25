@@ -42,7 +42,10 @@ add_task(async function () {
     wait = waitForDOM(document, "#security-tab");
 
     info("Selecting the request.");
-    clickOnRequestRow(document.querySelectorAll(".request-list-item")[0]);
+    EventUtils.sendMouseEvent(
+      { type: "mousedown" },
+      document.querySelectorAll(".request-list-item")[0]
+    );
     await wait;
 
     if (!document.querySelector("#security-tab[aria-selected=true]")) {

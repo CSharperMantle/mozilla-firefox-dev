@@ -22,7 +22,10 @@ add_task(async function () {
   await reloadSelectedTab();
   await wait;
 
-  clickOnRequestRow(document.querySelectorAll(".request-list-item")[0]);
+  EventUtils.sendMouseEvent(
+    { type: "mousedown" },
+    document.querySelectorAll(".request-list-item")[0]
+  );
 
   const requestItem = getSortedRequests(store.getState())[0];
   const { method, httpVersion, status, statusText } = requestItem;

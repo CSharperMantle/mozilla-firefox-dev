@@ -24,7 +24,10 @@ add_task(async function () {
     document.querySelector("#headers-panel .url-preview")
   );
 
-  clickOnRequestRow(document.querySelectorAll(".request-list-item")[0]);
+  EventUtils.sendMouseEvent(
+    { type: "mousedown" },
+    document.querySelectorAll(".request-list-item")[0]
+  );
 
   await wait;
 

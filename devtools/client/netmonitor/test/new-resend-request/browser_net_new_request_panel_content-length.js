@@ -33,7 +33,7 @@ add_task(async function () {
   const waitForHeaders = waitUntil(() =>
     document.querySelector(".headers-overview")
   );
-  clickOnRequestRow(firstRequest);
+  EventUtils.sendMouseEvent({ type: "mousedown" }, firstRequest);
   await waitForHeaders;
 
   info("Open the first request in the request panel to resend");

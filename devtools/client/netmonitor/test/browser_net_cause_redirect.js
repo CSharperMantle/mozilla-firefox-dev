@@ -117,7 +117,7 @@ add_task(async function testResponseForRedirects() {
   );
 
   info("Select the redirect request");
-  clickOnRequestRow(requests[0]);
+  EventUtils.sendMouseEvent({ type: "mousedown" }, requests[0]);
 
   info("Switch to response panel");
   const waitForRespPanel = waitForDOM(
