@@ -17,6 +17,8 @@ import "chrome://browser/content/aiwindow/components/aitab-table.mjs";
 import "chrome://browser/content/aiwindow/components/aitab-highlights.mjs";
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://browser/content/aiwindow/components/aitab-error.mjs";
+// eslint-disable-next-line import/no-unassigned-import
+import "chrome://browser/content/aiwindow/components/aitab-text-block.mjs";
 
 // The same names the child and parent actors use, so a message can be traced
 // straight through without a translation table.
@@ -169,6 +171,12 @@ export class AITabPage extends MozLitElement {
           description=${block.description ?? ""}
           .items=${block.items ?? []}
         ></aitab-timeline>`;
+      case "textblock":
+        return html`<aitab-text-block
+          .heading=${block.lead ?? ""}
+          .paragraphs=${block.paragraphs ?? []}
+          .references=${block.references ?? []}
+        ></aitab-text-block>`;
     }
     return html`
       <section class="aitab-block" data-block-type=${block.type}>
