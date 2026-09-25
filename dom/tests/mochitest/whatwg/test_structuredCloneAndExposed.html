@@ -221,7 +221,7 @@ const serializable = [
   ["DOMException", ["Window", "Worker"], () => new DOMException()],
   ["DOMMatrixReadOnly", ["Window", "Worker"], () => new DOMMatrixReadOnly()],
   ["ImageBitmap", ["Window", "Worker"], makeImageBitmap],
-  // RTCCertificate is no longer serializable
+  ["RTCCertificate", ["Window"], generateCertificate],
   ["VideoFrame", ["Window", "DedicatedWorker"], makeVideoFrame],
 ];
 

@@ -44,7 +44,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ScopedNSSTypes.h"
 #include "logging.h"
 #include "mozilla/Preferences.h"
-#include "mozpkix/nss_scoped_ptrs.h"
 #include "nr_socket_proxy_config.h"
 #include "nsCOMPtr.h"
 #include "nsError.h"
@@ -125,65 +124,45 @@ static int nr_crypto_nss_random_bytes(UCHAR* buf, size_t len) {
 static int nr_crypto_nss_hmac(UCHAR* key, size_t keyl, UCHAR* buf, size_t bufl,
                               UCHAR* result) {
   CK_MECHANISM_TYPE mech = CKM_SHA_1_HMAC;
-  ScopedPK11SlotInfo slot = nullptr;
-  CK_KEY_DERIVATION_STRING_DATA idkey;
-  SECItem keyi;
-  ScopedPK11SymKey tmpKey = nullptr;
-  ScopedPK11SymKey skey = nullptr;
-  ScopedPK11Context hmac_ctx = nullptr;
+  PK11SlotInfo* slot = nullptr;
+  MOZ_ASSERT(keyl > 0);
+  SECItem keyi = {siBuffer, key, static_cast<unsigned int>(keyl)};
+  PK11SymKey* skey = nullptr;
+  PK11Context* hmac_ctx = nullptr;
   SECStatus status;
   unsigned int hmac_len;
   SECItem param = {siBuffer, nullptr, 0};
+  int err = R_INTERNAL;
 
-  if (keyl == 0) return R_INTERNAL;
+  slot = PK11_GetInternalKeySlot();
+  if (!slot) goto abort;
 
-  slot = ScopedPK11SlotInfo(PK11_GetInternalKeySlot());
-  if (!slot) return R_INTERNAL;
+  skey = PK11_ImportSymKey(slot, mech, PK11_OriginUnwrap, CKA_SIGN, &keyi,
+                           nullptr);
+  if (!skey) goto abort;
 
-  if (PK11_IsFIPS()) {
-    // Both PK11_KeyGen and PK11_Derive expect `keyl` to be an int
-    if (keyl > std::numeric_limits<int>::max()) return R_INTERNAL;
-    idkey = {key, static_cast<unsigned long>(keyl)};
-    keyi = {siBuffer, (unsigned char*)&idkey, sizeof(idkey)};
-    // PK11_ImportSymKey is not allowed to be called in FIPS-mode.
-    // We use a somewhat dirty trick using PK11_Derive instead.
-    // The resulting key/HMAC is the same.
-    //
-    // First, create a new key
-    tmpKey = ScopedPK11SymKey(PK11_KeyGen(slot.get(), mech, nullptr,
-                                          static_cast<int>(keyl), nullptr));
-    if (!tmpKey) return R_INTERNAL;
+  hmac_ctx = PK11_CreateContextBySymKey(mech, CKA_SIGN, skey, &param);
+  if (!hmac_ctx) goto abort;
 
-    // Second, prepend the actual key material we need to import in front of the
-    // new key and then truncate everything up to keyl, effectively throwing
-    // away the newly generated key entirely.
-    skey = ScopedPK11SymKey(
-        PK11_Derive(tmpKey.get(), CKM_CONCATENATE_DATA_AND_BASE, &keyi, mech,
-                    CKA_SIGN, static_cast<int>(keyl)));
-  } else {
-    if (keyl > std::numeric_limits<unsigned int>::max()) return R_INTERNAL;
-    keyi = {siBuffer, key, static_cast<unsigned int>(keyl)};
-    skey = ScopedPK11SymKey(PK11_ImportSymKey(
-        slot.get(), mech, PK11_OriginUnwrap, CKA_SIGN, &keyi, nullptr));
-  }
-  if (!skey) return R_INTERNAL;
+  status = PK11_DigestBegin(hmac_ctx);
+  if (status != SECSuccess) goto abort;
 
-  hmac_ctx = ScopedPK11Context(
-      PK11_CreateContextBySymKey(mech, CKA_SIGN, skey.get(), &param));
-  if (!hmac_ctx) return R_INTERNAL;
+  status = PK11_DigestOp(hmac_ctx, buf, bufl);
+  if (status != SECSuccess) goto abort;
 
-  status = PK11_DigestBegin(hmac_ctx.get());
-  if (status != SECSuccess) return R_INTERNAL;
-
-  status = PK11_DigestOp(hmac_ctx.get(), buf, bufl);
-  if (status != SECSuccess) return R_INTERNAL;
-
-  status = PK11_DigestFinal(hmac_ctx.get(), result, &hmac_len, 20);
-  if (status != SECSuccess) return R_INTERNAL;
+  status = PK11_DigestFinal(hmac_ctx, result, &hmac_len, 20);
+  if (status != SECSuccess) goto abort;
 
   MOZ_ASSERT(hmac_len == 20);
 
-  return 0;
+  err = 0;
+
+abort:
+  if (hmac_ctx) PK11_DestroyContext(hmac_ctx, PR_TRUE);
+  if (skey) PK11_FreeSymKey(skey);
+  if (slot) PK11_FreeSlot(slot);
+
+  return err;
 }
 
 static int nr_crypto_nss_md5(UCHAR* buf, size_t bufl, UCHAR* result) {

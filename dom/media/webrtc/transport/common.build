@@ -3,7 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 transport_lcppsrcs = [
-    "dtlsdigest.cpp",
+    "dtlsidentity.cpp",
     "mediapacket.cpp",
     "nr_socket_proxy_config.cpp",
     "nr_socket_prsock.cpp",

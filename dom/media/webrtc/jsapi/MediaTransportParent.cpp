@@ -7,7 +7,6 @@
 #include "MediaEventSource.h"
 #include "common/browser_logging/CSFLog.h"
 #include "jsapi/MediaTransportHandler.h"
-#include "mozilla/dom/RTCCertServiceData.h"
 #include "transport/sigslot.h"
 
 namespace mozilla {
@@ -222,11 +221,13 @@ mozilla::ipc::IPCResult MediaTransportParent::RecvStartIceGathering(
 mozilla::ipc::IPCResult MediaTransportParent::RecvActivateTransport(
     const string& transportId, const string& localUfrag, const string& localPwd,
     const int& componentCount, const string& remoteUfrag,
-    const string& remotePwd, const nsID& certId, const bool& dtlsClient,
-    const DtlsDigestList& digests, const bool& privacyRequested) {
+    const string& remotePwd, nsTArray<uint8_t>&& keyDer,
+    nsTArray<uint8_t>&& certDer, const SSLKEAType& authType,
+    const bool& dtlsClient, const DtlsDigestList& digests,
+    const bool& privacyRequested) {
   mImpl->mHandler->ActivateTransport(
       transportId, localUfrag, localPwd, componentCount, remoteUfrag, remotePwd,
-      certId, dtlsClient, digests, privacyRequested);
+      keyDer, certDer, authType, dtlsClient, digests, privacyRequested);
   return ipc::IPCResult::Ok();
 }
 

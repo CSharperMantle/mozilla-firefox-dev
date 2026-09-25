@@ -5,7 +5,7 @@
 include("/ipc/chromium/chromium-config.mozbuild")
 
 EXPORTS.transport += [
-    "../dtlsdigest.h",
+    "../dtlsidentity.h",
     "../m_cpp_utils.h",
     "../mediapacket.h",
     "../nr_socket_proxy_config.h",

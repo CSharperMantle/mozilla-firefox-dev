@@ -12,11 +12,8 @@
 #include "js/RootingAPI.h"
 #include "keythi.h"
 #include "mozilla/AlreadyAddRefed.h"
-#include "mozilla/MozPromise.h"
 #include "mozilla/RefPtr.h"
-#include "mozilla/dom/SubtleCryptoBinding.h"
 #include "nsCycleCollectionParticipant.h"
-#include "nsICancelableRunnable.h"
 #include "nsIGlobalObject.h"
 #include "nsISupports.h"
 #include "nsWrapperCache.h"
@@ -33,62 +30,20 @@ class Compartment;
 }
 
 namespace mozilla {
+class DtlsIdentity;
 class ErrorResult;
 
 namespace dom {
 
 class GlobalObject;
 class ObjectOrString;
-class RTCCertService;
 class Promise;
 struct RTCDtlsFingerprint;
-struct CertData;
-
-struct CertFingerprint {
-  CertFingerprint() = default;
-  CertFingerprint(const CertFingerprint&) = default;
-  CertFingerprint(CertFingerprint&&) = default;
-  CertFingerprint& operator=(CertFingerprint&&) = default;
-  CertFingerprint& operator=(const CertFingerprint& aRight) = default;
-  operator nsTArray<uint8_t>() const;
-  unsigned char* AsChar() { return mHash.data(); }
-  bool operator==(const CertFingerprint& aOther) const {
-    return mHash == aOther.mHash;
-  }
-  nsCString Dump() const;
-  PLDHashNumber Hash() const {
-    return HashBytes(mHash.data(), CertFingerprint::sHashByteLen);
-  }
-
-  const static size_t sHashByteLen = 32;
-  std::array<uint8_t, sHashByteLen> mHash;
-};
-
-using RTCCertificatePromise =
-    MozPromise<CertData, nsresult, /* IsExclusive = */ true>;
-
-class RTCCertificateMetadata {
- public:
-  RTCCertificateMetadata();
-
-  nsresult Init(JSContext* aCx, const ObjectOrString& aAlgorithm,
-                ErrorResult& aRv);
-  RefPtr<RTCCertificatePromise> Generate(RTCCertService* aCertService);
-
- private:
-  nsTArray<uint8_t> mParam;
-  PRTime mExpires;
-  SECOidTag mSignatureAlg;
-  CK_MECHANISM_TYPE mMechanism;
-};
 
 class RTCCertificate final : public nsISupports, public nsWrapperCache {
  public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS_FINAL
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(RTCCertificate)
-
-  void operator=(const RTCCertificate&) = delete;
-  RTCCertificate(const RTCCertificate&) = delete;
 
   // WebIDL method that implements RTCPeerConnection.generateCertificate.
   static already_AddRefed<Promise> GenerateCertificate(
@@ -96,6 +51,9 @@ class RTCCertificate final : public nsISupports, public nsWrapperCache {
       ErrorResult& aRv, JS::Compartment* aCompartment = nullptr);
 
   explicit RTCCertificate(nsIGlobalObject* aGlobal);
+  RTCCertificate(nsIGlobalObject* aGlobal, SECKEYPrivateKey* aPrivateKey,
+                 CERTCertificate* aCertificate, SSLKEAType aAuthType,
+                 PRTime aExpires);
 
   void operator=(const RTCCertificate&) = delete;
   RTCCertificate(const RTCCertificate&) = delete;
@@ -110,19 +68,8 @@ class RTCCertificate final : public nsISupports, public nsWrapperCache {
   void GetFingerprints(nsTArray<dom::RTCDtlsFingerprint>& aFingerprintsOut);
 
   // Accessors for use by PeerConnectionImpl.
-  CertFingerprint GetFingerprint() const {
-    return CertFingerprint(mCertFingerprint);
-  }
-  nsID GetCertId() const { return mId; }
-
-  // True for certs produced by ReadStructuredClone (i.e. revived from
-  // IndexedDB). PeerConnectionImpl must verify the backing nsID still exists
-  // in RTCCertStore before the cert is usable.
-  bool NeedsVerification() const { return mNeedsVerification; }
-  void MarkVerified() { mNeedsVerification = false; }
-
-  // Chrome-only test hook (see RTCCertificate.webidl).
-  void InvalidateForTesting();
+  RefPtr<DtlsIdentity> CreateDtlsIdentity() const;
+  const UniqueCERTCertificate& Certificate() const { return mCertificate; }
 
   // Structured clone methods
   bool WriteStructuredClone(JSContext* aCx,
@@ -134,16 +81,17 @@ class RTCCertificate final : public nsISupports, public nsWrapperCache {
  private:
   ~RTCCertificate() = default;
 
-  already_AddRefed<Promise> Generate(const GlobalObject& aGlobal,
-                                     const ObjectOrString& aOptions,
-                                     ErrorResult& aRv);
+  bool ReadCertificate(JSStructuredCloneReader* aReader);
+  bool ReadPrivateKey(JSStructuredCloneReader* aReader);
+  bool WriteCertificate(JSStructuredCloneWriter* aWriter) const;
+  bool WritePrivateKey(JSStructuredCloneWriter* aWriter) const;
 
   RefPtr<nsIGlobalObject> mGlobal;
-
-  nsID mId{};
-  CertFingerprint mCertFingerprint;
-  PRTime mExpires = 0;
-  bool mNeedsVerification = false;
+  UniqueSECKEYPrivateKey mPrivateKey;
+  UniqueCERTCertificate mCertificate;
+  SSLKEAType mAuthType;
+  PRTime mExpires;
+  nsTArray<RTCDtlsFingerprint> mFingerprints;
 };
 
 }  // namespace dom

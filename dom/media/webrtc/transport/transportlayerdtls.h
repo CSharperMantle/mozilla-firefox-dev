@@ -17,11 +17,10 @@
 #endif
 
 #include "ScopedNSSTypes.h"
-#include "dtlsdigest.h"
+#include "dtlsidentity.h"
 #include "m_cpp_utils.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/UniquePtr.h"
-#include "mozilla/dom/RTCCertStore.h"
 #include "nsCOMPtr.h"
 #include "nsITimer.h"
 #include "nsTArray.h"
@@ -78,8 +77,8 @@ class TransportLayerDtls final : public TransportLayer {
   };
   void SetMinMaxVersion(Version min_version, Version max_version);
 
-  void SetCertificate(const RefPtr<dom::SharedCertificate>& certificate) {
-    shared_certificate_ = certificate;
+  void SetIdentity(const RefPtr<DtlsIdentity>& identity) {
+    identity_ = identity;
   }
   nsresult SetAlpn(const std::set<std::string>& allowedAlpn,
                    const std::string& alpnDefault);
@@ -182,7 +181,7 @@ class TransportLayerDtls final : public TransportLayer {
   static void ReceivedAlertCallback(const PRFileDesc* fd, void* arg,
                                     const SSLAlert* alert);
 
-  RefPtr<dom::SharedCertificate> shared_certificate_;
+  RefPtr<DtlsIdentity> identity_;
   // What ALPN identifiers are permitted.
   std::set<std::string> alpn_allowed_;
   // What ALPN identifier is used if ALPN is not supported.

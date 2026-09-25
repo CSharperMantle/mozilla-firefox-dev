@@ -8,7 +8,6 @@
 #include <memory>
 
 #include "mozilla/dom/PMediaTransportParent.h"
-#include "mozilla/dom/RTCCertServiceData.h"
 
 namespace mozilla {
 
@@ -41,9 +40,10 @@ class MediaTransportParent : public dom::PMediaTransportParent {
   mozilla::ipc::IPCResult RecvActivateTransport(
       const string& transportId, const string& localUfrag,
       const string& localPwd, const int& componentCount,
-      const string& remoteUfrag, const string& remotePwd, const nsID& certId,
-      const bool& dtlsClient, const DtlsDigestList& digests,
-      const bool& privacyRequested);
+      const string& remoteUfrag, const string& remotePwd,
+      nsTArray<uint8_t>&& keyDer, nsTArray<uint8_t>&& certDer,
+      const SSLKEAType& authType, const bool& dtlsClient,
+      const DtlsDigestList& digests, const bool& privacyRequested);
   mozilla::ipc::IPCResult RecvRemoveTransportsExcept(
       const StringVector& transportIds);
   mozilla::ipc::IPCResult RecvStartIceChecks(const bool& isControlling,

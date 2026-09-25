@@ -10,7 +10,7 @@
 #include <iomanip>
 #include <sstream>
 
-#include "dtlsdigest.h"
+#include "dtlsidentity.h"
 #include "keyhi.h"
 #include "logging.h"
 #include "mozilla/StaticPrefs_media.h"
@@ -458,7 +458,7 @@ bool TransportLayerDtls::Setup() {
   }
   nspr_io_adapter_ = MakeUnique<TransportLayerNSPRAdapter>(downward_);
 
-  if (!shared_certificate_) {
+  if (!identity_) {
     MOZ_MTLOG(ML_ERROR, "Can't start DTLS without an identity");
     return false;
   }
@@ -506,11 +506,9 @@ bool TransportLayerDtls::Setup() {
   } else {
     MOZ_MTLOG(ML_INFO, "Setting up DTLS as server");
     // Server side
-
-    rv = SSL_ConfigSecureServer(ssl_fd.get(),
-                                shared_certificate_->Cert().mCertificate.get(),
-                                shared_certificate_->Cert().mPrivateKey.get(),
-                                shared_certificate_->Cert().mAuthType);
+    rv = SSL_ConfigSecureServer(ssl_fd.get(), identity_->cert().get(),
+                                identity_->privkey().get(),
+                                identity_->auth_type());
     if (rv != SECSuccess) {
       MOZ_MTLOG(ML_ERROR, "Couldn't set identity");
       return false;
@@ -879,10 +877,10 @@ nsTArray<nsTArray<uint8_t>> TransportLayerDtls::GetPeerCertChainDer() const {
 nsTArray<uint8_t> TransportLayerDtls::GetLocalCertDer() const {
   CheckThread();
   nsTArray<uint8_t> result;
-  if (!shared_certificate_) {
+  if (!identity_) {
     return result;
   }
-  const UniqueCERTCertificate& cert = shared_certificate_->Cert().mCertificate;
+  const UniqueCERTCertificate& cert = identity_->cert();
   if (!cert) {
     return result;
   }
@@ -1056,28 +1054,6 @@ void TransportLayerDtls::Handshake() {
               TimerCallback, this, timeout_ms, nsITimer::TYPE_ONE_SHOT,
               "TransportLayerDtls::TimerCallback"_ns);
         }
-        break;
-      case SSL_ERROR_EXPIRED_CERT_ALERT:
-        // Peer rejected our certificate because it's expired (server role)
-        MOZ_MTLOG(ML_ERROR,
-                  LAYER_INFO << "Certificate expired during handshake");
-        mErrorDescription = "Certificate expired during handshake";
-        RecordHandshakeCompletionTelemetry(PR_ErrorToName(err));
-        TL_SET_STATE(TS_ERROR);
-        break;
-      case SEC_ERROR_EXPIRED_CERTIFICATE:
-        // Client-side: We detected our own certificate is expired
-        MOZ_MTLOG(ML_ERROR, LAYER_INFO << "Certificate has expired");
-        mErrorDescription = "Certificate expired during handshake";
-        RecordHandshakeCompletionTelemetry(PR_ErrorToName(err));
-        TL_SET_STATE(TS_ERROR);
-        break;
-      case SSL_ERROR_NO_CERTIFICATE:
-        // Client-side: Certificate is missing (e.g., lost from RTCCertStore)
-        MOZ_MTLOG(ML_ERROR, LAYER_INFO << "Certificate not available");
-        mErrorDescription = "Certificate not available";
-        RecordHandshakeCompletionTelemetry(PR_ErrorToName(err));
-        TL_SET_STATE(TS_ERROR);
         break;
       default:
         const char* err_msg = PR_ErrorToName(err);
@@ -1292,30 +1268,19 @@ SECStatus TransportLayerDtls::GetClientAuthDataHook(
   TransportLayerDtls* stream = reinterpret_cast<TransportLayerDtls*>(arg);
   stream->CheckThread();
 
-  if (!stream->shared_certificate_) {
+  if (!stream->identity_) {
     MOZ_MTLOG(ML_ERROR, "No identity available");
     PR_SetError(SSL_ERROR_NO_CERTIFICATE, 0);
     return SECFailure;
   }
 
-  // Check certificate expiration before using it.
-  // We can't rely on the remote peer to validate this - they might not
-  // enforce expiration checking on self-signed WebRTC certificates.
-  if (stream->shared_certificate_->Cert().HasExpired()) {
-    MOZ_MTLOG(ML_ERROR, "Certificate has expired");
-    PR_SetError(SEC_ERROR_EXPIRED_CERTIFICATE, 0);
-    return SECFailure;
-  }
-
-  *pRetCert = CERT_DupCertificate(
-      stream->shared_certificate_->Cert().mCertificate.get());
+  *pRetCert = CERT_DupCertificate(stream->identity_->cert().get());
   if (!*pRetCert) {
     PR_SetError(PR_OUT_OF_MEMORY_ERROR, 0);
     return SECFailure;
   }
 
-  *pRetKey = SECKEY_CopyPrivateKey(
-      stream->shared_certificate_->Cert().mPrivateKey.get());
+  *pRetKey = SECKEY_CopyPrivateKey(stream->identity_->privkey().get());
   if (!*pRetKey) {
     CERT_DestroyCertificate(*pRetCert);
     *pRetCert = nullptr;
@@ -1587,7 +1552,7 @@ SECStatus TransportLayerDtls::CheckDigest(
 
   MOZ_MTLOG(ML_DEBUG,
             LAYER_INFO << "Checking digest, algorithm=" << digest.algorithm_);
-  nsresult res = ComputeFingerprint(peer_cert, &computed_digest);
+  nsresult res = DtlsIdentity::ComputeFingerprint(peer_cert, &computed_digest);
   if (NS_FAILED(res)) {
     MOZ_MTLOG(ML_ERROR, "Could not compute peer fingerprint for digest "
                             << digest.algorithm_);

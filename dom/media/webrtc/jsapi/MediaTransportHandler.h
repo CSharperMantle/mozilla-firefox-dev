@@ -15,19 +15,19 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/dom/PMediaTransportChild.h"
-#include "mozilla/dom/RTCCertServiceData.h"
 #include "mozilla/dom/RTCConfigurationBinding.h"
 #include "mozilla/dom/RTCErrorBinding.h"
 #include "mozilla/dom/RTCIceTransportBinding.h"  // RTCIceTransportState
 #include "mozilla/dom/RTCPeerConnectionBinding.h"
 #include "nsISupportsImpl.h"
 #include "nsString.h"
-#include "transport/dtlsdigest.h"
+#include "transport/dtlsidentity.h"  // For DtlsDigest
 #include "transport/nr_socket_proxy_config.h"
 #include "transport/nricectx.h"        // Need some enums
 #include "transport/transportlayer.h"  // Need the State enum
 
 namespace mozilla {
+class DtlsIdentity;
 class NrIceCtx;
 class NrIceMediaStream;
 class NrIceResolver;
@@ -35,9 +35,8 @@ class TransportFlow;
 class RTCStatsQuery;
 
 namespace dom {
-class SharedCertificate;
 struct RTCStatsReportInternal;
-}  // namespace dom
+}
 
 class MediaTransportHandler {
  public:
@@ -90,7 +89,8 @@ class MediaTransportHandler {
       const std::string& aTransportId, const std::string& aLocalUfrag,
       const std::string& aLocalPwd, size_t aComponentCount,
       const std::string& aUfrag, const std::string& aPassword,
-      const nsID& aCertId, bool aDtlsClient, const DtlsDigestList& aDigests,
+      const nsTArray<uint8_t>& aKeyDer, const nsTArray<uint8_t>& aCertDer,
+      SSLKEAType aAuthType, bool aDtlsClient, const DtlsDigestList& aDigests,
       bool aPrivacyRequested) = 0;
 
   virtual void RemoveTransportsExcept(

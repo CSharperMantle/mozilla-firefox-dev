@@ -82,7 +82,6 @@ UNIFIED_SOURCES += [
     "TestPDMFactorySupport.cpp",
     "TestQuantizableBuffer.cpp",
     "TestRemoteImageHolder.cpp",
-    "TestRTCCertStore.cpp",
     "TestRust.cpp",
     "TestSimpleMap.cpp",
     "TestTelemetryProbesReporter.cpp",

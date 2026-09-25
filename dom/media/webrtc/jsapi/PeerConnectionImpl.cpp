@@ -31,8 +31,6 @@
 #include "mozilla/IceServerParser.h"
 #include "mozilla/IntegerPrintfMacros.h"
 #include "mozilla/Sprintf.h"
-#include "mozilla/dom/RTCCertService.h"
-#include "mozilla/dom/RTCCertServiceData.h"
 #include "mozilla/glean/DomMediaWebrtcMetrics.h"
 #include "mozilla/media/MediaUtils.h"
 #include "nsEffectiveTLDService.h"
@@ -48,7 +46,7 @@
 #include "pk11pub.h"
 #include "prtime.h"
 #include "sdp/SdpAttribute.h"
-#include "transport/dtlsdigest.h"
+#include "transport/dtlsidentity.h"
 #include "transport/runnable_utils.h"
 #include "transportbridge/MediaPipeline.h"
 #include "transportbridge/RtpLogger.h"
@@ -381,8 +379,6 @@ PeerConnectionImpl::PeerConnectionImpl(const GlobalObject* aGlobal)
       mConnectionState(RTCPeerConnectionState::New),
       mWindow(do_QueryInterface(aGlobal ? aGlobal->GetAsSupports() : nullptr)),
       mCertificate(nullptr),
-      mCertificateVerified(
-          CertVerifiedPromise::CreateAndResolve(true, __func__)),
       mSTSThread(nullptr),
       mForceIceTcp(false),
       mTransportHandler(nullptr),
@@ -635,79 +631,38 @@ void PeerConnectionImpl::SetCertificate(
   mCertificate = &aCertificate;
 
   std::vector<uint8_t> fingerprint;
-  nsresult rv = GetFingerprint(&fingerprint);
+  nsresult rv =
+      CalculateFingerprint(DtlsIdentity::DEFAULT_HASH_ALGORITHM, &fingerprint);
   if (NS_FAILED(rv)) {
-    CSFLogError(LOGTAG, "%s: Couldn't get fingerprint, rv=%u", __FUNCTION__,
-                static_cast<unsigned>(rv));
+    CSFLogError(LOGTAG, "%s: Couldn't calculate fingerprint, rv=%u",
+                __FUNCTION__, static_cast<unsigned>(rv));
     mCertificate = nullptr;
     return;
   }
-
-  // Push the fingerprint into the JSEP session(s) so SDP generation can use
-  // it. For fresh certs this is synchronous; for certs revived via
-  // ReadStructuredClone we defer until RTCCertService confirms the backing
-  // nsID still exists, so a stale handle never plants a fingerprint that
-  // could be exposed through any future non-gated code path.
-  auto installFingerprint = [this, fingerprint]() -> nsresult {
-    nsresult rv = mJsepSession->AddDtlsFingerprint(DEFAULT_DTLS_HASH_ALGORITHM,
-                                                   fingerprint);
-    if (NS_FAILED(rv)) {
-      CSFLogError(LOGTAG,
-                  "PeerConnectionImpl::SetCertificate: Couldn't set DTLS "
-                  "credentials, rv=%u",
-                  static_cast<unsigned>(rv));
-      mCertificate = nullptr;
-      return rv;
-    }
-    if (mUncommittedJsepSession) {
-      (void)mUncommittedJsepSession->AddDtlsFingerprint(
-          DEFAULT_DTLS_HASH_ALGORITHM, fingerprint);
-    }
-    return NS_OK;
-  };
-
-  // Certificate already verified, we can use it directly
-  if (!mCertificate->NeedsVerification()) {
-    installFingerprint();
-    return;
-  }
-
-  // Certificate not yet verified. We need to query the RTCCertStore for it.
-  nsID certId = mCertificate->GetCertId();
-  RefPtr<dom::RTCCertService> service = dom::RTCCertService::GetInstance();
-  if (!service) {
+  rv = mJsepSession->AddDtlsFingerprint(DtlsIdentity::DEFAULT_HASH_ALGORITHM,
+                                        fingerprint);
+  if (NS_FAILED(rv)) {
+    CSFLogError(LOGTAG, "%s: Couldn't set DTLS credentials, rv=%u",
+                __FUNCTION__, static_cast<unsigned>(rv));
     mCertificate = nullptr;
-    mCertificateVerified = CertVerifiedPromise::CreateAndReject(
-        dom::PCError::InvalidAccessError, __func__);
-    return;
   }
-  mCertificateVerified = service->GetCertificate(certId)->Then(
-      GetMainThreadSerialEventTarget(), __func__,
-      [self = RefPtr<PeerConnectionImpl>(this),
-       install = std::move(installFingerprint)](const dom::CertData&) {
-        if (!self->mCertificate) {
-          return CertVerifiedPromise::CreateAndReject(
-              dom::PCError::InvalidAccessError, __func__);
-        }
-        // Certificate exists on the socket process, we can use it now
-        nsresult rv = install();
-        if (NS_FAILED(rv)) {
-          return CertVerifiedPromise::CreateAndReject(
-              dom::PCError::InvalidAccessError, __func__);
-        }
-        self->mCertificate->MarkVerified();
-        return CertVerifiedPromise::CreateAndResolve(true, __func__);
-      },
-      [](nsresult) {
-        return CertVerifiedPromise::CreateAndReject(
-            dom::PCError::InvalidAccessError, __func__);
-      });
+
+  if (mUncommittedJsepSession) {
+    (void)mUncommittedJsepSession->AddDtlsFingerprint(
+        DtlsIdentity::DEFAULT_HASH_ALGORITHM, fingerprint);
+  }
 }
 
 const RefPtr<mozilla::dom::RTCCertificate>& PeerConnectionImpl::Certificate()
     const {
   PC_AUTO_ENTER_API_CALL_NO_CHECK();
   return mCertificate;
+}
+
+RefPtr<DtlsIdentity> PeerConnectionImpl::Identity() const {
+  PC_AUTO_ENTER_API_CALL_NO_CHECK();
+  MOZ_ASSERT(mCertificate);
+  return mCertificate->CreateDtlsIdentity();
 }
 
 // Data channels won't work without a window, so in order for the C++ unit
@@ -1550,9 +1505,8 @@ PeerConnectionImpl::CreateOffer(const JsepOfferOptions& aOptions) {
   CSFLogDebug(LOGTAG, "CreateOffer()");
   STAMP_TIMECARD(mTimeCard, "Create Offer");
 
-  mCertificateVerified->Then(
-      GetMainThreadSerialEventTarget(), __func__,
-      [this, self = RefPtr<PeerConnectionImpl>(this), aOptions](bool) {
+  GetMainThreadSerialEventTarget()->Dispatch(NS_NewRunnableFunction(
+      __func__, [this, self = RefPtr<PeerConnectionImpl>(this), aOptions] {
         std::string offer;
 
         SyncToJsep();
@@ -1572,13 +1526,7 @@ PeerConnectionImpl::CreateOffer(const JsepOfferOptions& aOptions) {
           mJsepSession = std::move(uncommittedJsepSession);
           mPCObserver->OnCreateOfferSuccess(ObString(offer.c_str()), rv);
         }
-      },
-      [this, self = RefPtr<PeerConnectionImpl>(this)](dom::PCError aError) {
-        JSErrorResult rv;
-        JsepSession::Result result(aError);
-        mPCObserver->OnCreateOfferError(
-            *buildJSErrorData(result, "Certificate is no longer valid"), rv);
-      });
+      }));
 
   return NS_OK;
 }
@@ -1594,9 +1542,8 @@ PeerConnectionImpl::CreateAnswer() {
   // add it as a param to CreateAnswer, and convert it here.
   JsepAnswerOptions options;
 
-  mCertificateVerified->Then(
-      GetMainThreadSerialEventTarget(), __func__,
-      [this, self = RefPtr<PeerConnectionImpl>(this), options](bool) {
+  GetMainThreadSerialEventTarget()->Dispatch(NS_NewRunnableFunction(
+      __func__, [this, self = RefPtr<PeerConnectionImpl>(this), options] {
         std::string answer;
         SyncToJsep();
         UniquePtr<JsepSession> uncommittedJsepSession(mJsepSession->Clone());
@@ -1615,13 +1562,7 @@ PeerConnectionImpl::CreateAnswer() {
           mJsepSession = std::move(uncommittedJsepSession);
           mPCObserver->OnCreateAnswerSuccess(ObString(answer.c_str()), rv);
         }
-      },
-      [this, self = RefPtr<PeerConnectionImpl>(this)](dom::PCError aError) {
-        JSErrorResult rv;
-        JsepSession::Result result(aError);
-        mPCObserver->OnCreateAnswerError(
-            *buildJSErrorData(result, "Certificate is no longer valid"), rv);
-      });
+      }));
 
   return NS_OK;
 }
@@ -2323,24 +2264,31 @@ void PeerConnectionImpl::GetCapabilities(
   }
 }
 
-// Returns pre-calculated (on the socket process) fingerprint with algorithm
-// DEFAULT_DTLS_HASH_ALGORITHM (aka SHA-256)
-nsresult PeerConnectionImpl::GetFingerprint(
-    std::vector<uint8_t>* fingerprint) const {
+nsresult PeerConnectionImpl::CalculateFingerprint(
+    const nsACString& algorithm, std::vector<uint8_t>* fingerprint) const {
+  DtlsDigest digest(algorithm);
+
   MOZ_ASSERT(fingerprint);
-  CertFingerprint fp = mCertificate->GetFingerprint();
-  fingerprint->assign(fp.mHash.begin(), fp.mHash.end());
+  const UniqueCERTCertificate& cert = mCertificate->Certificate();
+  nsresult rv = DtlsIdentity::ComputeFingerprint(cert, &digest);
+  if (NS_FAILED(rv)) {
+    CSFLogError(LOGTAG, "Unable to calculate certificate fingerprint, rv=%u",
+                static_cast<unsigned>(rv));
+    return rv;
+  }
+  *fingerprint = digest.value_;
   return NS_OK;
 }
 
 NS_IMETHODIMP
 PeerConnectionImpl::GetFingerprint(char** fingerprint) {
   MOZ_ASSERT(fingerprint);
+  MOZ_ASSERT(mCertificate);
   std::vector<uint8_t> fp;
-  nsresult rv = GetFingerprint(&fp);
+  nsresult rv = CalculateFingerprint(DtlsIdentity::DEFAULT_HASH_ALGORITHM, &fp);
   NS_ENSURE_SUCCESS(rv, rv);
   std::ostringstream os;
-  os << DEFAULT_DTLS_HASH_ALGORITHM << ' '
+  os << DtlsIdentity::DEFAULT_HASH_ALGORITHM << ' '
      << SdpFingerprintAttributeList::FormatFingerprint(fp);
   std::string fpStr = os.str();
 
@@ -4552,7 +4500,14 @@ void PeerConnectionImpl::UpdateTransport(const JsepTransceiver& aTransceiver,
         candidates.end());
   }
 
-  nsID certId = mCertificate->GetCertId();
+  nsTArray<uint8_t> keyDer;
+  nsTArray<uint8_t> certDer;
+  nsresult rv = Identity()->Serialize(&keyDer, &certDer);
+  if (NS_FAILED(rv)) {
+    CSFLogError(LOGTAG, "%s: Failed to serialize DTLS identity: %d",
+                __FUNCTION__, (int)rv);
+    return;
+  }
 
   DtlsDigestList digests;
   for (const auto& fingerprint :
@@ -4563,7 +4518,7 @@ void PeerConnectionImpl::UpdateTransport(const JsepTransceiver& aTransceiver,
 
   mTransportHandler->ActivateTransport(
       transport.mTransportId, transport.mLocalUfrag, transport.mLocalPwd,
-      components, ufrag, pwd, certId,
+      components, ufrag, pwd, keyDer, certDer, Identity()->auth_type(),
       transport.mDtls->GetRole() == JsepDtlsTransport::kJsepDtlsClient, digests,
       PrivacyRequested());
 

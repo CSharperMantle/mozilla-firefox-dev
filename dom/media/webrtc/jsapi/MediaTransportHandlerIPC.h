@@ -7,7 +7,6 @@
 
 #include "jsapi/MediaTransportHandler.h"
 #include "mozilla/dom/PMediaTransportChild.h"
-#include "mozilla/dom/RTCCertServiceData.h"
 
 namespace mozilla {
 
@@ -50,13 +49,13 @@ class MediaTransportHandlerIPC final : public MediaTransportHandler {
                          // this up internally
                          const nsTArray<NrIceStunAddr>& aStunAddrs) override;
 
-  void ActivateTransport(const std::string& aTransportId,
-                         const std::string& aLocalUfrag,
-                         const std::string& aLocalPwd, size_t aComponentCount,
-                         const std::string& aUfrag,
-                         const std::string& aPassword, const nsID& aCertId,
-                         bool aDtlsClient, const DtlsDigestList& aDigests,
-                         bool aPrivacyRequested) override;
+  void ActivateTransport(
+      const std::string& aTransportId, const std::string& aLocalUfrag,
+      const std::string& aLocalPwd, size_t aComponentCount,
+      const std::string& aUfrag, const std::string& aPassword,
+      const nsTArray<uint8_t>& aKeyDer, const nsTArray<uint8_t>& aCertDer,
+      SSLKEAType aAuthType, bool aDtlsClient, const DtlsDigestList& aDigests,
+      bool aPrivacyRequested) override;
 
   void RemoveTransportsExcept(
       const std::set<std::string>& aTransportIds) override;
