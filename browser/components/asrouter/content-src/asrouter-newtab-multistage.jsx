@@ -81,6 +81,15 @@ window.mountMultistageMessage = function mountMultistageMessage(
       }
     },
     AWGetSelectedTheme: () => Promise.resolve(),
+    AWGetActiveThemeId: async () => {
+      try {
+        return await window.ASRouterMessage({
+          type: "AW_GET_ACTIVE_THEME_ID",
+        });
+      } catch {
+        return "";
+      }
+    },
     AWGetInstalledAddons: () => Promise.resolve(),
   };
 

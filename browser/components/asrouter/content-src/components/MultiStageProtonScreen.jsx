@@ -235,6 +235,7 @@ export const MultiStageProtonScreen = props => {
       id={props.id}
       order={props.order}
       activeTheme={props.activeTheme}
+      activeThemeId={props.activeThemeId}
       installedAddons={props.installedAddons}
       screenMultiSelects={props.screenMultiSelects}
       setScreenMultiSelects={props.setScreenMultiSelects}
@@ -1108,6 +1109,11 @@ export class ProtonScreen extends React.PureComponent {
         role={ariaRole ?? "alertdialog"}
         layout={content.layout}
         pos={content.position || "center"}
+        data-theme={
+          content.position === "card-stack" && this.props.activeThemeId
+            ? this.props.activeThemeId
+            : null
+        }
         tabIndex="-1"
         aria-labelledby={`mainContentHeader${content.subtitle ? " mainContentSubheader" : ""}`}
         aria-describedby="mainContentInner"

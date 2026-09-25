@@ -261,6 +261,23 @@ export const MultiStageAboutWelcome = props => {
     })();
   }, []);
 
+  const [activeThemeId, setActiveThemeId] = useState(null);
+  useEffect(() => {
+    let mounted = true;
+    const refreshActiveThemeId = async () => {
+      let themeId = await window.AWGetActiveThemeId?.();
+      if (mounted) {
+        setActiveThemeId(themeId);
+      }
+    };
+    refreshActiveThemeId();
+    window.addEventListener("LightweightTheme:Set", refreshActiveThemeId);
+    return () => {
+      mounted = false;
+      window.removeEventListener("LightweightTheme:Set", refreshActiveThemeId);
+    };
+  }, []);
+
   const { negotiatedLanguage, langPackInstallPhase, languageFilteredScreens } =
     useLanguageSwitcher(
       props.appAndSystemLocaleInfo,
@@ -392,6 +409,7 @@ export const MultiStageAboutWelcome = props => {
               UTMTerm={props.utm_term}
               flowParams={flowParams}
               activeTheme={activeTheme}
+              activeThemeId={activeThemeId}
               initialTheme={initialTheme}
               setActiveTheme={setActiveTheme}
               setInitialTheme={setInitialTheme}
@@ -1026,6 +1044,7 @@ export class WelcomeScreen extends React.PureComponent {
         order={this.props.order}
         previousOrder={this.props.previousOrder}
         activeTheme={this.props.activeTheme}
+        activeThemeId={this.props.activeThemeId}
         installedAddons={this.props.installedAddons}
         screenMultiSelects={this.props.screenMultiSelects}
         setScreenMultiSelects={this.props.setScreenMultiSelects}

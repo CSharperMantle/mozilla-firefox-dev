@@ -4450,6 +4450,7 @@ const MultiStageProtonScreen = props => {
     id: props.id,
     order: props.order,
     activeTheme: props.activeTheme,
+    activeThemeId: props.activeThemeId,
     installedAddons: props.installedAddons,
     screenMultiSelects: props.screenMultiSelects,
     setScreenMultiSelects: props.setScreenMultiSelects,
@@ -5101,6 +5102,7 @@ class ProtonScreen extends (external_React_default()).PureComponent {
       role: ariaRole ?? "alertdialog",
       layout: content.layout,
       pos: content.position || "center",
+      "data-theme": content.position === "card-stack" && this.props.activeThemeId ? this.props.activeThemeId : null,
       tabIndex: "-1",
       "aria-labelledby": `mainContentHeader${content.subtitle ? " mainContentSubheader" : ""}`,
       "aria-describedby": "mainContentInner",
@@ -5926,6 +5928,22 @@ const MultiStageAboutWelcome = props => {
       setActiveTheme(theme);
     })();
   }, []);
+  const [activeThemeId, setActiveThemeId] = (0,external_React_namespaceObject.useState)(null);
+  (0,external_React_namespaceObject.useEffect)(() => {
+    let mounted = true;
+    const refreshActiveThemeId = async () => {
+      let themeId = await window.AWGetActiveThemeId?.();
+      if (mounted) {
+        setActiveThemeId(themeId);
+      }
+    };
+    refreshActiveThemeId();
+    window.addEventListener("LightweightTheme:Set", refreshActiveThemeId);
+    return () => {
+      mounted = false;
+      window.removeEventListener("LightweightTheme:Set", refreshActiveThemeId);
+    };
+  }, []);
   const {
     negotiatedLanguage,
     langPackInstallPhase,
@@ -6028,6 +6046,7 @@ const MultiStageAboutWelcome = props => {
       UTMTerm: props.utm_term,
       flowParams: flowParams,
       activeTheme: activeTheme,
+      activeThemeId: activeThemeId,
       initialTheme: initialTheme,
       setActiveTheme: setActiveTheme,
       setInitialTheme: setInitialTheme,
@@ -6551,6 +6570,7 @@ class WelcomeScreen extends (external_React_default()).PureComponent {
       order: this.props.order,
       previousOrder: this.props.previousOrder,
       activeTheme: this.props.activeTheme,
+      activeThemeId: this.props.activeThemeId,
       installedAddons: this.props.installedAddons,
       screenMultiSelects: this.props.screenMultiSelects,
       setScreenMultiSelects: this.props.setScreenMultiSelects,
@@ -6666,6 +6686,15 @@ window.mountMultistageMessage = function mountMultistageMessage(container, props
       }
     },
     AWGetSelectedTheme: () => Promise.resolve(),
+    AWGetActiveThemeId: async () => {
+      try {
+        return await window.ASRouterMessage({
+          type: "AW_GET_ACTIVE_THEME_ID"
+        });
+      } catch {
+        return "";
+      }
+    },
     AWGetInstalledAddons: () => Promise.resolve()
   };
   for (const [handlerName, fn] of Object.entries(awHandlers)) {

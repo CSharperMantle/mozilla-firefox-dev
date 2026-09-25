@@ -36,6 +36,7 @@ describe("MultiStageAboutWelcome module", () => {
     globals.set({
       AWEvaluateScreenTargeting: () => {},
       AWGetSelectedTheme: () => Promise.resolve("automatic"),
+      AWGetActiveThemeId: () => Promise.resolve("nova-flare@mozilla.org"),
       AWGetInstalledAddons: () => Promise.resolve(["test-addon-id"]),
       AWGetUnhandledCampaignAction: () => Promise.resolve(false),
       AWSendEventTelemetry: () => {},
@@ -71,6 +72,18 @@ describe("MultiStageAboutWelcome module", () => {
       assert.strictEqual(
         welcomeScreenWrapper.prop("initialTheme"),
         "automatic"
+      );
+    });
+
+    it("should pass activeThemeId prop to WelcomeScreen", async () => {
+      let wrapper = mount(<MultiStageAboutWelcome {...DEFAULT_PROPS} />);
+      await spinEventLoop();
+      wrapper.update();
+
+      let welcomeScreenWrapper = wrapper.find(WelcomeScreen);
+      assert.strictEqual(
+        welcomeScreenWrapper.prop("activeThemeId"),
+        "nova-flare@mozilla.org"
       );
     });
 

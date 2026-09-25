@@ -224,6 +224,29 @@ describe("MultiStageAboutWelcomeProton module", () => {
       assert.ok(wrapper.find(".section-secondary").exists());
     });
 
+    it("should set data-theme from activeThemeId for card-stack screens", () => {
+      const wrapper = mount(
+        <MultiStageProtonScreen
+          content={{ position: "card-stack", title: "test title" }}
+          activeThemeId="nova-flare@mozilla.org"
+        />
+      );
+      assert.equal(
+        wrapper.find("main").prop("data-theme"),
+        "nova-flare@mozilla.org"
+      );
+    });
+
+    it("should not set data-theme for non-card-stack screens", () => {
+      const wrapper = mount(
+        <MultiStageProtonScreen
+          content={{ position: "split", title: "test title" }}
+          activeThemeId="nova-flare@mozilla.org"
+        />
+      );
+      assert.equal(wrapper.find("main").prop("data-theme"), null);
+    });
+
     it("should render secondary section with content background for split positioned screens", () => {
       const BACKGROUND_URL =
         "chrome://activity-stream/content/data/content/assets/confetti.svg";

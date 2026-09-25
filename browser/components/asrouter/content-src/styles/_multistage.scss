@@ -1149,10 +1149,43 @@ html {
 
     // Base layout for the HNT card stack
     &[pos='card-stack'] {
-      --card-stack-color-1: light-dark(var(--color-violet-0), var(--color-violet-90));
-      --card-stack-color-2: light-dark(var(--color-violet-10), var(--color-violet-70));
-      --card-stack-color-3: light-dark(var(--color-violet-20), var(--color-violet-80));
-      --card-stack-flare: light-dark(var(--color-violet-20), var(--color-violet-70));
+      @mixin card-stack-theme($hue, $dark-front: 90, $dark-mid: 70, $dark-back: 80) {
+        --card-stack-color-1: light-dark(var(--color-#{$hue}-0), var(--color-#{$hue}-#{$dark-front}));
+        --card-stack-color-2: light-dark(var(--color-#{$hue}-10), var(--color-#{$hue}-#{$dark-mid}));
+        --card-stack-color-3: light-dark(var(--color-#{$hue}-20), var(--color-#{$hue}-#{$dark-back}));
+        --card-stack-flare: light-dark(var(--color-#{$hue}-10), var(--color-#{$hue}-#{$dark-mid}));
+      }
+
+      @include card-stack-theme(violet);
+
+      $card-stack-theme-hues: (
+        'nova-sun@mozilla.org': yellow,
+        'nova-spark@mozilla.org': orange,
+        'nova-flame@mozilla.org': red,
+        'nova-flare@mozilla.org': pink,
+        'nova-lavender@mozilla.org': purple,
+        'nova-lagoon@mozilla.org': blue,
+        'nova-pine@mozilla.org': green,
+        'nova-tide@mozilla.org': cyan,
+      );
+
+      @each $theme-id, $hue in $card-stack-theme-hues {
+        &[data-theme='#{$theme-id}'] {
+          @include card-stack-theme($hue);
+        }
+      }
+
+      &[data-theme='nova-ash@mozilla.org'] {
+        @include card-stack-theme(gray, 60, 70, 80);
+      }
+
+      &[data-theme='nova-smoke@mozilla.org'] {
+        --card-stack-color-1: light-dark(#FFF9F6, #3B3532); /* stylelint-disable-line stylelint-plugin-mozilla/use-design-tokens */
+        --card-stack-color-2: light-dark(#FBF4EE, #2F2926); /* stylelint-disable-line stylelint-plugin-mozilla/use-design-tokens */
+        --card-stack-color-3: light-dark(#E3DBD7, #201B18); /* stylelint-disable-line stylelint-plugin-mozilla/use-design-tokens */
+        --card-stack-flare: light-dark(#E3DBD7, #3B3532); /* stylelint-disable-line stylelint-plugin-mozilla/use-design-tokens */
+      }
+
       --card-stack-secondary-width: 318px; /* stylelint-disable-line stylelint-plugin-mozilla/use-design-tokens */
       --card-stack-secondary-height: 150px; /* stylelint-disable-line stylelint-plugin-mozilla/use-design-tokens */
       --card-stack-flare-x: calc(var(--card-stack-secondary-width) / 2);

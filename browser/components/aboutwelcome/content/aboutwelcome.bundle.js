@@ -406,6 +406,22 @@ const MultiStageAboutWelcome = props => {
       setActiveTheme(theme);
     })();
   }, []);
+  const [activeThemeId, setActiveThemeId] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(null);
+  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    let mounted = true;
+    const refreshActiveThemeId = async () => {
+      let themeId = await window.AWGetActiveThemeId?.();
+      if (mounted) {
+        setActiveThemeId(themeId);
+      }
+    };
+    refreshActiveThemeId();
+    window.addEventListener("LightweightTheme:Set", refreshActiveThemeId);
+    return () => {
+      mounted = false;
+      window.removeEventListener("LightweightTheme:Set", refreshActiveThemeId);
+    };
+  }, []);
   const {
     negotiatedLanguage,
     langPackInstallPhase,
@@ -508,6 +524,7 @@ const MultiStageAboutWelcome = props => {
       UTMTerm: props.utm_term,
       flowParams: flowParams,
       activeTheme: activeTheme,
+      activeThemeId: activeThemeId,
       initialTheme: initialTheme,
       setActiveTheme: setActiveTheme,
       setInitialTheme: setInitialTheme,
@@ -1031,6 +1048,7 @@ class WelcomeScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCo
       order: this.props.order,
       previousOrder: this.props.previousOrder,
       activeTheme: this.props.activeTheme,
+      activeThemeId: this.props.activeThemeId,
       installedAddons: this.props.installedAddons,
       screenMultiSelects: this.props.screenMultiSelects,
       setScreenMultiSelects: this.props.setScreenMultiSelects,
@@ -1444,6 +1462,7 @@ const MultiStageProtonScreen = props => {
     id: props.id,
     order: props.order,
     activeTheme: props.activeTheme,
+    activeThemeId: props.activeThemeId,
     installedAddons: props.installedAddons,
     screenMultiSelects: props.screenMultiSelects,
     setScreenMultiSelects: props.setScreenMultiSelects,
@@ -2095,6 +2114,7 @@ class ProtonScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCom
       role: ariaRole ?? "alertdialog",
       layout: content.layout,
       pos: content.position || "center",
+      "data-theme": content.position === "card-stack" && this.props.activeThemeId ? this.props.activeThemeId : null,
       tabIndex: "-1",
       "aria-labelledby": `mainContentHeader${content.subtitle ? " mainContentSubheader" : ""}`,
       "aria-describedby": "mainContentInner",
