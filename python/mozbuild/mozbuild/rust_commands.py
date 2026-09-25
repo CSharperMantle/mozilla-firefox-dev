@@ -147,12 +147,15 @@ class CargoCommand:
     ``rustflags`` and ``rustc_flags`` hold the edge's own additions to
     ``RUSTFLAGS`` and to the flags after ``--``. ``lto`` is whether a library
     uses link time optimization in a build that enables it for Rust libraries.
+    ``outputs`` are the program files Cargo leaves in its target directory,
+    relative to the object directory.
     """
 
     kind: str
     manifest_path: str
     working_directory: str
     names: tuple = ()
+    outputs: tuple = ()
     features: tuple = ()
     cargo_profile_suffix: str = ""
     cargo_crate_type: str = ""
