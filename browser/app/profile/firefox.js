@@ -2014,6 +2014,12 @@ pref("browser.newtabpage.activity-stream.discoverystream.locale-weather-config",
 // below -- see marketGate in ActivityStream.sys.mjs.
 pref("browser.newtabpage.activity-stream.widgets.system.region-block", "");
 
+// Lists is available everywhere the container is except PL, where only the
+// current Nimbus experiment reveals it. Off by default in the US, DE and FR,
+// where the engaged cohort is turned on through Nimbus instead.
+pref("browser.newtabpage.activity-stream.widgets.system.lists.region-block", "PL");
+pref("browser.newtabpage.activity-stream.widgets.lists.region-block", "DE,FR,PL,US");
+
 // Promo card visibility
 pref("browser.newtabpage.activity-stream.discoverystream.promoCard.visible", true);
 

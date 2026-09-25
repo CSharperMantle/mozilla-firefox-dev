@@ -1586,7 +1586,8 @@ export const PREFS_CONFIG = new Map([
     "widgets.lists.enabled",
     {
       title: "Enables the to-do lists widget",
-      value: true,
+      // pref is dynamic
+      getValue: marketGate("widgets.lists.enabled"),
     },
   ],
   [
@@ -1607,8 +1608,9 @@ export const PREFS_CONFIG = new Map([
   [
     "widgets.system.lists.enabled",
     {
-      title: "Enables the to-do lists widget experiment in Nimbus",
-      value: false,
+      title: "Makes the to-do lists widget available",
+      // pref is dynamic
+      getValue: marketGate("widgets.system.lists.enabled"),
     },
   ],
   [
