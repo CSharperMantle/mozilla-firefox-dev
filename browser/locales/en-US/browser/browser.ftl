@@ -1227,6 +1227,11 @@ menu-share-mac-picker-single =
 menu-share-mac-picker-multiple =
     .label = Messages, Mail, and More…
     .accesskey = M
+# Share entry in the addressbar context menu. Opens the macOS share picker
+# directly, hence the ellipsis.
+urlbar-share-url =
+    .label = Share…
+    .accesskey = h
 # Variables:
 #   $count (Number) - The number of links that will be copied.
 menu-share-copy-links =
