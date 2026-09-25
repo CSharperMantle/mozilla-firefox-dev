@@ -38,9 +38,16 @@ leaf.
 
 ## 2. Make the hardest part free
 
-Order the concerns so the messiest, most-interleaved one is **last**:
+Order the concerns so the one most interleaved with the others, sharing the
+most files with them, is **last**, where it costs nothing; a part made of
+whole files is free wherever dependency order puts it (step 1):
 
 1. Hand-craft the clean early part(s) as new commits on the target's parent.
+   A part that owns whole files takes them by path, `git restore
+   --source=<target> --staged --worktree -- <paths>`, once `git diff
+   --name-status <target>^ <target> -- <paths>` shows the pathspec names every
+   file the part deletes; hand-craft only the files it shares with a later
+   part.
 2. Get the remainder by restoring the target's whole tree:
    `git restore --source=<target> --staged --worktree :/` snaps the tree to the
    target's exact end state, so that commit's diff *is* the remainder, correct
@@ -59,21 +66,30 @@ Work in a checkout whose objdir is already configured; a fresh `git worktree`
 has none, so the first leaf pays a full build there. Every step below is
 non-interactive: `git add -p` and a bare `git rebase -i` cannot be answered
 here, so stage by path and drive `rebase -i` through `GIT_SEQUENCE_EDITOR`.
+Every piece keeps the target's author: when the target is not yours, add
+`--author="$(git log -1 --format='%an <%ae>' <target>)"` to each `git commit`
+below, since `-m` records you. Branches are shared by every worktree of the
+repository, so a split running beside another names its scratch and backup
+branches for its own task rather than `split-work` and `backup-<tip>`.
 
 ```
 git commit -a -m WIP                             # if the tree is dirty; undone at the end
 git branch backup-<tip> <branch>                 # before the first rewrite
 
 git checkout -b split-work <target>^             # scratch at target's parent
-# ... build each clean early part: edit files, ./mach build, ./mach lint --fix,
-#     run targeted tests, commit. Confirm behavior-neutral.
+# ... build each clean early part: restore its whole files by path (staged),
+#     hand-edit the rest and `git add <paths>` them, ./mach build,
+#     ./mach lint --fix, run targeted tests, check `git diff --cached --stat`
+#     lists every file of the part, grep it for names only later parts add
+#     (SKILL.md's opening rule), commit. Confirm behavior-neutral.
 
-git restore --source=<target> --staged --worktree :/   # the free final part (staged); whole tree, never a pathspec (section 2)
+git restore --source=<target> --staged --worktree :/   # the free final part (staged); whole tree here, never a pathspec (section 2)
 git diff <target> --stat                         # MUST be empty
 git commit -m "<message>"                        # build/test: behaves == target
 
 git checkout <branch>
 git rebase --onto split-work <target>            # graft the rest of the stack
+git branch -D split-work
 
 git diff <backup> <branch> --stat                # MUST be empty
 git reset HEAD^                                  # give the WIP work back, if you made one
@@ -104,6 +120,14 @@ introduces the correct form with no separate add-then-remove. Name the base
 explicitly - the parent of the oldest leaf - since `git rebase` with no
 argument rebases onto the upstream branch's current tip. `--autosquash`
 without `-i` works from git 2.44.
+
+**Reword a leaf's message** with an `exec` line after it, from a message file
+outside the tree (`--fixup=reword:` takes neither `-m` nor `-F`):
+
+```
+GIT_SEQUENCE_EDITOR="sed -i '/^pick $(git log -1 --format=%h <leaf>) /a exec git commit --amend -q -F <message-file>'" \
+  git rebase -i <base>
+```
 
 ## 4. Splitting a pushed revision in two
 

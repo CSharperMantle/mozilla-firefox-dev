@@ -13,6 +13,7 @@ allowed-tools:
   - Bash(git rebase:*)
   - Bash(git reset:*)
   - Bash(git apply:*)
+  - Bash(git add:*)
   - Bash(git mv:*)
   - Bash(jj log:*)
   - Bash(jj show:*)
@@ -34,8 +35,9 @@ allowed-tools:
 # Splitting a commit into reviewable pieces
 
 Split without changing the final tree. Every prefix of the result has to leave
-the tree building, linting and passing tests, and no commit may mention a
-concept that only a later commit introduces.
+the tree building, linting and passing tests, and no commit's code or comments
+may mention a concept that only a later commit introduces; its message may say
+what it prepares for.
 
 Pick the cuts by the rules below. Before the first commit or rebase, read the
 mechanics reference for this checkout's version control system in full: it
@@ -68,6 +70,10 @@ code it replaces, so both go in the **same** commit.
   mechanics reference says how to find one.
 - A piece that both moves and changes behavior is split into the neutral move
   and the behavior change.
+- A piece that changes what existing code observes goes in one commit with
+  that code's adaptation, even where no build or test would fail without it.
+  Check each piece in both directions: what its new code needs from the pieces
+  below it, and what existing code sees change once it lands.
 
 ## A cut may need code that neither end state contains
 
