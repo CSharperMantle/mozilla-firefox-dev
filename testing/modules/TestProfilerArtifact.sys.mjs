@@ -61,7 +61,11 @@ export async function saveProfileToUploadDir(profileName) {
       path += ".gz";
       await IOUtils.write(path, new Uint8Array(profile));
     }
-    return `profile uploaded in ${filename}`;
+    // Symbolication rewrites every uploaded profile as gzip and renames it
+    // accordingly (see symbolicate_profile_json), so report the name the
+    // artifact ends up with rather than the one just written.
+    let artifact = filename.endsWith(".gz") ? filename : `${filename}.gz`;
+    return `profile uploaded in ${artifact}`;
   } catch (e) {
     // If the profile is large, we may encounter out of memory errors.
     return `failed to upload profile: ${e}`;

@@ -547,7 +547,10 @@ class XPCShellTestThread(Thread):
                 "",
                 "FAIL",
                 expected="FAIL" if (self.retry or self.timeoutAsPass) else expected,
-                message=f"Test timed out; profile uploaded in {profile_name}",
+                message=(
+                    "Test timed out; profile uploaded in "
+                    f"{self.timeout_profile_artifact_name}"
+                ),
             )
 
         if self.retry:
@@ -1077,6 +1080,7 @@ class XPCShellTestThread(Thread):
         testTimeoutInterval = self.harness_timeout * self.timeout_factor
 
         self.timeout_profile_name = None
+        self.timeout_profile_artifact_name = None
         if not self.interactive and not self.debuggerInfo and not self.jsDebuggerInfo:
             # When the profiler runs by default, have it dump a profile from its
             # sampler thread once this timeout is reached (armed by head.js), so
@@ -1104,6 +1108,9 @@ class XPCShellTestThread(Thread):
                     filename = f"profile_{root}-{i}{ext}.json"
                     i += 1
                 self.timeout_profile_name = filename
+                # Symbolication gzips every uploaded profile and renames it
+                # accordingly, so the surviving artifact is the ".json.gz" one.
+                self.timeout_profile_artifact_name = filename + ".gz"
                 self.env["MOZ_TEST_TIMEOUT_PROFILE_PATH"] = os.path.join(
                     upload_dir, filename
                 )
@@ -1352,7 +1359,9 @@ class XPCShellTestThread(Thread):
         finally:
             self.postCheck(proc)
             if self.profiler and self.singleFile:
-                symbolicate_profile_json(profile_path, self.symbolsPath)
+                # Symbolication gzips the profile, which moves it, so open the
+                # path it returns.
+                profile_path = symbolicate_profile_json(profile_path, self.symbolsPath)
                 view_gecko_profile(profile_path)
             self.clean_temp_dirs(path)
 
