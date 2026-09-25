@@ -1085,8 +1085,8 @@ class XPCShellTestThread(Thread):
             # so the retry of a test that timed out doesn't overwrite the initial
             # run's profile: the retry gets a "_retry" suffix, and a numeric
             # counter is only added on an actual name collision (the same test
-            # listed in two manifests). The suffixes go before the test extension
-            # so the name still ends in e.g. ".js.json" as Treeherder expects.
+            # listed in two manifests). The suffixes go before the test
+            # extension, so the profile is still named after the test.
             # testTimeout reports this name.
             upload_dir = self.env.get("MOZ_UPLOAD_DIR")
             timeout_dump_armed = (
