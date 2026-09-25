@@ -1535,9 +1535,13 @@ modules:
           group: dev-builds
           components:
             - Core::Build Config
+          owners_emeritus:
+            - *nalexander
         owners:
+          - *ahochheiden
+        peers:
           - *nalexander
-        peers: []
+          - *tcampbell
         machine_name: core_build_config_fennec
 
       - name: 'Core: Build Config - Taskgraph'
