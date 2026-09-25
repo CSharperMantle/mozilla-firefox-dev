@@ -8,6 +8,7 @@ import { UrlbarEventBufferer } from "chrome://browser/content/urlbar/UrlbarEvent
 import { UrlbarView } from "chrome://browser/content/urlbar/UrlbarView.mjs";
 import {
   createEditor,
+  getAgentCommandId,
   isAgentCommand,
 } from "chrome://browser/content/urlbar/SmartbarInputUtils.mjs";
 import { UrlbarShared } from "chrome://browser/content/urlbar/UrlbarShared.mjs";
@@ -2072,6 +2073,17 @@ ${
     // Submit it to chat so the agent router handles it rather
     // than loading it as a file path (e.g. "file:///monitor")
     if (this.#isAgentCommand) {
+      const commandId = getAgentCommandId(this.untrimmedValue);
+      if (commandId) {
+        const { chat_id, message_seq } = this.conversationTelemetryInfo;
+        Glean.smartWindow.agentCommandSelect.record({
+          agent: commandId,
+          chat_id,
+          location: this.sapLocation,
+          message_seq: String(message_seq),
+          source: "manual",
+        });
+      }
       this.submitChat(event, this.untrimmedValue);
       return;
     }
@@ -6423,6 +6435,10 @@ ${
       this.parentController.recordAutofillDeletion();
     }
 
+    const previousCommandId = this.#isAgentCommand
+      ? getAgentCommandId(this.untrimmedValue)
+      : null;
+
     let value = this.value;
     this.valueIsTyped = true;
     this._untrimmedValue = value;
@@ -6468,6 +6484,17 @@ ${
         state.persist.shouldPersist = false;
         this.removeAttribute("persistsearchterms");
       }
+    }
+
+    if (previousCommandId && event.inputType && !this.#isAgentCommand) {
+      const { chat_id, message_seq } = this.conversationTelemetryInfo;
+      Glean.smartWindow.agentCommandRemove.record({
+        agent: previousCommandId,
+        chat_id,
+        location: this.sapLocation,
+        message_seq: String(message_seq),
+        source: "manual",
+      });
     }
 
     // Suppress queries when there are inline mentions or command.

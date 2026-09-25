@@ -63,11 +63,24 @@ function isAgentCommandAvailable() {
  * @returns {boolean}
  */
 export function isAgentCommand(value) {
+  return getAgentCommandId(value) !== null;
+}
+
+/**
+ * The leading agent command id in the input, e.g. "watch", or null when the
+ * input does not begin with a known command.
+ *
+ * @param {string} value - Raw smartbar input
+ * @returns {?string}
+ */
+export function getAgentCommandId(value) {
   if (!isAgentCommandAvailable()) {
-    return false;
+    return null;
   }
   const parsed = parseAgentCommand(value);
-  return !!parsed && AGENT_COMMAND_ITEMS.has(parsed.command);
+  return parsed && AGENT_COMMAND_ITEMS.has(parsed.command)
+    ? parsed.command
+    : null;
 }
 
 /**
@@ -543,6 +556,19 @@ function setupCommandsPlugin(editorElement, panelList) {
     if (!latestCommandData) {
       return;
     }
+
+    const { chat_id, message_seq } = smartbarInput.conversationTelemetryInfo;
+    Glean.smartWindow.agentCommandSelect.record({
+      agent: id,
+      chat_id,
+      commands_available: String(
+        panelList.groups.reduce((sum, group) => sum + group.items.length, 0)
+      ),
+      location: smartbarInput.sapLocation,
+      message_seq: String(message_seq),
+      source: "manual",
+    });
+
     onExitPalette();
     smartbarInput.submitChat(null, `/${id}`, submitType);
   };
@@ -626,9 +652,22 @@ function setupCommandsPlugin(editorElement, panelList) {
       if (!isLeadingCommand()) {
         return;
       }
-      // TODO: Bug 2060584 - record command telemetry
       latestCommandData = data;
       isHandlingCommands = updatePanel(data.text.substring(1));
+
+      if (isHandlingCommands) {
+        const { chat_id, message_seq } =
+          smartbarInput.conversationTelemetryInfo;
+        Glean.smartWindow.agentCommandStart.record({
+          chat_id,
+          commands_available: String(
+            panelList.groups.reduce((sum, group) => sum + group.items.length, 0)
+          ),
+          location: smartbarInput.sapLocation,
+          message_seq: String(message_seq),
+          source: "manual",
+        });
+      }
     },
     onChange: data => {
       if (!isLeadingCommand()) {

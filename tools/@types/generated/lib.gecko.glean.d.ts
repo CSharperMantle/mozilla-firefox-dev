@@ -256,6 +256,9 @@ interface GleanImpl {
   smartWindow: {
     addTabsClick: GleanEventWithExtras<{ chat_id?: string, location?: string, message_seq?: string|number, tabs_available?: string|number, tabs_preselected?: string|number }>;
     addTabsSelection: GleanEventWithExtras<{ chat_id?: string, location?: string, message_seq?: string|number, tabs_available?: string|number, tabs_preselected?: string|number, tabs_selected?: string|number }>;
+    agentCommandRemove: GleanEventWithExtras<{ agent?: string, chat_id?: string, location?: string, message_seq?: string|number, source?: string }>;
+    agentCommandSelect: GleanEventWithExtras<{ agent?: string, chat_id?: string, commands_available?: string|number, location?: string, message_seq?: string|number, source?: string }>;
+    agentCommandStart: GleanEventWithExtras<{ chat_id?: string, commands_available?: string|number, location?: string, message_seq?: string|number, source?: string }>;
     autoTabGroupAccepted: GleanEventWithExtras<{ grouped_id?: string|number, grouped_tabs?: string|number, source?: string }>;
     autoTabGroupCompleted: GleanEventWithExtras<{ error_type?: string, grouped_id?: string|number, grouped_tabs?: string|number, source?: string, success?: string|boolean }>;
     autoTabGroupMenuOpened: GleanEventWithExtras<{ source?: string, tabs?: string|number }>;
