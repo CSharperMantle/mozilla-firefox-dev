@@ -809,7 +809,7 @@ if (Services.prefs.getBoolPref("browser.tabs.groups.alternateMenu", false)) {
 
 CustomizableWidgets.push({
   id: "firefox-view-button",
-  l10nId: "toolbar-button-firefox-view-2",
+  l10nId: "toolbar-button-firefox-view-3",
   onCreated(node) {
     node.setAttribute("role", "button");
     node.setAttribute("aria-pressed", "false");
