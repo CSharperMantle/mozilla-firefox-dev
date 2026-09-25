@@ -2026,6 +2026,12 @@ pref("browser.newtabpage.activity-stream.widgets.lists.region-block", "DE,FR,PL,
 pref("browser.newtabpage.activity-stream.widgets.system.focusTimer.region-block", "PL");
 pref("browser.newtabpage.activity-stream.widgets.focusTimer.region-block", "DE,FR,PL,US");
 
+// Clocks is available everywhere the container is except PL, where only the
+// current Nimbus experiment reveals it. Off by default in the US, DE and FR,
+// where the engaged cohort is turned on through Nimbus instead.
+pref("browser.newtabpage.activity-stream.widgets.system.clocks.region-block", "PL");
+pref("browser.newtabpage.activity-stream.widgets.clocks.region-block", "DE,FR,PL,US");
+
 // Promo card visibility
 pref("browser.newtabpage.activity-stream.discoverystream.promoCard.visible", true);
 
