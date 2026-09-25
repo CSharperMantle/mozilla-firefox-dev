@@ -123,10 +123,14 @@ export CXXFLAGS_$(MOZ_CARGO_HOST_CC_ENV_SUFFIX)=$(MOZ_CARGO_HOST_CXXFLAGS_BASE) 
 export CFLAGS_$(MOZ_CARGO_CC_ENV_SUFFIX)=$(MOZ_CARGO_CFLAGS_BASE) $(filter $(MOZ_CARGO_CFLAGS_FILTER),$(RUST_LTO_CFLAGS) $(COMPUTED_CFLAGS) $(RUST_PGO_CFLAGS))
 export CXXFLAGS_$(MOZ_CARGO_CC_ENV_SUFFIX)=$(MOZ_CARGO_CXXFLAGS_BASE) $(filter $(MOZ_CARGO_CXXFLAGS_FILTER),$(RUST_LTO_CFLAGS) $(COMPUTED_CXXFLAGS) $(RUST_PGO_CFLAGS))
 
+# The run_cargo action applies these same adjustments. Guard them here so they
+# are not applied twice when it inherits this environment.
+ifdef MOZ_USE_LEGACY_CARGO_INVOCATION
 define sanitizer_options
 export $1:=$$($1:%=%:)intercept_tls_get_addr=0
 endef
 $(foreach var,$(MOZ_RUST_SANITIZER_OPTION_VARS),$(eval $(call sanitizer_options,$(var))))
+endif
 
 export BINDGEN_EXTRA_CLANG_ARGS
 export CARGO_TARGET_DIR
@@ -166,9 +170,13 @@ endif
 # for libz-rs-sys, since we still use the headers from there.
 export LIBZ_RS_SYS_PREFIX=MOZ_Z_
 
+# The run_cargo action derives this from the same inputs, so only the Make path
+# needs it in the environment.
+ifdef MOZ_USE_LEGACY_CARGO_INVOCATION
 ifndef RUSTC_BOOTSTRAP
 RUSTC_BOOTSTRAP := $(MOZ_RUSTC_BOOTSTRAP_DEFAULT)
 export RUSTC_BOOTSTRAP
+endif
 endif
 
 # `cargo` subcommands other than `build` that `mach cargo` can drive and need
@@ -178,8 +186,10 @@ other_cargo_subcommands := check clippy fix udeps
 target_rust_ltoable := force-cargo-library-build $(addprefix force-cargo-library-,$(other_cargo_subcommands))
 target_rust_nonltoable := force-cargo-test-run force-cargo-program-build $(addprefix force-cargo-program-,$(other_cargo_subcommands))
 
+ifdef MOZ_USE_LEGACY_CARGO_INVOCATION
 ifdef MOZ_RUSTC_BOOTSTRAP_FORCE
 RUSTC_BOOTSTRAP := $(MOZ_RUSTC_BOOTSTRAP_FORCE)
+endif
 endif
 
 target_rustflags := $(rustflags_override) $(RUST_SANCOV_FLAGS) $(RUSTFLAGS) $(MOZ_RUSTFLAGS_TARGET_COMMON)
@@ -224,6 +234,18 @@ define CARGO_BUILD
 $(call RUN_CARGO,rustc$(if $(BUILDSTATUS), --timings)$(if $(findstring k,$(filter-out --%, $(MAKEFLAGS))), --keep-going))
 endef
 
+# The + prefix preserves jobserver file descriptors. Omit it for `make -n`.
+# Pass --single-job when Make is limited to one job.
+define RUN_CARGO_ACTION
+$(if $(findstring n,$(firstword -$(MAKEFLAGS))),,+)$(PYTHON3) -m mozbuild.action.run_cargo --spec $(1) $(if $(filter --jobserver% -j,$(MAKEFLAGS)),,--single-job) $(2)
+endef
+
+# Rust build edges forward timing and keep-going signals. Test edges do not.
+cargo_action_rustc_flags = $(if $(BUILDSTATUS),--timings) $(if $(findstring k,$(firstword -$(MAKEFLAGS))),--keep-going)
+
+cargo_action_deps := $(topsrcdir)/python/mozbuild/mozbuild/rust_commands.py
+cargo_action_deps += $(topsrcdir)/python/mozbuild/mozbuild/action/run_cargo.py
+
 export MOZ_CLANG_NEWER_THAN_RUSTC_LLVM
 export MOZ_CARGO_WRAP_LDFLAGS
 export MOZ_CARGO_WRAP_LD
@@ -252,8 +274,12 @@ force-cargo-program-build: MOZ_CARGO_WRAP_LDFLAGS:=$(filter-out $(MOZ_CARGO_PROG
 ifdef MOZ_RUST_PROGRAM_LDFLAGS
 force-cargo-program-build: MOZ_CARGO_WRAP_LDFLAGS+=$(MOZ_RUST_PROGRAM_LDFLAGS)
 endif
+# The run_cargo action adds these flags itself, and appends any CARGO_RUSTCFLAGS
+# it inherits, so only the Make path adds them here.
+ifdef MOZ_USE_LEGACY_CARGO_INVOCATION
 ifdef MOZ_RUST_PROGRAM_RUSTCFLAGS
 force-cargo-program-build: CARGO_RUSTCFLAGS += $(MOZ_RUST_PROGRAM_RUSTCFLAGS)
+endif
 endif
 
 $(TARGET_RECIPES): RUSTFLAGS += $(MOZ_RUSTFLAGS_DEFAULT_LINKER_LIBRARIES)
@@ -308,8 +334,12 @@ ifdef RUST_LIBRARY_FILE
 
 rust_features_flag := --features '$(addsuffix $(COMMA),$(RUST_LIBRARY_FEATURES))mozilla-central-workspace-hack'
 
+# The run_cargo action adds these flags itself, and appends any CARGO_RUSTCFLAGS
+# it inherits, so only the Make path adds them here.
+ifdef MOZ_USE_LEGACY_CARGO_INVOCATION
 ifdef MOZ_RUST_LIBRARY_RUSTCFLAGS
 force-cargo-library-build: CARGO_RUSTCFLAGS += $(MOZ_RUST_LIBRARY_RUSTCFLAGS)
+endif
 endif
 
 # Assume any system libraries rustc links against are already in the target's LIBS.
@@ -319,7 +349,11 @@ endif
 # build.
 force-cargo-library-build:
 	$(call BUILDSTATUS,START_Rust $(notdir $(RUST_LIBRARY_FILE)))
+ifdef MOZ_USE_LEGACY_CARGO_INVOCATION
 	$(call CARGO_BUILD) --lib $(cargo_crate_type_flag) $(MOZ_CARGO_TARGET_ARGS) $(rust_features_flag) -- $(cargo_rustc_flags)
+else
+	$(call RUN_CARGO_ACTION,.cargo-library-spec.json,$(cargo_action_rustc_flags))
+endif
 	$(call BUILDSTATUS,END_Rust $(notdir $(RUST_LIBRARY_FILE)))
 # When we are building in --enable-release mode; we add an additional check to confirm
 # that we are not importing any networking-related functions in rust code. This reduces
@@ -338,7 +372,7 @@ endif
 endif
 endif
 
-$(eval $(call make_cargo_rule,$(RUST_LIBRARY_FILE),force-cargo-library-build))
+$(eval $(call make_cargo_rule,$(RUST_LIBRARY_FILE),force-cargo-library-build,$(if $(MOZ_USE_LEGACY_CARGO_INVOCATION),,.cargo-library-spec.json $(cargo_action_deps))))
 
 SUGGEST_INSTALL_ON_FAILURE = (ret=$$?; if [ $$ret = 101 ]; then echo If $1 is not installed, install it using: cargo install $1; fi; exit $$ret)
 
@@ -392,7 +426,11 @@ endif
 
 force-cargo-test-run:
 	$(stage_test_libs)
+ifdef MOZ_USE_LEGACY_CARGO_INVOCATION
 	$(call RUN_CARGO,test $(MOZ_CARGO_TARGET_ARGS) $(rust_test_flag) $(rust_test_options) $(rust_test_features_flag))
+else
+	$(call RUN_CARGO_ACTION,.cargo-tests-spec.json)
+endif
 
 endif # RUST_TESTS
 
@@ -402,10 +440,14 @@ host_rust_features_flag := --features '$(addsuffix $(COMMA),$(HOST_RUST_LIBRARY_
 
 force-cargo-host-library-build:
 	$(call BUILDSTATUS,START_Rust $(notdir $(HOST_RUST_LIBRARY_FILE)))
+ifdef MOZ_USE_LEGACY_CARGO_INVOCATION
 	$(call CARGO_BUILD) --lib $(MOZ_CARGO_HOST_TARGET_ARGS) $(host_rust_features_flag)
+else
+	$(call RUN_CARGO_ACTION,.cargo-host-library-spec.json,$(cargo_action_rustc_flags))
+endif
 	$(call BUILDSTATUS,END_Rust $(notdir $(HOST_RUST_LIBRARY_FILE)))
 
-$(eval $(call make_cargo_rule,$(HOST_RUST_LIBRARY_FILE),force-cargo-host-library-build))
+$(eval $(call make_cargo_rule,$(HOST_RUST_LIBRARY_FILE),force-cargo-host-library-build,$(if $(MOZ_USE_LEGACY_CARGO_INVOCATION),,.cargo-host-library-spec.json $(cargo_action_deps))))
 
 ifndef CARGO_NO_AUTO_ARG
 force-cargo-host-library-%:
@@ -426,10 +468,14 @@ program_features_flag := --features '$(addsuffix $(COMMA),$(RUST_PROGRAM_FEATURE
 
 force-cargo-program-build: $(call resfile,module)
 	$(call BUILDSTATUS,START_Rust $(RUST_CARGO_PROGRAMS))
+ifdef MOZ_USE_LEGACY_CARGO_INVOCATION
 	$(call CARGO_BUILD) $(addprefix --bin ,$(RUST_CARGO_PROGRAMS)) $(MOZ_CARGO_TARGET_ARGS) $(program_features_flag) -- $(addprefix -C link-arg=$(CURDIR)/,$(call resfile,module)) $(CARGO_RUSTCFLAGS)
+else
+	$(call RUN_CARGO_ACTION,.cargo-program-spec.json,$(cargo_action_rustc_flags))
+endif
 	$(call BUILDSTATUS,END_Rust $(RUST_CARGO_PROGRAMS))
 
-$(foreach RUST_PROGRAM,$(RUST_PROGRAMS), $(eval $(call make_cargo_rule,$(RUST_PROGRAM),force-cargo-program-build,$(call resfile,module))))
+$(foreach RUST_PROGRAM,$(RUST_PROGRAMS), $(eval $(call make_cargo_rule,$(RUST_PROGRAM),force-cargo-program-build,$(call resfile,module) $(if $(MOZ_USE_LEGACY_CARGO_INVOCATION),,.cargo-program-spec.json $(cargo_action_deps)))))
 
 ifdef MOZ_COPY_PDBS
 define rust_program_pdb_rule
@@ -458,10 +504,14 @@ host_program_features_flag := --features '$(addsuffix $(COMMA),$(HOST_RUST_PROGR
 
 force-cargo-host-program-build:
 	$(call BUILDSTATUS,START_Rust $(HOST_RUST_CARGO_PROGRAMS))
+ifdef MOZ_USE_LEGACY_CARGO_INVOCATION
 	$(call CARGO_BUILD) $(addprefix --bin ,$(HOST_RUST_CARGO_PROGRAMS)) $(MOZ_CARGO_HOST_TARGET_ARGS) $(host_program_features_flag)
+else
+	$(call RUN_CARGO_ACTION,.cargo-host-program-spec.json,$(cargo_action_rustc_flags))
+endif
 	$(call BUILDSTATUS,END_Rust $(HOST_RUST_CARGO_PROGRAMS))
 
-$(foreach HOST_RUST_PROGRAM,$(HOST_RUST_PROGRAMS), $(eval $(call make_cargo_rule,$(HOST_RUST_PROGRAM),force-cargo-host-program-build)))
+$(foreach HOST_RUST_PROGRAM,$(HOST_RUST_PROGRAMS), $(eval $(call make_cargo_rule,$(HOST_RUST_PROGRAM),force-cargo-host-program-build,$(if $(MOZ_USE_LEGACY_CARGO_INVOCATION),,.cargo-host-program-spec.json $(cargo_action_deps)))))
 
 ifndef CARGO_NO_AUTO_ARG
 force-cargo-host-program-%:
