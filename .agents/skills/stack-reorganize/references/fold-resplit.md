@@ -9,8 +9,11 @@ your VCS, under "Fold-resplit".
 ## Plan the leaves from the final state
 
 Plan from the final state's concerns, not the input commits' units; a boundary
-between two of them that the input also drew is a candidate leaf boundary even
-where the fold erased it. The `stack-split-commit` skill's concern rules pick
+between two of them that the input also drew stays a leaf boundary even where
+the fold erased it, unless the concern rules below merge its two sides. The
+work of rewriting a doc or a test for the lower leaf is no reason to merge,
+since that input commit's version of the file supplies the words (below). The
+`stack-split-commit` skill's concern rules pick
 the cuts, including the one that gives a renamed and rewritten file a rename
 leaf of its own. A leaf no input commit held is the tip minus the
 leaves above it: restore its paths whole, take out what the later leaves add,

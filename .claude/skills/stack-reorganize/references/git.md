@@ -50,7 +50,10 @@ reading one pair. The markers:
   lost an edit to a remainder now below it, or a narrowed commit the pairing
   still recognizes. The pair prints the old subject, so a reworded commit
   shows its old one.
-- `<`: an absorbed or dropped commit, with no counterpart on the right.
+- `<`: an absorbed or dropped commit, with no counterpart on the right. The
+  pairing goes by similarity, so a target rebuilt from the absorbed commit's
+  lines can pair with the absorbed commit instead, leaving its own original as
+  `<`; read the subjects of each pair before calling a `<` absorbed.
 - `>`: a new commit, with none on the left. A narrowed commit the pairing no
   longer recognizes shows twice, its old form as `<` and its new form as `>`
   on a line that starts `-:`, which a filter on a leading number drops.
@@ -64,15 +67,18 @@ only the lines themselves:
 git show --format= -U0 <commit> | git patch-id --verbatim
 ```
 
+A matching id settles it; a different one does not yet mean different lines.
 The id covers the path headers, so a hunk re-targeted to another path, as a
-drop's cascade does, never matches; there compare the changed lines themselves:
+drop's cascade does, never matches, and a moved commit's diff can align a
+repeated line, such as a blank one, differently at its new depth. On a
+mismatch compare the changed lines themselves:
 
 ```
 diff <(git show --format= -U0 <a> | grep '^[-+]' | grep -vE '^(\+\+\+|---) ' | sort) \
      <(git show --format= -U0 <b> | grep '^[-+]' | grep -vE '^(\+\+\+|---) ' | sort)
 ```
 
-Empty means the same lines, in another file.
+Empty means the same lines, whatever their file or alignment.
 
 Inventory the range's renames and deletions before picking a construction;
 they decide which ones are legal:
@@ -233,7 +239,8 @@ defect, a comment at the tip naming a symbol the range removed, is what the
 tip grep under "Stale comments at the tip" finds. That stale comment is the residue
 commit's business, not this check's: a byte-exact rebuild makes some leaf
 write it at the symbol's birth, so exclude the tip's stale symbols from this
-grep and fix them on top.
+grep and fix them on top. A stale symbol that no commit of the rebuilt series
+defines is wrong from the leaf that writes the comment, so fix it in that leaf.
 
 ## Splits
 
@@ -390,7 +397,12 @@ rebuild. Write the early commits that share the path by hand, taking each block'
 text from the backup tip (`git show <backup-tip>:<path>`) byte for byte rather
 than retyping it, so the later whole-path restore adds nothing back; for the
 leaf directly below the tip, start from the tip's file and delete the lines the
-top leaf owns, which keeps everything else byte-identical by construction. A
+top leaf owns, which keeps everything else byte-identical by construction.
+Repeat that downward, each leaf's file being the one above it minus the lines
+the leaf above owns. Where that leaf's original commit still describes those
+lines, `git show --format= <original> -- <path> | git apply -R --reject`, run
+in a scratch directory holding the file at `<path>`, removes them without fuzz
+and leaves only the rejected hunks to write by hand. A
 file assembled outside the tree goes in through git, the `hash-object` route
 at the end of "Without touching the worktree" below. At each
 later commit restore the paths whose final content is that commit's, and
@@ -533,9 +545,9 @@ count under the same cross mark as a failure, so read the count, or let the
 rebase read the exit status. Send the command's output to a file under
 `artifacts/` (`{ ...; } >> artifacts/lint-<branch>.txt 2>&1` around the quoted
 command) and read the summary lines there; the rebase acts on the exit status
-either way. A message check run over the range scores the
-kept commits' verbatim messages too; a complaint there is the owner's, not the
-rebuild's.
+either way. A message check run over the range, or run by a hook on each
+commit the rebuild creates, scores the kept commits' verbatim messages too; a
+complaint there is the owner's, not the rebuild's.
 
 A stack that changes a lint plugin has that plugin's own test suite and eslint
 on its `.mjs` as per-commit gates too, run as the plugin's docs say (`npm`

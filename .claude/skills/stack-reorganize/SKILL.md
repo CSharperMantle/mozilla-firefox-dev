@@ -172,7 +172,10 @@ mechanics reference.
     goes where most of its lines belong, provided the intermediate still
     reads; the remainder keeps only the pre-range removal.
   - A *move* has two halves: the removal goes to the commit owning the source
-    and the addition to the one creating the destination.
+    and the addition to the one creating the destination. Where the
+    destination already exists at the depth of the commit that wrote the moved
+    text, that commit writes it at the destination directly and the move
+    leaves nothing behind.
 - **Forward reference** - an earlier commit's text names a section, symbol,
   file or flag that a later commit in the range introduces. No diff check
   catches it; search for it per "Finding a forward reference" in the
@@ -181,7 +184,10 @@ mechanics reference.
   commit that introduced the reference (the churn rule), and a final form that
   exists at that depth is no forward reference. Fix: reorder so the
   introducing commit comes first (free inside a rebuild, where it is the order
-  you build in), or absorb the reference into it.
+  you build in), or absorb the reference into it. A comment describing
+  behavior that a later commit adds is a forward reference with no name to
+  search for, so read each doc comment a rebuilt leaf writes against that
+  leaf's own diff.
 - **Dead-intermediate model** - several commits build a mechanism (a wire
   format, a data model) that a later commit tears out and replaces, so the
   history carries both the construction and the removal. Fix: absorb the
@@ -265,15 +271,21 @@ too, by the bottom-up construction under "Absorbs" in the mechanics reference.
   the line in the new order takes the edit with it.
 - The one exception to the first rule is a line the target must write in a
   provisional form because the final form would refer forward to work the
-  target precedes; that is churn the series cannot remove, so it stays. The
-  target keeps its provisional text and the commit that introduces the name
-  rewrites it, so the churn shows at that later commit with the target as its
-  origin; expect it in the measurement after the rebuild and do not chase it
-  to zero.
+  target precedes. First check whether the commit that introduces the name can
+  move below the target, which removes the provisional form. Where it cannot,
+  that is churn the series cannot remove, so it stays. The target keeps its
+  provisional text and the commit that introduces the name rewrites it, so the
+  churn shows at that later commit with the target as its origin; expect it in
+  the measurement after the rebuild and do not chase it to zero.
 - The lines that stand against pre-range text are the commit's own work. They
   stay as the narrowed commit where its subject names a concern the target's
   does not, even at the cost of a few lines touched twice, and join the target
-  only where they belong to its concern anyway.
+  only where they belong to its concern anyway. Judge that concern by what the
+  lines do, not only by the subject: a behavior-neutral move or extraction of
+  pre-range code is a concern of its own (the lumped-commit shape), so it
+  becomes a commit of its own below the first target that uses it, even where
+  the absorbed commit's subject does not name it. `git-churn.sh --origins`
+  sizes this work per commit, as the lines removed "from before" the range.
 
 Before the build, collect the stale comments the rebuild would otherwise
 reproduce, per "Stale comments at the tip" in the mechanics reference; they go
@@ -282,7 +294,9 @@ in a residue commit on top (the FAQ above), which the owner may drop.
 Whichever you pick, verify the result three ways:
 
 - The reorganized series nets to the original overall diff, apart from the
-  residue commit you declared or a decision you are deliberately reversing
+  residue commit you declared, a stale symbol fixed in the leaf that writes it
+  (end of "Finding a forward reference" in the mechanics reference), or a
+  decision you are deliberately reversing
   because a later commit obsoleted it (the deliberate-reversal case of
   `references/drop-superseded.md`, where building and testing takes over from
   the diff check the net-zero drop keeps).
