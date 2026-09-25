@@ -1561,6 +1561,7 @@ tab-group > tab-split-view-wrapper {
   .tabbrowser-tab {
     :root[uidensity="compact"] & {
       --tab-collapsed-background-width: 24px;
+      --tab-min-height: 24px;
     }
 
     .tab-background {
