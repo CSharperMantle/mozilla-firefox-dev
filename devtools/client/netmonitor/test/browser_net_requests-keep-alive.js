@@ -58,7 +58,7 @@ add_task(async function () {
 
   info("Open the headers panel for the keep alive request");
   wait = waitForDOM(document, ".headers-overview");
-  clickOnRequestRow(firstItem);
+  EventUtils.sendMouseEvent({ type: "mousedown" }, firstItem);
   await wait;
   await waitForRequestData(store, ["requestHeaders"]);
 

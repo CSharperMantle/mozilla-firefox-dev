@@ -27,7 +27,7 @@ add_task(async function () {
   );
 
   // Select the Request tab.
-  clickOnRequestRow(requestListItems[0]);
+  EventUtils.sendMouseEvent({ type: "mousedown" }, requestListItems[0]);
   clickOnSidebarTab(document, "request");
 
   await testRequestWithFormattedView(
@@ -118,7 +118,7 @@ async function testRequestWithFormattedView(
   // Wait for header and properties view to be displayed
   const wait = waitForDOM(document, "#request-panel .data-header");
   let waitForContent = waitForDOM(document, "#request-panel .properties-view");
-  clickOnRequestRow(requestListItem);
+  EventUtils.sendMouseEvent({ type: "mousedown" }, requestListItem);
   await Promise.all([wait, waitForContent]);
 
   const tabpanel = document.querySelector("#request-panel");
@@ -245,7 +245,7 @@ async function testRequestWithOnlyRawDataView(
   // Wait for header and CodeMirror editor to be displayed
   const wait = waitForDOM(document, "#request-panel .data-header");
   const waitForContent = waitForDOM(document, "#request-panel .cm-content");
-  clickOnRequestRow(requestListItem);
+  EventUtils.sendMouseEvent({ type: "mousedown" }, requestListItem);
   await Promise.all([wait, waitForContent]);
 
   const tabpanel = document.querySelector("#request-panel");
@@ -286,7 +286,7 @@ async function testRequestWithOnlyRawDataView(
 async function testRequestWithoutRequestData(monitor, requestListItem) {
   const { document } = monitor.panelWin;
 
-  clickOnRequestRow(requestListItem);
+  EventUtils.sendMouseEvent({ type: "mousedown" }, requestListItem);
 
   const tabpanel = document.querySelector("#request-panel");
 

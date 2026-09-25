@@ -25,7 +25,10 @@ add_task(async function () {
   await performRequests(monitor, tab, 2);
 
   let wait = waitForDOM(document, "#headers-panel .accordion-item", 2);
-  clickOnRequestRow(document.querySelectorAll(".request-list-item")[0]);
+  EventUtils.sendMouseEvent(
+    { type: "mousedown" },
+    document.querySelectorAll(".request-list-item")[0]
+  );
   await wait;
 
   wait = waitForDOM(document, "#responseHeaders textarea.raw-headers", 1);

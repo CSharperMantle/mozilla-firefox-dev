@@ -127,7 +127,10 @@ add_task(async function () {
   EventUtils.sendKey("DOWN", window);
   check(19, true);
 
-  clickOnRequestRow(document.querySelector(".request-list-item"));
+  EventUtils.sendMouseEvent(
+    { type: "mousedown" },
+    document.querySelector(".request-list-item")
+  );
   check(0, true);
 
   await teardown(monitor);

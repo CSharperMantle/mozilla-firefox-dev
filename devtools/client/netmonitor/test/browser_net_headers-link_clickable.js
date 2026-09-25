@@ -21,7 +21,10 @@ add_task(async function () {
   await performRequests(monitor, tab, 1);
 
   info("Selecting first request");
-  clickOnRequestRow(document.querySelectorAll(".request-list-item")[0]);
+  EventUtils.sendMouseEvent(
+    { type: "mousedown" },
+    document.querySelectorAll(".request-list-item")[0]
+  );
 
   info("Waiting for request and response headers");
   await waitForRequestData(store, ["requestHeaders", "responseHeaders"]);

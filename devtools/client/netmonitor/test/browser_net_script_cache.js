@@ -71,7 +71,7 @@ async function do_test_script_cache(enableCache) {
       requestData.details
     );
 
-    clickOnRequestRow(request);
+    EventUtils.sendMouseEvent({ type: "mousedown" }, request);
 
     const wait = waitForDOM(document, "#responseHeaders");
     clickOnSidebarTab(document, "headers");
@@ -203,7 +203,7 @@ async function do_test_module_cache(enableCache) {
     requestData.details
   );
 
-  clickOnRequestRow(request);
+  EventUtils.sendMouseEvent({ type: "mousedown" }, request);
 
   const wait = waitForDOM(document, "#responseHeaders");
   clickOnSidebarTab(document, "headers");

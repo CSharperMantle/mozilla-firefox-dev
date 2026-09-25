@@ -54,7 +54,7 @@ async function openContextMenuForSelector(browser, selector) {
   // Synthesize a right mouse click over the input element, we have to trigger
   // both events because formfill code relies on this event happening before the contextmenu
   // (which it does for real user input) in order to not show the password autocomplete.
-  let eventDetails = { button: 2 };
+  let eventDetails = { type: "mousedown", button: 2 };
   EventUtils.synthesizeMouseAtPoint(offsetX, offsetY, eventDetails);
 
   // Synthesize a contextmenu event to actually open the context menu.

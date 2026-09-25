@@ -112,6 +112,7 @@ async function checkSwatchShiftClick(container, win, expectedValue, comment) {
   EventUtils.synthesizeMouseAtCenter(
     swatch,
     {
+      type: "mousedown",
       shiftKey: true,
     },
     win

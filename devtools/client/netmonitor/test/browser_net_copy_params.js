@@ -64,7 +64,10 @@ add_task(async function () {
   return teardown(monitor);
 
   async function testCopyUrlParamsHidden(index, hidden) {
-    clickOnRequestRow(document.querySelectorAll(".request-list-item")[index]);
+    EventUtils.sendMouseEvent(
+      { type: "mousedown" },
+      document.querySelectorAll(".request-list-item")[index]
+    );
     EventUtils.sendMouseEvent(
       { type: "contextmenu" },
       document.querySelectorAll(".request-list-item")[index]
@@ -80,7 +83,10 @@ add_task(async function () {
   }
 
   async function testCopyUrlParams(index, queryString) {
-    clickOnRequestRow(document.querySelectorAll(".request-list-item")[index]);
+    EventUtils.sendMouseEvent(
+      { type: "mousedown" },
+      document.querySelectorAll(".request-list-item")[index]
+    );
     EventUtils.sendMouseEvent(
       { type: "contextmenu" },
       document.querySelectorAll(".request-list-item")[index]
@@ -95,7 +101,10 @@ add_task(async function () {
   }
 
   async function testCopyPostDataHidden(index, hidden) {
-    clickOnRequestRow(document.querySelectorAll(".request-list-item")[index]);
+    EventUtils.sendMouseEvent(
+      { type: "mousedown" },
+      document.querySelectorAll(".request-list-item")[index]
+    );
     EventUtils.sendMouseEvent(
       { type: "contextmenu" },
       document.querySelectorAll(".request-list-item")[index]
@@ -110,7 +119,10 @@ add_task(async function () {
   }
 
   function testCopyRequestDataLabel(index, method) {
-    clickOnRequestRow(document.querySelectorAll(".request-list-item")[index]);
+    EventUtils.sendMouseEvent(
+      { type: "mousedown" },
+      document.querySelectorAll(".request-list-item")[index]
+    );
     EventUtils.sendMouseEvent(
       { type: "contextmenu" },
       document.querySelectorAll(".request-list-item")[index]
@@ -136,7 +148,10 @@ add_task(async function () {
       const { formDataSections, requestPostData } = requests[index];
       return formDataSections && requestPostData;
     });
-    clickOnRequestRow(document.querySelectorAll(".request-list-item")[index]);
+    EventUtils.sendMouseEvent(
+      { type: "mousedown" },
+      document.querySelectorAll(".request-list-item")[index]
+    );
     EventUtils.sendMouseEvent(
       { type: "contextmenu" },
       document.querySelectorAll(".request-list-item")[index]

@@ -33,7 +33,7 @@ add_task(async function () {
 
   // Select the image request
   const imgRequest = document.querySelectorAll(".request-list-item")[0];
-  clickOnRequestRow(imgRequest);
+  EventUtils.sendMouseEvent({ type: "mousedown" }, imgRequest);
 
   // Stores original request for comparison of values later
   const { getSelectedRequest } = windowRequire(
@@ -100,7 +100,7 @@ add_task(async function () {
 
     // Select the image request
     const imgRequest = document.querySelectorAll(".request-list-item")[0];
-    clickOnRequestRow(imgRequest);
+    EventUtils.sendMouseEvent({ type: "mousedown" }, imgRequest);
 
     // Stores original request for comparison of values later
     const { getSelectedRequest } = windowRequire(

@@ -73,7 +73,10 @@ add_task(async function () {
     await onComplete;
 
     info("Selecting the request.");
-    clickOnRequestRow(document.querySelectorAll(".request-list-item")[0]);
+    EventUtils.sendMouseEvent(
+      { type: "mousedown" },
+      document.querySelectorAll(".request-list-item")[0]
+    );
 
     await waitForAllNetworkUpdateEvents();
 

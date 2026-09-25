@@ -44,7 +44,10 @@ add_task(async function () {
   await performRequestsInContent(requests);
   await wait;
 
-  clickOnRequestRow(document.querySelectorAll(".request-list-item")[0]);
+  EventUtils.sendMouseEvent(
+    { type: "mousedown" },
+    document.querySelectorAll(".request-list-item")[0]
+  );
 
   isnot(
     getSelectedRequest(store.getState()),

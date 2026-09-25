@@ -35,7 +35,7 @@ add_task(async function () {
 
   // Selects 1st XHR request
   const xhrRequest = document.querySelectorAll(".request-list-item")[0];
-  clickOnRequestRow(xhrRequest);
+  EventUtils.sendMouseEvent({ type: "mousedown" }, xhrRequest);
 
   // Stores original request for comparison of values later
   const { getSelectedRequest } = windowRequire(
@@ -56,7 +56,7 @@ add_task(async function () {
 
   // Selects cloned request
   const clonedRequest = document.querySelectorAll(".request-list-item")[1];
-  clickOnRequestRow(clonedRequest);
+  EventUtils.sendMouseEvent({ type: "mousedown" }, clonedRequest);
   const cloned = getSelectedRequest(store.getState());
 
   // Compares if the requests have the same cause type (XHR)
@@ -96,7 +96,7 @@ add_task(async function () {
 
     // Selects 1st XHR request
     const xhrRequest = document.querySelectorAll(".request-list-item")[0];
-    clickOnRequestRow(xhrRequest);
+    EventUtils.sendMouseEvent({ type: "mousedown" }, xhrRequest);
 
     // Stores original request for comparison of values later
     const { getSelectedRequest } = windowRequire(
@@ -123,7 +123,7 @@ add_task(async function () {
 
     // Selects new request
     const newRequest = document.querySelectorAll(".request-list-item")[1];
-    clickOnRequestRow(newRequest);
+    EventUtils.sendMouseEvent({ type: "mousedown" }, newRequest);
     const request = getSelectedRequest(store.getState());
 
     Assert.strictEqual(
@@ -179,7 +179,7 @@ add_task(async function () {
 
     info("Select XHR request");
     const xhrRequest = document.querySelectorAll(".request-list-item")[0];
-    clickOnRequestRow(xhrRequest);
+    EventUtils.sendMouseEvent({ type: "mousedown" }, xhrRequest);
 
     info("Fetch the Headers for the original XHR request");
     let originalRequest = getSelectedRequest(store.getState());

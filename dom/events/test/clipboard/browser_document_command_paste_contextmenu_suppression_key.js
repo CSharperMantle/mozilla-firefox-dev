@@ -82,20 +82,16 @@ async function runKeyEventTest(
   aKeyboardEventType,
   aShouldSuppressContextMenu
 ) {
-  let dismissPromise;
   let listener = function (e) {
     if (e.target.getAttribute("id") == kPasteMenuPopupId) {
       ok(
         !aShouldSuppressContextMenu,
         `paste contextmenu should ${aShouldSuppressContextMenu ? "not " : ""}be shown`
       );
-      dismissPromise = new Promise(resolve => {
-        SpecialPowers.executeSoon(async () => {
-          await promiseDismissPasteButton();
-          // XXX not sure why first promiseDismissPasteButton doesn't work on Windows opt build.
-          await promiseDismissPasteButton();
-          resolve();
-        });
+      SpecialPowers.executeSoon(async () => {
+        await promiseDismissPasteButton();
+        // XXX not sure why first promiseDismissPasteButton doesn't work on Windows opt build.
+        await promiseDismissPasteButton();
       });
     }
   };
@@ -113,7 +109,6 @@ async function runKeyEventTest(
     await EventUtils.synthesizeAndWaitKey(aKey, aModifiers);
     let result = await resultPromise;
     is(result, aShouldSuppressContextMenu, `Check execCommand("paste") result`);
-    await dismissPromise;
   });
 
   document.removeEventListener("popupshown", listener);

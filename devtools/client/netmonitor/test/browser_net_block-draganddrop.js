@@ -84,7 +84,7 @@ add_task(async function () {
     const waitForHeaders = waitUntil(() =>
       document.querySelector(".headers-overview")
     );
-    clickOnRequestRow(firstRequest);
+    EventUtils.sendMouseEvent({ type: "mousedown" }, firstRequest);
     await waitForHeaders;
     normalRequestState = getSelectedRequest(store.getState());
     normalRequestSize = firstRequest.querySelector(
@@ -155,7 +155,7 @@ add_task(async function () {
     blockedRequestSize = firstRequest.querySelector(
       ".requests-list-transferred"
     ).textContent;
-    clickOnRequestRow(firstRequest);
+    EventUtils.sendMouseEvent({ type: "mousedown" }, firstRequest);
     blockedRequestState = getSelectedRequest(store.getState());
     info("Captured blocked request");
   }
