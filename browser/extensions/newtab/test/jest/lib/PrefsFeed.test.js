@@ -909,6 +909,30 @@ describe("PrefsFeed", () => {
       }
     );
 
+    it.each([
+      ["widgets", { stocksEnabled: true }],
+      ["widgetsSettings", { stocksEnabled: true }],
+    ])(
+      "should turn on the preffed-off stocks default from %s",
+      (type, payload) => {
+        const setBoolPref = jest.fn();
+        services.prefs.getDefaultBranch.mockReturnValue({
+          setBoolPref,
+          setStringPref: jest.fn(),
+        });
+        nimbusFeatures.newtabTrainhop.getAllEnrollments.mockReturnValue([
+          { meta: { isRollout: false }, value: { type, payload } },
+        ]);
+
+        feed.onTrainhopExperimentUpdated();
+
+        expect(setBoolPref).toHaveBeenCalledWith(
+          "widgets.stocks.enabled",
+          true
+        );
+      }
+    );
+
     it("should let widgetsSettings win over widgets for a widget default", () => {
       const setBoolPref = jest.fn();
       services.prefs.getDefaultBranch.mockReturnValue({

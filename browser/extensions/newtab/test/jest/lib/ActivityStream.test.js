@@ -687,6 +687,14 @@ describe("ActivityStream", () => {
       }
     });
   });
+  describe("stocks widget defaults", () => {
+    it("should be off everywhere by default", () => {
+      expect(PREFS_CONFIG.get("widgets.stocks.enabled").value).toBe(false);
+      expect(PREFS_CONFIG.get("widgets.system.stocks.enabled").value).toBe(
+        false
+      );
+    });
+  });
   describe("getWeatherWidgetSize", () => {
     let getBoolPrefStub;
     let getStringPrefStub;

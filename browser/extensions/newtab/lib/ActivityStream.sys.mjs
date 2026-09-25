@@ -1895,7 +1895,8 @@ export const PREFS_CONFIG = new Map([
     "widgets.stocks.enabled",
     {
       title: "Enables the stocks widget",
-      value: true,
+      // Off everywhere. To release organically: add locale-config to firefox.js, switch to marketGate.
+      value: false,
     },
   ],
   [
@@ -1955,6 +1956,7 @@ export const PREFS_CONFIG = new Map([
     "widgets.system.stocks.enabled",
     {
       title: "Enables the stocks widget experiment in Nimbus",
+      // Off everywhere. To release organically: add locale-config to firefox.js, switch to marketGate.
       value: false,
     },
   ],
