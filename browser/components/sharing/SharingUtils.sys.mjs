@@ -35,6 +35,17 @@ Object.defineProperty(lazy, "ExternalProtocolService", {
     );
   },
 });
+// Build a JS object satisfying nsIMacShareCustomItem. The `handler` arrow
+// function is wrapped by XPConnect into an nsIMacShareCustomItemHandler.
+const sMacShareCustomItemQI = ChromeUtils.generateQI(["nsIMacShareCustomItem"]);
+function makeMacShareCustomItem({ label, icon = "", handler }) {
+  return {
+    label,
+    icon,
+    handler,
+    QueryInterface: sMacShareCustomItemQI,
+  };
+}
 
 /**
  * Class that populates and handles various sharing options
@@ -471,7 +482,23 @@ class SharingUtilsCls {
         })
       : titles[0];
 
-    lazy.MacSharingService.shareUrlWithPicker(anchor, urls, titles, shareTitle);
+    // Override Apple's Copy Link service so it copies our multiple
+    // clipboard representations and shows the correct "Copy Link" /
+    // "Copy N Links" label, while keeping Apple's native icon/identity.
+    let copyItem = makeMacShareCustomItem({
+      label: await this.#formatLabel(node, "menu-share-copy-links", {
+        count: links.length,
+      }),
+      handler: () => BrowserUtils.copyLinks(links),
+    });
+
+    lazy.MacSharingService.shareUrlWithPicker(
+      anchor,
+      urls,
+      titles,
+      shareTitle,
+      copyItem
+    );
   }
 
   async #formatLabel(node, l10nId, args) {

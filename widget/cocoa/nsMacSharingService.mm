@@ -12,10 +12,13 @@
 #include "MOZShareURLPasteboardItem.h"
 #include "Units.h"
 #include "mozilla/PresShell.h"
+#include "mozilla/UniquePtr.h"
 #include "mozilla/dom/Element.h"
+#include "nsCOMPtr.h"
 #include "nsDeviceContext.h"
 #include "nsIFrame.h"
 #include "nsIWidget.h"
+#include "nsMacSharingCopyOverride.h"
 #include "nsPresContext.h"
 
 using namespace mozilla;
@@ -39,25 +42,33 @@ NS_IMPL_ISUPPORTS(nsMacSharingService, nsIMacSharingService)
 // ShareUrlWithPicker releases its own reference as soon as the delegate is
 // attached. This leaves the delegate as the only owner for the lifetime of the
 // popover.
+//
+// The Copy Link override is scoped to the same lifetime. It is created
+// before the picker is shown and destroyed in dealloc, so it is
+// active for exactly as long as the picker that needs it.
 @interface SharingServicePickerDelegate
     : NSObject <NSSharingServicePickerDelegate> {
   NSSharingServicePicker* mPicker;
   NSUserActivity* mShareActivity;
+  mozilla::UniquePtr<MacShareCopyOverride> mCopyOverride;
   BOOL mIsMultiUrl;
 }
 - (id)initWithPicker:(NSSharingServicePicker*)aPicker
             activity:(NSUserActivity*)aActivity
-          isMultiUrl:(BOOL)aIsMultiUrl;
+          isMultiUrl:(BOOL)aIsMultiUrl
+        copyOverride:(mozilla::UniquePtr<MacShareCopyOverride>&&)aCopyOverride;
 
 @end
 
 @implementation SharingServicePickerDelegate
 - (id)initWithPicker:(NSSharingServicePicker*)aPicker
             activity:(NSUserActivity*)aActivity
-          isMultiUrl:(BOOL)aIsMultiUrl {
+          isMultiUrl:(BOOL)aIsMultiUrl
+        copyOverride:(mozilla::UniquePtr<MacShareCopyOverride>&&)aCopyOverride {
   self = [super init];
   mPicker = [aPicker retain];
   mShareActivity = [aActivity retain];
+  mCopyOverride = std::move(aCopyOverride);
   mIsMultiUrl = aIsMultiUrl;
   return self;
 }
@@ -91,6 +102,9 @@ NS_IMPL_ISUPPORTS(nsMacSharingService, nsIMacSharingService)
 }
 
 - (void)dealloc {
+  // Destroy the copy override before anything else, so the swizzled trampolines
+  // are safe from this point on.
+  mCopyOverride = nullptr;
   [mShareActivity resignCurrent];
   [mShareActivity invalidate];
   [mShareActivity release];
@@ -199,13 +213,35 @@ static NSUserActivity* MakeSingleUrlActivity(NSURL* aURL, NSString* aTitle) {
   return activity;
 }
 
+// Build the Copy Link swizzle override from an XPCOM custom item. Returns
+// null if aCopyItem is null or its fields are missing. The returned scope
+// object is transferred to the picker delegate.
+static mozilla::UniquePtr<MacShareCopyOverride> MakeCopyOverride(
+    nsIMacShareCustomItem* aCopyItem) {
+  if (!aCopyItem) {
+    return nullptr;
+  }
+  nsAutoString label;
+  aCopyItem->GetLabel(label);
+  nsCOMPtr<nsIMacShareCustomItemHandler> handler;
+  aCopyItem->GetHandler(getter_AddRefs(handler));
+  if (label.IsEmpty() || !handler) {
+    return nullptr;
+  }
+  nsCOMPtr<nsIMacShareCustomItemHandler> handlerRef = handler;
+  return MacShareCopyOverride::Create(nsCocoaUtils::ToNSString(label), ^{
+    handlerRef->Handle();
+  });
+}
+
 }  // namespace
 
 NS_IMETHODIMP
 nsMacSharingService::ShareUrlWithPicker(mozilla::dom::Element* aAnchor,
                                         const nsTArray<nsString>& aUrls,
                                         const nsTArray<nsString>& aTitles,
-                                        const nsAString& aShareTitle) {
+                                        const nsAString& aShareTitle,
+                                        nsIMacShareCustomItem* aCopyItem) {
   NS_OBJC_BEGIN_TRY_BLOCK_RETURN;
   if (!aAnchor || aUrls.IsEmpty()) {
     return NS_ERROR_INVALID_ARG;
@@ -227,14 +263,17 @@ nsMacSharingService::ShareUrlWithPicker(mozilla::dom::Element* aAnchor,
   NS_ENSURE_SUCCESS(rv, rv);
 
   NSUserActivity* shareActivity = MakeSingleUrlActivity(singleURL, shareTitle);
+  mozilla::UniquePtr<MacShareCopyOverride> copyOverride =
+      MakeCopyOverride(aCopyItem);
 
   NSSharingServicePicker* picker =
       [[NSSharingServicePicker alloc] initWithItems:@[ shareItem ]];
 
-  SharingServicePickerDelegate* delegate =
-      [[SharingServicePickerDelegate alloc] initWithPicker:picker
-                                                  activity:shareActivity
-                                                isMultiUrl:!isSingle];
+  SharingServicePickerDelegate* delegate = [[SharingServicePickerDelegate alloc]
+      initWithPicker:picker
+            activity:shareActivity
+          isMultiUrl:!isSingle
+        copyOverride:std::move(copyOverride)];
   // The delegate retains the picker, so releasing our reference here is safe.
   // The delegate releases itself in
   // sharingServicePicker:didChooseSharingService.
