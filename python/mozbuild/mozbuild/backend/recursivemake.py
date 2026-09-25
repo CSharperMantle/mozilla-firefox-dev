@@ -23,6 +23,7 @@ from mozbuild.frontend.context import (
     Path,
     SourcePath,
 )
+from mozbuild.rust_commands import applies_library_lto
 
 from ..frontend.data import (
     BaseLibrary,
@@ -1573,11 +1574,8 @@ class RecursiveMakeBackend(MakeBackend):
         if libdef.output_category:
             self._process_non_default_target(libdef, rust_lib, backend_file)
 
-        if (
-            libdef.KIND == "target"
-            and not libdef.no_lto
-            and self.environment.substs.get("RUST_LTO_ELIGIBLE")
-        ):
+        kind = "library" if libdef.KIND == "target" else "host-library"
+        if applies_library_lto(kind, not libdef.no_lto, self.environment.substs):
             backend_file.write("RUST_LIBRARY_LTO := 1\n")
 
     def _process_host_shared_library(self, libdef, backend_file):
