@@ -1566,6 +1566,11 @@
     "dark": "{Theme$button/background/color/active}",
     "forcedColors": "{Theme$button/background/color/active}"
   },
+  "toggle/background/color/disabled": {
+    "light": "transparent",
+    "dark": "transparent",
+    "forcedColors": "{Theme$button/background/color/disabled}"
+  },
   "toggle/background/color/pressed": {
     "light": "{Theme$color/accent/primary}",
     "dark": "{Theme$color/accent/primary}",
@@ -1580,6 +1585,11 @@
     "light": "{Theme$color/accent/primary/active}",
     "dark": "{Theme$color/accent/primary/active}",
     "forcedColors": "{Theme$color/accent/primary/active}"
+  },
+  "toggle/background/color/pressed/disabled": {
+    "light": "transparent",
+    "dark": "transparent",
+    "forcedColors": "{Theme$button/background/color/primary/disabled}"
   },
   "toggle/border/color": {
     "light": "{Colors$color/gray/70}",
@@ -1596,6 +1606,11 @@
     "dark": "{Theme$toggle/border/color}",
     "forcedColors": "{Theme$border/color/interactive/active}"
   },
+  "toggle/border/color/disabled": {
+    "light": "transparent",
+    "dark": "transparent",
+    "forcedColors": "{Theme$border/color/interactive/disabled}"
+  },
   "toggle/dot/background/color": {
     "light": "{Theme$toggle/border/color}",
     "dark": "{Theme$toggle/border/color}",
@@ -1611,10 +1626,20 @@
     "dark": "{Theme$toggle/dot/background/color}",
     "forcedColors": "{Theme$color/accent/primary/active}"
   },
+  "toggle/dot/background/color/disabled": {
+    "light": "transparent",
+    "dark": "transparent",
+    "forcedColors": "{Theme$button/text/color/disabled}"
+  },
   "toggle/dot/background/color/on-pressed": {
     "light": "{Theme$background/color/canvas}",
     "dark": "{Theme$background/color/canvas}",
     "forcedColors": "{Theme$button/background/color}"
+  },
+  "toggle/dot/background/color/on-pressed/disabled": {
+    "light": "transparent",
+    "dark": "transparent",
+    "forcedColors": "{Theme$button/text/color/primary/disabled}"
   },
   "toggle/opacity/disabled": {
     "light": "{Theme$button/opacity/disabled}",
