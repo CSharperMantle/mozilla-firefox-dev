@@ -35,10 +35,12 @@ Order the concerns so the messiest, most-interleaved one is **last**:
 Under bisection the upper half of each cut is that free restore and only the
 lower halves are hand-built, so N leaves cost N-1 hand-built intermediates.
 
-Build the intermediates in a checkout whose objdir is already configured; a
-fresh `git worktree` has none, so the first leaf pays a full build there.
-
 ## 3. Procedure
+
+Work in a checkout whose objdir is already configured; a fresh `git worktree`
+has none, so the first leaf pays a full build there. Every step below is
+non-interactive: `git add -p` and a bare `git rebase -i` cannot be answered
+here, so stage by path and drive `rebase -i` through `GIT_SEQUENCE_EDITOR`.
 
 ```
 git commit -a -m WIP                             # if the tree is dirty; undone at the end
@@ -48,7 +50,7 @@ git checkout -b split-work <target>^             # scratch at target's parent
 # ... build each clean early part: edit files, ./mach build, ./mach lint --fix,
 #     run targeted tests, commit. Confirm behavior-neutral.
 
-git restore --source=<target> --staged --worktree :/   # the free final part (staged)
+git restore --source=<target> --staged --worktree :/   # the free final part (staged); whole tree, never a pathspec (section 2)
 git diff <target> --stat                         # MUST be empty
 git commit -m "<message>"                        # build/test: behaves == target
 
@@ -58,6 +60,11 @@ git rebase --onto split-work <target>            # graft the rest of the stack
 git diff <backup> <branch> --stat                # MUST be empty
 git reset HEAD^                                  # give the WIP work back, if you made one
 ```
+
+**At every rebase stop, re-read a file with the `Read` tool before editing
+it.** The stop checks out that commit's tree, so an earlier read is stale and
+the edit fails with "File has been modified since read"; a shell read does not
+clear that state.
 
 Rebuild the final tree and run the tip's own tests. A test that needs
 later-stack infrastructure (a CI variant, downstream commits) may fail at the
@@ -97,8 +104,3 @@ first line equal to `  }`; nested closers are indented more), and to drop a
 method with its doc comment, scan backward over the preceding `/** ... */`. A
 small scripted pass over the file lines beats `sed` or hand-edits for
 multi-method surgery.
-
-**Re-read a file with the `Read` tool at each rebase stop before editing it.**
-The stop checks out that commit's tree, so an earlier read is stale and the
-edit fails with "File has been modified since read"; a shell read does not
-clear that state.

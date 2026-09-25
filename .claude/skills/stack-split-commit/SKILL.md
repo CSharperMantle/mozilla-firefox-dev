@@ -36,10 +36,13 @@ Split without changing the final tree. Every prefix of the result has to leave
 the tree building, linting and passing tests, and no commit may mention a
 concept that only a later commit introduces.
 
-Pick the cuts by the rules below, then follow the mechanics for this
-checkout's version control system. Use jj where the checkout has a `.jj`
-directory at its root: it rebases descendants for you and records conflicts
-instead of halting. Do not fall back to git commands there even if available.
+Pick the cuts by the rules below. Before the first commit or rebase, read the
+mechanics reference for this checkout's version control system in full: it
+holds the procedure, the whole-tree restore that makes the last piece free
+and the rules for editing at a rebase stop, none of which this file repeats.
+Use jj where the checkout has a `.jj` directory at its root: it rebases
+descendants for you and records conflicts instead of halting. Do not fall back
+to git commands there even if available.
 
 - Jujutsu (jj): `references/jj.md`
 - git: `references/git.md`
