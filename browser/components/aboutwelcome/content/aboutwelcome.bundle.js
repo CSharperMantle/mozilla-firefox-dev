@@ -180,7 +180,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _MultiStageProtonScreen__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(6);
 /* harmony import */ var _LanguageSwitcher__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(8);
 /* harmony import */ var _SubmenuButton__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(13);
-/* harmony import */ var _lib_addUtmParams_mjs__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(34);
+/* harmony import */ var _lib_addUtmParams_mjs__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(35);
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -2473,6 +2473,8 @@ const screenContentShape = {
     // CSS overrides of the tile container. Any CSS properties starting with
     // '--' are also allowed.
     style: (prop_types_prop_types__WEBPACK_IMPORTED_MODULE_13___default().object),
+    // Accessible name for the optional carousel pill navigation.
+    pill_nav_label: localizableThingPropTypes,
     // Array of tile configurations needed for the tile type.
     data: prop_types_prop_types__WEBPACK_IMPORTED_MODULE_13___default().oneOfType([(prop_types_prop_types__WEBPACK_IMPORTED_MODULE_13___default().array), (prop_types_prop_types__WEBPACK_IMPORTED_MODULE_13___default().object)])
   })]),
@@ -4788,20 +4790,20 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _MSLocalized__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(5);
 /* harmony import */ var _AddonsPicker__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(16);
 /* harmony import */ var _SingleSelect__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(18);
-/* harmony import */ var _MobileDownloads__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(21);
-/* harmony import */ var _MultiSelect__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(22);
-/* harmony import */ var _TextAreaTile__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(23);
-/* harmony import */ var _EmbeddedMigrationWizard__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(24);
-/* harmony import */ var _EmbeddedThemePicker__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(25);
-/* harmony import */ var _EmbeddedFxBackupOptIn__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(26);
-/* harmony import */ var _ActionChecklist__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(27);
-/* harmony import */ var _EmbeddedBrowser__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(28);
-/* harmony import */ var _ConfirmationChecklist__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(29);
+/* harmony import */ var _MobileDownloads__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(22);
+/* harmony import */ var _MultiSelect__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(23);
+/* harmony import */ var _TextAreaTile__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(24);
+/* harmony import */ var _EmbeddedMigrationWizard__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(25);
+/* harmony import */ var _EmbeddedThemePicker__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(26);
+/* harmony import */ var _EmbeddedFxBackupOptIn__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(27);
+/* harmony import */ var _ActionChecklist__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(28);
+/* harmony import */ var _EmbeddedBrowser__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(29);
+/* harmony import */ var _ConfirmationChecklist__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(30);
 /* harmony import */ var _lib_multistage_utils_mjs__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(3);
-/* harmony import */ var _EmbeddedBackupRestore__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(30);
-/* harmony import */ var _PinnableSitesList__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(31);
-/* harmony import */ var _ContentToggle__WEBPACK_IMPORTED_MODULE_16__ = __webpack_require__(32);
-/* harmony import */ var _TextBoxTile__WEBPACK_IMPORTED_MODULE_17__ = __webpack_require__(33);
+/* harmony import */ var _EmbeddedBackupRestore__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(31);
+/* harmony import */ var _PinnableSitesList__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(32);
+/* harmony import */ var _ContentToggle__WEBPACK_IMPORTED_MODULE_16__ = __webpack_require__(33);
+/* harmony import */ var _TextBoxTile__WEBPACK_IMPORTED_MODULE_17__ = __webpack_require__(34);
 /* harmony import */ var _LinkParagraph__WEBPACK_IMPORTED_MODULE_18__ = __webpack_require__(14);
 function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
 /* This Source Code Form is subject to the terms of the Mozilla Public
@@ -5385,9 +5387,11 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _TileButton__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(19);
 /* harmony import */ var _TileList__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(20);
 /* harmony import */ var _lib_multistage_utils_mjs__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(3);
+/* harmony import */ var _CarouselNav__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(21);
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 
 
 
@@ -5407,6 +5411,17 @@ const SingleSelect = ({
 }) => {
   const category = content.tiles?.category?.type || content.tiles?.type;
   const isSingleSelect = category === "single-select";
+  const cardRefs = (0,react__WEBPACK_IMPORTED_MODULE_0__.useRef)(new Map());
+  const handlePillSelect = id => {
+    setActiveSingleSelectSelection(id, singleSelectId);
+    const card = cardRefs.current.get(id);
+    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+    card?.scrollIntoView?.({
+      behavior: reduceMotion ? "auto" : "smooth",
+      inline: "center",
+      block: "nearest"
+    });
+  };
   const autoTriggerAllowed = itemAction => {
     // Currently only enabled for sidebar experiment prefs
     const allowedActions = ["SET_PREF"];
@@ -5449,7 +5464,12 @@ const SingleSelect = ({
   const CONFIGURABLE_STYLES = ["background", "border", "borderRadius", "height", "marginBlock", "marginBlockStart", "marginBlockEnd", "marginInline", "paddingBlock", "paddingBlockStart", "paddingBlockEnd", "paddingInline", "paddingInlineStart", "paddingInlineEnd", "width"];
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     className: `tiles-single-select-container`
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("fieldset", {
+  }, isSingleSelect ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_CarouselNav__WEBPACK_IMPORTED_MODULE_5__.CarouselNav, {
+    items: content.tiles?.data,
+    activeId: activeSingleSelectSelections[singleSelectId],
+    onSelect: handlePillSelect,
+    navLabel: content.tiles?.pill_nav_label
+  }) : null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("fieldset", {
     className: `tiles-single-select-section ${category}`
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
     text: content.tiles?.subtitle || content.subtitle
@@ -5501,6 +5521,13 @@ const SingleSelect = ({
       text: valOrObj(tooltip)
     }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("label", {
       className: `select-item ${type} ${selected ? " selected" : ""}`,
+      ref: el => {
+        if (el) {
+          cardRefs.current.set(value, el);
+        } else {
+          cardRefs.current.delete(value);
+        }
+      },
       onKeyDown: e => handleKeyDown(e),
       style: {
         ..._lib_multistage_utils_mjs__WEBPACK_IMPORTED_MODULE_4__.MultiStageUtils.getValidStyle(style, CONFIGURABLE_STYLES),
@@ -5653,6 +5680,67 @@ const TileList = props => {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   CarouselNav: () => (/* binding */ CarouselNav)
+/* harmony export */ });
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(1);
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
+function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+const CarouselNav = ({
+  items = [],
+  activeId,
+  onSelect,
+  navLabel
+}) => {
+  const groupRef = (0,react__WEBPACK_IMPORTED_MODULE_0__.useRef)(null);
+  const onSelectRef = (0,react__WEBPACK_IMPORTED_MODULE_0__.useRef)(onSelect);
+  onSelectRef.current = onSelect;
+  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    const group = groupRef.current;
+    if (!group) {
+      return undefined;
+    }
+    const handleChange = () => onSelectRef.current?.(group.value);
+    group.addEventListener("change", handleChange);
+    return () => group.removeEventListener("change", handleChange);
+  }, []);
+  const pillItems = items.filter(item => item?.pill && item.id);
+  if (pillItems.length < 2) {
+    return null;
+  }
+  const labelProps = navLabel?.raw ? {
+    "aria-label": navLabel.raw
+  } : {
+    "data-l10n-id": navLabel?.string_id ?? "onboarding-carousel-nav"
+  };
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "carousel-nav"
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("moz-segmented-control", _extends({
+    ref: groupRef,
+    value: activeId
+  }, labelProps), pillItems.map(({
+    id,
+    pill
+  }) => /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("moz-segmented-control-item", {
+    key: id,
+    value: id,
+    label: pill.label?.raw,
+    "data-l10n-id": pill.label?.string_id,
+    iconsrc: pill.icon
+  }))));
+};
+
+/***/ }),
+/* 22 */
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   MarketplaceButtons: () => (/* binding */ MarketplaceButtons),
 /* harmony export */   MobileDownloads: () => (/* binding */ MobileDownloads)
 /* harmony export */ });
@@ -5710,7 +5798,7 @@ const MobileDownloads = props => {
 };
 
 /***/ }),
-/* 22 */
+/* 23 */
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -5963,7 +6051,7 @@ const MultiSelect = ({
 };
 
 /***/ }),
-/* 23 */
+/* 24 */
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -6039,7 +6127,7 @@ const TextAreaTile = ({
 };
 
 /***/ }),
-/* 24 */
+/* 25 */
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -6139,7 +6227,7 @@ const EmbeddedMigrationWizard = ({
 };
 
 /***/ }),
-/* 25 */
+/* 26 */
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -6175,7 +6263,7 @@ const EmbeddedThemePicker = ({
 };
 
 /***/ }),
-/* 26 */
+/* 27 */
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -6279,7 +6367,7 @@ const EmbeddedFxBackupOptIn = ({
 };
 
 /***/ }),
-/* 27 */
+/* 28 */
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -6455,7 +6543,7 @@ const ActionChecklist = ({
 };
 
 /***/ }),
-/* 28 */
+/* 29 */
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -6523,7 +6611,7 @@ const EmbeddedBrowserInner = ({
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (EmbeddedBrowser);
 
 /***/ }),
-/* 29 */
+/* 30 */
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -6586,7 +6674,7 @@ const ConfirmationChecklist = props => {
 };
 
 /***/ }),
-/* 30 */
+/* 31 */
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -6664,7 +6752,7 @@ const EmbeddedBackupRestore = ({
 };
 
 /***/ }),
-/* 31 */
+/* 32 */
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -6774,7 +6862,7 @@ const PinnableSitesList = ({
 };
 
 /***/ }),
-/* 32 */
+/* 33 */
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -6815,7 +6903,7 @@ const ContentToggle = ({
 };
 
 /***/ }),
-/* 33 */
+/* 34 */
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -6850,7 +6938,7 @@ const TextBoxTile = ({
 };
 
 /***/ }),
-/* 34 */
+/* 35 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";

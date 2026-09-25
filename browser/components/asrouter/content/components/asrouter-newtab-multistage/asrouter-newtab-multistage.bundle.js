@@ -2652,10 +2652,61 @@ const TileList = props => {
     className: "text body-text"
   }))))));
 };
+;// ./content-src/components/CarouselNav.jsx
+function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+const CarouselNav = ({
+  items = [],
+  activeId,
+  onSelect,
+  navLabel
+}) => {
+  const groupRef = (0,external_React_namespaceObject.useRef)(null);
+  const onSelectRef = (0,external_React_namespaceObject.useRef)(onSelect);
+  onSelectRef.current = onSelect;
+  (0,external_React_namespaceObject.useEffect)(() => {
+    const group = groupRef.current;
+    if (!group) {
+      return undefined;
+    }
+    const handleChange = () => onSelectRef.current?.(group.value);
+    group.addEventListener("change", handleChange);
+    return () => group.removeEventListener("change", handleChange);
+  }, []);
+  const pillItems = items.filter(item => item?.pill && item.id);
+  if (pillItems.length < 2) {
+    return null;
+  }
+  const labelProps = navLabel?.raw ? {
+    "aria-label": navLabel.raw
+  } : {
+    "data-l10n-id": navLabel?.string_id ?? "onboarding-carousel-nav"
+  };
+  return /*#__PURE__*/external_React_default().createElement("div", {
+    className: "carousel-nav"
+  }, /*#__PURE__*/external_React_default().createElement("moz-segmented-control", _extends({
+    ref: groupRef,
+    value: activeId
+  }, labelProps), pillItems.map(({
+    id,
+    pill
+  }) => /*#__PURE__*/external_React_default().createElement("moz-segmented-control-item", {
+    key: id,
+    value: id,
+    label: pill.label?.raw,
+    "data-l10n-id": pill.label?.string_id,
+    iconsrc: pill.icon
+  }))));
+};
 ;// ./content-src/components/SingleSelect.jsx
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 
 
 
@@ -2675,6 +2726,17 @@ const SingleSelect = ({
 }) => {
   const category = content.tiles?.category?.type || content.tiles?.type;
   const isSingleSelect = category === "single-select";
+  const cardRefs = (0,external_React_namespaceObject.useRef)(new Map());
+  const handlePillSelect = id => {
+    setActiveSingleSelectSelection(id, singleSelectId);
+    const card = cardRefs.current.get(id);
+    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+    card?.scrollIntoView?.({
+      behavior: reduceMotion ? "auto" : "smooth",
+      inline: "center",
+      block: "nearest"
+    });
+  };
   const autoTriggerAllowed = itemAction => {
     // Currently only enabled for sidebar experiment prefs
     const allowedActions = ["SET_PREF"];
@@ -2717,7 +2779,12 @@ const SingleSelect = ({
   const CONFIGURABLE_STYLES = ["background", "border", "borderRadius", "height", "marginBlock", "marginBlockStart", "marginBlockEnd", "marginInline", "paddingBlock", "paddingBlockStart", "paddingBlockEnd", "paddingInline", "paddingInlineStart", "paddingInlineEnd", "width"];
   return /*#__PURE__*/external_React_default().createElement("div", {
     className: `tiles-single-select-container`
-  }, /*#__PURE__*/external_React_default().createElement("div", null, /*#__PURE__*/external_React_default().createElement("fieldset", {
+  }, isSingleSelect ? /*#__PURE__*/external_React_default().createElement(CarouselNav, {
+    items: content.tiles?.data,
+    activeId: activeSingleSelectSelections[singleSelectId],
+    onSelect: handlePillSelect,
+    navLabel: content.tiles?.pill_nav_label
+  }) : null, /*#__PURE__*/external_React_default().createElement("div", null, /*#__PURE__*/external_React_default().createElement("fieldset", {
     className: `tiles-single-select-section ${category}`
   }, /*#__PURE__*/external_React_default().createElement(Localized, {
     text: content.tiles?.subtitle || content.subtitle
@@ -2769,6 +2836,13 @@ const SingleSelect = ({
       text: valOrObj(tooltip)
     }, /*#__PURE__*/external_React_default().createElement("label", {
       className: `select-item ${type} ${selected ? " selected" : ""}`,
+      ref: el => {
+        if (el) {
+          cardRefs.current.set(value, el);
+        } else {
+          cardRefs.current.delete(value);
+        }
+      },
       onKeyDown: e => handleKeyDown(e),
       style: {
         ...MultiStageUtils.getValidStyle(style, CONFIGURABLE_STYLES),
@@ -3854,7 +3928,7 @@ const TextBoxTile = ({
   }, activeContent ?? ""));
 };
 ;// ./content-src/components/ContentTiles.jsx
-function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
+function ContentTiles_extends() { return ContentTiles_extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, ContentTiles_extends.apply(null, arguments); }
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -4048,7 +4122,7 @@ const ContentTiles = props => {
       key: index,
       className: `content-tile ${header ? "has-header" : ""}`,
       style: MultiStageUtils.getTileStyle(tile, ContentTiles_TILE_STYLES)
-    }, header?.title && /*#__PURE__*/external_React_default().createElement("button", _extends({
+    }, header?.title && /*#__PURE__*/external_React_default().createElement("button", ContentTiles_extends({
       className: `tile-header secondary${header.linkStyle ? " link-style" : ""}`,
       onClick: () => toggleTile(index, tile)
     }, tileHeaderProps, {
@@ -5405,6 +5479,8 @@ const screenContentShape = {
     // CSS overrides of the tile container. Any CSS properties starting with
     // '--' are also allowed.
     style: (prop_types_default()).object,
+    // Accessible name for the optional carousel pill navigation.
+    pill_nav_label: localizableThingPropTypes,
     // Array of tile configurations needed for the tile type.
     data: prop_types_default().oneOfType([(prop_types_default()).array, (prop_types_default()).object])
   })]),

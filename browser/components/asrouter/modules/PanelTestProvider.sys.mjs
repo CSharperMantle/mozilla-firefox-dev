@@ -36,12 +36,17 @@ const MESSAGES = () => [
             tiles: {
               type: "single-select",
               selected: "vertical-tabs",
+              pill_nav_label: { raw: "Feature highlights" },
               data: [
                 {
                   id: "split-view",
                   inert: true,
                   targeting: "firefoxVersion >= 150",
                   type: "carousel-card",
+                  pill: {
+                    label: { raw: "Split View" },
+                    icon: "chrome://browser/skin/split-view-left-16.svg",
+                  },
                   icon: {
                     background:
                       "url('chrome://activity-stream/content/data/content/assets/mr-kit-smart-window.svg') center / cover no-repeat light-dark(rgb(240, 240, 244), rgb(43, 42, 51))",
@@ -71,6 +76,10 @@ const MESSAGES = () => [
                   inert: true,
                   type: "carousel-card",
                   targeting: "firefoxVersion <= 140",
+                  pill: {
+                    label: { raw: "Vertical Tabs" },
+                    icon: "chrome://browser/skin/tabs.svg",
+                  },
                   icon: {
                     background:
                       "url('chrome://activity-stream/content/data/content/assets/nuo-taborientation.svg') center / cover no-repeat light-dark(rgb(240, 240, 244), rgb(43, 42, 51))",
@@ -84,6 +93,10 @@ const MESSAGES = () => [
                   id: "tab-groups",
                   inert: true,
                   type: "carousel-card",
+                  pill: {
+                    label: { raw: "Tab Groups" },
+                    icon: "chrome://browser/skin/tabbrowser/tab-groups.svg",
+                  },
                   icon: {
                     background:
                       "url('chrome://activity-stream/content/data/content/assets/euo-tab-orientation.svg') center / cover no-repeat light-dark(rgb(240, 240, 244), rgb(43, 42, 51))",

@@ -1161,6 +1161,10 @@
           "type": "object",
           "description": "CSS overrides of the tile container. Any CSS properties starting with '--' are also allowed."
         },
+        "pill_nav_label": {
+          "$ref": "#/$defs/localizableThing",
+          "description": "Accessible name for the optional carousel pill navigation."
+        },
         "data": {
           "type": "array",
           "description": "Array of tile configurations."

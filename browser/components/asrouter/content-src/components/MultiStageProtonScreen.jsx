@@ -1665,6 +1665,8 @@ export const screenContentShape = {
       // CSS overrides of the tile container. Any CSS properties starting with
       // '--' are also allowed.
       style: PropTypes.object,
+      // Accessible name for the optional carousel pill navigation.
+      pill_nav_label: localizableThingPropTypes,
       // Array of tile configurations needed for the tile type.
       data: PropTypes.oneOfType([PropTypes.array, PropTypes.object]),
     }),

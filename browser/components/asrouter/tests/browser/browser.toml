@@ -85,6 +85,8 @@ skip-if = [
 
 ["browser_remote_l10n.js"]
 
+["browser_spotlight_carousel_nav.js"]
+
 ["browser_trigger_listeners.js"]
 https_first_disabled = true
 skip-if = [
