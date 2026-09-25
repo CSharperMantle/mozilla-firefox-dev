@@ -2038,6 +2038,11 @@ pref("browser.newtabpage.activity-stream.widgets.clocks.region-block", "DE,FR,PL
 pref("browser.newtabpage.activity-stream.widgets.system.pictureOfTheDay.region-block", "PL");
 pref("browser.newtabpage.activity-stream.widgets.pictureOfTheDay.region-block", "DE,FR,PL,US");
 
+// Crossword is English-only, available in every region except PL and off by
+// default.
+pref("browser.newtabpage.activity-stream.widgets.system.crossword.locale-config", "en-CA,en-GB,en-US");
+pref("browser.newtabpage.activity-stream.widgets.system.crossword.region-block", "PL");
+
 // Promo card visibility
 pref("browser.newtabpage.activity-stream.discoverystream.promoCard.visible", true);
 

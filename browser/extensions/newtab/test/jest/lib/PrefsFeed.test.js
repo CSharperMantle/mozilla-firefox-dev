@@ -934,6 +934,31 @@ describe("PrefsFeed", () => {
     );
 
     it.each([
+      ["widgets", { crosswordEnabled: true }],
+      ["widgetsSettings", { crosswordEnabled: true }],
+      ["widgetCrossword", { enabled: true }],
+    ])(
+      "should turn on the preffed-off crossword default from %s",
+      (type, payload) => {
+        const setBoolPref = jest.fn();
+        services.prefs.getDefaultBranch.mockReturnValue({
+          setBoolPref,
+          setStringPref: jest.fn(),
+        });
+        nimbusFeatures.newtabTrainhop.getAllEnrollments.mockReturnValue([
+          { meta: { isRollout: false }, value: { type, payload } },
+        ]);
+
+        feed.onTrainhopExperimentUpdated();
+
+        expect(setBoolPref).toHaveBeenCalledWith(
+          "widgets.crossword.enabled",
+          true
+        );
+      }
+    );
+
+    it.each([
       ["widgets", { recentSearchesEnabled: true }],
       ["widgetsSettings", { recentSearchesEnabled: true }],
       ["widgetRecentSearches", { enabled: true }],

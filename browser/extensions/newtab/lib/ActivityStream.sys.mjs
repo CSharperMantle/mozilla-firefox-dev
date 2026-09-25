@@ -1880,7 +1880,7 @@ export const PREFS_CONFIG = new Map([
     "widgets.crossword.enabled",
     {
       title: "Enables the crossword widget",
-      value: true,
+      value: false,
     },
   ],
   [
@@ -1942,8 +1942,9 @@ export const PREFS_CONFIG = new Map([
   [
     "widgets.system.crossword.enabled",
     {
-      title: "Enables the crossword widget experiment in Nimbus",
-      value: false,
+      title: "Makes the crossword widget available",
+      // pref is dynamic
+      getValue: marketGate("widgets.system.crossword.enabled"),
     },
   ],
   [
