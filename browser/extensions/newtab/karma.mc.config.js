@@ -1155,7 +1155,7 @@ module.exports = function (config) {
         rules: [
           {
             test: /\.js$/,
-            exclude: [/node_modules\/(?!@fluent\/).*/, /test/],
+            exclude: [/node_modules\//, /test/],
             loader: "babel-loader",
           },
           {
