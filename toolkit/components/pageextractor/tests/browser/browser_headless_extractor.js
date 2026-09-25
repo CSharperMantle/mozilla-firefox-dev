@@ -83,8 +83,7 @@ add_task(async function test_headless_extraction_404() {
 });
 
 /**
- * Pages that never load, a stalled server and a redirect to another host, must
- * not leave the extractor waiting forever.
+ * A page that never responds must not leave the extractor waiting forever.
  */
 add_task(async function test_headless_extraction_never_loads() {
   const { PageExtractorParent } = ChromeUtils.importESModule(
@@ -95,127 +94,26 @@ add_task(async function test_headless_extraction_never_loads() {
     set: [["browser.ml.pageExtractor.headlessTimeoutMs", 500]],
   });
 
-  for (const { url, cleanup } of [
-    MLTestUtils.serveStalledPage(),
-    MLTestUtils.serveRedirect({ to: "https://example.com/" }),
-  ]) {
-    await Assert.rejects(
-      PageExtractorParent.getHeadlessExtractor({
-        urlString: url,
-        callback: () =>
-          ok(false, "The callback must not run for a page that never loaded."),
-      }),
-      /did not load in a headless browser within 500ms/,
-      `The extractor gives up on ${url}`
-    );
-    await cleanup();
-  }
-
-  await SpecialPowers.popPrefEnv();
-});
-
-/**
- * The redirects a site sends before serving its content, each named in the
- * cases below. All stay on the requested site, so the extraction completes.
- */
-add_task(async function test_headless_extraction_same_site_redirects() {
-  const { PageExtractorParent } = ChromeUtils.importESModule(
-    "resource://gre/actors/PageExtractorParent.sys.mjs"
-  );
-
-  // HTTPS-First would upgrade the http requests before the server could.
-  await SpecialPowers.pushPrefEnv({
-    set: [["dom.security.https_first", false]],
-  });
-
-  const target = host => `https://${host}${TEST_DIR}redirect_target.html`;
-  const redirect = (origin, to) => `${origin}${TEST_DIR}redirect_to.sjs?${to}`;
-
-  const cases = [
-    {
-      name: "http to https upgrade",
-      // eslint-disable-next-line sdl/no-insecure-url
-      url: redirect("http://example.com", target("example.com")),
-    },
-    {
-      name: "apex to www",
-      url: redirect("https://example.com", target("www.example.com")),
-    },
-    {
-      name: "www to apex",
-      url: redirect("https://www.example.com", target("example.com")),
-    },
-    {
-      name: "locale or mobile subdomain",
-      url: redirect("https://example.com", target("test1.example.com")),
-    },
-    {
-      name: "moved page on the same host",
-      url: redirect("https://example.com", target("example.com")),
-    },
-    {
-      name: "https to http downgrade on a non-anonymous fetch",
-      url: redirect(
-        "https://example.com",
-        // eslint-disable-next-line sdl/no-insecure-url
-        `http://www.example.com${TEST_DIR}redirect_target.html`
-      ),
-    },
-    {
-      name: "http apex to https www chain",
-      url: redirect(
-        // eslint-disable-next-line sdl/no-insecure-url
-        "http://example.com",
-        redirect("https://example.com", target("www.example.com"))
-      ),
-    },
-  ];
-
-  for (const { name, url } of cases) {
-    const result = await PageExtractorParent.getHeadlessExtractor({
+  const { url, cleanup } = MLTestUtils.serveStalledPage();
+  await Assert.rejects(
+    PageExtractorParent.getHeadlessExtractor({
       urlString: url,
-      callback: async pageExtractor => pageExtractor.getText(),
-    });
-    is(
-      result.text,
-      "This page was reached through a redirect.",
-      `${name}: the redirect stays on the requested site and the extraction completes.`
-    );
-  }
+      callback: () =>
+        ok(false, "The callback must not run for a page that never loaded."),
+    }),
+    /did not load in a headless browser within 500ms/,
+    "The extractor gives up on a stalled page."
+  );
+  await cleanup();
 
   await SpecialPowers.popPrefEnv();
 });
 
 /**
- * A chain may leave the site and come back, the way a consent or sign-on host
- * hands the request on. Only where it finally lands matters, so example.com
- * to w3c-test.org and back is read.
+ * A redirect to another site, the way bot detection sends a request off to a
+ * challenge page, is reported as a block rather than a timeout.
  */
-add_task(async function test_headless_extraction_offsite_bounce() {
-  const { PageExtractorParent } = ChromeUtils.importESModule(
-    "resource://gre/actors/PageExtractorParent.sys.mjs"
-  );
-
-  const landing = `https://example.com${TEST_DIR}redirect_target.html`;
-  const bounce = `https://w3c-test.org${TEST_DIR}redirect_to.sjs?${landing}`;
-
-  const result = await PageExtractorParent.getHeadlessExtractor({
-    urlString: `https://example.com${TEST_DIR}redirect_to.sjs?${bounce}`,
-    callback: pageExtractor => pageExtractor.getText(),
-  });
-  is(
-    result.text,
-    "This page was reached through a redirect.",
-    "A chain that bounces off-site and back is read from where it landed."
-  );
-});
-
-/**
- * A redirect to another registrable domain is off the requested site even when
- * the name matches, because the public suffix list hands out suffixes such as
- * github.io: a same-name host can belong to anyone.
- */
-add_task(async function test_headless_extraction_same_name_other_domain() {
+add_task(async function test_headless_extraction_cross_site_redirect() {
   const { PageExtractorParent } = ChromeUtils.importESModule(
     "resource://gre/actors/PageExtractorParent.sys.mjs"
   );
@@ -224,15 +122,16 @@ add_task(async function test_headless_extraction_same_name_other_domain() {
     set: [["browser.ml.pageExtractor.headlessTimeoutMs", 500]],
   });
 
-  const target = `https://example.org${TEST_DIR}redirect_target.html`;
   await Assert.rejects(
     PageExtractorParent.getHeadlessExtractor({
-      urlString: `https://example.com${TEST_DIR}redirect_to.sjs?${target}`,
+      urlString: `https://example.com${TEST_DIR}redirect_to.sjs?https://w3c-test.org/`,
       callback: () =>
-        ok(false, "The callback must not run for another registrable domain."),
+        ok(false, "The callback must not run for a page redirected off-site."),
     }),
-    /did not load in a headless browser within 500ms/,
-    "example.com to example.org is not the same site."
+    error =>
+      error.name === "BlockedError" &&
+      /ended up at https:\/\/w3c-test\.org\//.test(error.message),
+    "The cross-site redirect is reported as a block, not a timeout."
   );
 
   await SpecialPowers.popPrefEnv();
@@ -268,6 +167,61 @@ add_task(async function test_headless_extraction_same_site_self_redirect() {
       result.text,
       "This page was reached through a redirect.",
       `${mechanism}: the page the redirect lands on is the one read.`
+    );
+  }
+});
+
+/**
+ * A challenge page is as often reached without a server redirect: a meta
+ * refresh, or a script setting location. Whether the navigation beats the read
+ * or the read beats it, the caller is told the page was blocked.
+ */
+add_task(async function test_headless_extraction_client_side_redirect() {
+  const { PageExtractorParent } = ChromeUtils.importESModule(
+    "resource://gre/actors/PageExtractorParent.sys.mjs"
+  );
+
+  const offSite = `https://w3c-test.org${TEST_DIR}redirect_target.html`;
+
+  for (const [mode, mechanism] of [
+    ["meta", '<meta http-equiv="refresh">'],
+    ["replace", "location.replace()"],
+    ["assign", "location.assign()"],
+    ["href", "location.href ="],
+  ]) {
+    let readBegan = false;
+    let documentReplaced = false;
+    await Assert.rejects(
+      PageExtractorParent.getHeadlessExtractor({
+        urlString:
+          `https://example.com${TEST_DIR}client_redirect.sjs?` +
+          `${mode}|${encodeURIComponent(offSite)}`,
+        callback: async pageExtractor => {
+          readBegan = true;
+          // A meta refresh only runs once the page has loaded, so the read
+          // can be handed a live actor.
+          await TestUtils.waitForCondition(() => {
+            try {
+              return !pageExtractor.browsingContext;
+            } catch {
+              // The actor went with the document it was bound to.
+              return true;
+            }
+          }, `The ${mode} redirect should replace the document being read.`);
+          documentReplaced = true;
+          return pageExtractor.getText();
+        },
+      }),
+      error =>
+        error.name === "BlockedError" && /w3c-test\.org/.test(error.message),
+      `${mechanism} off-site is reported as a block.`
+    );
+    // Either ordering is fine, but a read that began must have lost its
+    // document. A wait that timed out instead would reach the same rejection
+    // by another route, and pass.
+    ok(
+      !readBegan || documentReplaced,
+      `${mechanism}: any read that began lost its document to the redirect.`
     );
   }
 });
@@ -437,8 +391,9 @@ add_task(async function test_headless_extraction_loopback_port() {
       callback: () =>
         ok(false, "The callback must not run for a different local service."),
     }),
-    /did not load in a headless browser within 500ms/,
-    "A redirect to another port on the same loopback host has left the site."
+    error =>
+      error.name === "BlockedError" && error.message.includes(otherServiceUrl),
+    "A redirect to another port on the same loopback host is a block."
   );
   await SpecialPowers.popPrefEnv();
 
@@ -454,6 +409,131 @@ add_task(async function test_headless_extraction_loopback_port() {
 
   await new Promise(resolve => requested.stop(resolve));
   await new Promise(resolve => otherService.stop(resolve));
+});
+
+/**
+ * The redirects a site sends before serving its content, each named in the
+ * cases below. All stay on the requested site, so the extraction completes.
+ */
+add_task(async function test_headless_extraction_same_site_redirects() {
+  const { PageExtractorParent } = ChromeUtils.importESModule(
+    "resource://gre/actors/PageExtractorParent.sys.mjs"
+  );
+
+  // HTTPS-First would upgrade the http requests before the server could.
+  await SpecialPowers.pushPrefEnv({
+    set: [["dom.security.https_first", false]],
+  });
+
+  const target = host => `https://${host}${TEST_DIR}redirect_target.html`;
+  const redirect = (origin, to) => `${origin}${TEST_DIR}redirect_to.sjs?${to}`;
+
+  const cases = [
+    {
+      name: "http to https upgrade",
+      // eslint-disable-next-line sdl/no-insecure-url
+      url: redirect("http://example.com", target("example.com")),
+    },
+    {
+      name: "apex to www",
+      url: redirect("https://example.com", target("www.example.com")),
+    },
+    {
+      name: "www to apex",
+      url: redirect("https://www.example.com", target("example.com")),
+    },
+    {
+      name: "locale or mobile subdomain",
+      url: redirect("https://example.com", target("test1.example.com")),
+    },
+    {
+      name: "moved page on the same host",
+      url: redirect("https://example.com", target("example.com")),
+    },
+    {
+      name: "https to http downgrade on a non-anonymous fetch",
+      url: redirect(
+        "https://example.com",
+        // eslint-disable-next-line sdl/no-insecure-url
+        `http://www.example.com${TEST_DIR}redirect_target.html`
+      ),
+    },
+    {
+      name: "http apex to https www chain",
+      url: redirect(
+        // eslint-disable-next-line sdl/no-insecure-url
+        "http://example.com",
+        redirect("https://example.com", target("www.example.com"))
+      ),
+    },
+  ];
+
+  for (const { name, url } of cases) {
+    const result = await PageExtractorParent.getHeadlessExtractor({
+      urlString: url,
+      callback: async pageExtractor => pageExtractor.getText(),
+    });
+    is(
+      result.text,
+      "This page was reached through a redirect.",
+      `${name}: the redirect stays on the requested site and the extraction completes.`
+    );
+  }
+
+  await SpecialPowers.popPrefEnv();
+});
+
+/**
+ * A chain may leave the site and come back, the way a consent or sign-on host
+ * hands the request on. Only where it finally lands matters, so example.com
+ * to w3c-test.org and back is read.
+ */
+add_task(async function test_headless_extraction_offsite_bounce() {
+  const { PageExtractorParent } = ChromeUtils.importESModule(
+    "resource://gre/actors/PageExtractorParent.sys.mjs"
+  );
+
+  const landing = `https://example.com${TEST_DIR}redirect_target.html`;
+  const bounce = `https://w3c-test.org${TEST_DIR}redirect_to.sjs?${landing}`;
+
+  const result = await PageExtractorParent.getHeadlessExtractor({
+    urlString: `https://example.com${TEST_DIR}redirect_to.sjs?${bounce}`,
+    callback: pageExtractor => pageExtractor.getText(),
+  });
+  is(
+    result.text,
+    "This page was reached through a redirect.",
+    "A chain that bounces off-site and back is read from where it landed."
+  );
+});
+
+/**
+ * A redirect to another registrable domain is off the requested site even when
+ * the name matches, because the public suffix list hands out suffixes such as
+ * github.io: a same-name host can belong to anyone.
+ */
+add_task(async function test_headless_extraction_same_name_other_domain() {
+  const { PageExtractorParent } = ChromeUtils.importESModule(
+    "resource://gre/actors/PageExtractorParent.sys.mjs"
+  );
+
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.ml.pageExtractor.headlessTimeoutMs", 500]],
+  });
+
+  const target = `https://example.org${TEST_DIR}redirect_target.html`;
+  await Assert.rejects(
+    PageExtractorParent.getHeadlessExtractor({
+      urlString: `https://example.com${TEST_DIR}redirect_to.sjs?${target}`,
+      callback: () =>
+        ok(false, "The callback must not run for another registrable domain."),
+    }),
+    error =>
+      error.name === "BlockedError" && error.message.includes("example.org"),
+    "example.com to example.org is a block, not the same site."
+  );
+
+  await SpecialPowers.popPrefEnv();
 });
 
 /**
@@ -486,7 +566,7 @@ add_task(async function test_headless_extraction_intranet_name_collision() {
           "The callback must not run for a page that left the intranet host."
         ),
     }),
-    /did not load in a headless browser within 500ms/,
+    error => error.name === "BlockedError",
     "The public domain reusing the intranet name is not the requested site."
   );
 
@@ -519,7 +599,7 @@ add_task(async function test_headless_extraction_anonymous_http_downgrade() {
       callback: () =>
         ok(false, "The callback must not run for a page downgraded to http."),
     }),
-    /did not load in a headless browser within 500ms/,
+    error => error.name === "BlockedError",
     "The anonymous fetch refuses the http page."
   );
 

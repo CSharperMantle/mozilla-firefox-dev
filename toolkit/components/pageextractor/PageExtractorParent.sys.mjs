@@ -260,7 +260,7 @@ export class PageExtractorParent extends JSWindowActorParent {
    *
    * A redirect is only followed within the requested site, and an anonymous
    * fetch is never followed down to http. However the page got there, a
-   * location off the site is never read; the load runs out its timeout.
+   * location off the site is refused with a "BlockedError" and never read.
    *
    * @see PageExtractorChild#getText
    *
@@ -360,15 +360,56 @@ export class PageExtractorParent extends JSWindowActorParent {
 
             const timeoutMs = lazy.headlessTimeoutMs;
             const deadline = ChromeUtils.now() + timeoutMs;
+            // Recorded so a failed read can report a block instead of a stall.
+            let offSiteLocation = null;
             /** @type {PromiseWithResolvers<PageExtractorParent>} */
             let actorResolver = Promise.withResolvers();
 
-            const locationChangeFlags = Ci.nsIWebProgress.NOTIFY_LOCATION;
-            const onLocationChange = {
+            /** @param {nsIURI} location */
+            const isRequestedSite = location => {
+              const isAllowedScheme =
+                location.schemeIs("https") ||
+                (allowHttp && location.schemeIs("http"));
+              return isAllowedScheme && isSameSite(url.URI, location);
+            };
+
+            const progressFlags =
+              Ci.nsIWebProgress.NOTIFY_LOCATION |
+              Ci.nsIWebProgress.NOTIFY_STATE_DOCUMENT;
+            const progressListener = {
               QueryInterface: ChromeUtils.generateQI([
                 "nsIWebProgressListener",
                 "nsISupportsWeakReference",
               ]),
+              /**
+               * Watched when the load starts, not when it commits: by commit the
+               * document is gone and its actor has already rejected the read.
+               *
+               * @param {nsIWebProgress} webProgress
+               * @param {nsIRequest} request
+               * @param {number} stateFlags
+               * @param {nsresult} _status
+               */
+              onStateChange(webProgress, request, stateFlags, _status) {
+                const { STATE_START, STATE_IS_DOCUMENT } =
+                  Ci.nsIWebProgressListener;
+                if (
+                  !webProgress.isTopLevel ||
+                  !(stateFlags & STATE_START) ||
+                  !(stateFlags & STATE_IS_DOCUMENT) ||
+                  !(request instanceof Ci.nsIChannel)
+                ) {
+                  return;
+                }
+                if (!isRequestedSite(request.URI)) {
+                  lazy.console.log(
+                    "A load started that wasn't the same site.",
+                    request.URI.spec,
+                    url.href
+                  );
+                  offSiteLocation = request.URI.spec;
+                }
+              },
               /**
                * @param {nsIWebProgress} webProgress
                * @param {nsIRequest} _request
@@ -382,20 +423,19 @@ export class PageExtractorParent extends JSWindowActorParent {
                   );
                   return;
                 }
-                const isAllowedScheme =
-                  location.schemeIs("https") ||
-                  (allowHttp && location.schemeIs("http"));
-                if (!isAllowedScheme || !isSameSite(url.URI, location)) {
+                if (!isRequestedSite(location)) {
                   lazy.console.log(
                     "A location change happened that wasn't the same site.",
                     location.spec,
                     url.href
                   );
+                  offSiteLocation = location.spec;
                   // A chain may bounce through another site, the way a consent or
                   // single sign-on host hands the request back, so wait for the
                   // read to fail or time out rather than giving up here.
                   return;
                 }
+                offSiteLocation = null;
 
                 /** @type {any} - This is reported as an `Element`, but it's a <browser> */
                 const topBrowser = webProgress.browsingContext.topFrameElement;
@@ -424,12 +464,16 @@ export class PageExtractorParent extends JSWindowActorParent {
 
                 navigateEvent.finish({ status: "success" });
                 // If the document is about to be replaced, the read of its
-                // replacement takes over from here.
+                // replacement takes over. Off-site nothing replaces it, so the
+                // read fails.
+                const superseded = hasPendingNavigation =>
+                  !offSiteLocation &&
+                  (hasPendingNavigation || wasReplaced(actor));
                 actor
                   .waitForPageReady(traceId, deadline - ChromeUtils.now())
                   .then(
                     ({ hasPendingNavigation }) => {
-                      if (!hasPendingNavigation && !wasReplaced(actor)) {
+                      if (!superseded(hasPendingNavigation)) {
                         lazy.console.log(
                           "Headless PageExtractor is ready",
                           url
@@ -438,7 +482,7 @@ export class PageExtractorParent extends JSWindowActorParent {
                       }
                     },
                     error => {
-                      if (!wasReplaced(actor)) {
+                      if (!superseded(false)) {
                         actorResolver.reject(error);
                       }
                     }
@@ -446,7 +490,7 @@ export class PageExtractorParent extends JSWindowActorParent {
               },
             };
 
-            browser.addProgressListener(onLocationChange, locationChangeFlags);
+            browser.addProgressListener(progressListener, progressFlags);
 
             lazy.console.log("Loading a headless PageExtractor", url);
 
@@ -473,6 +517,19 @@ export class PageExtractorParent extends JSWindowActorParent {
             // The load may never commit on the requested host: the network can
             // stall, or bot detection can redirect to a challenge page elsewhere.
             const timeoutId = lazy.setTimeout(() => {
+              if (offSiteLocation) {
+                navigateEvent.finish({
+                  status: "error",
+                  errorName: "BlockedError",
+                });
+                actorResolver.reject(
+                  new DOMException(
+                    `The page ended up at ${offSiteLocation} instead of ${url.href} and never returned within ${timeoutMs}ms.`,
+                    "BlockedError"
+                  )
+                );
+                return;
+              }
               navigateEvent.finish({
                 status: "error",
                 errorName: "TimeoutError",
@@ -487,12 +544,17 @@ export class PageExtractorParent extends JSWindowActorParent {
 
             try {
               return await callback(await actorResolver.promise, traceId);
+            } catch (error) {
+              if (offSiteLocation && error?.name !== "BlockedError") {
+                throw new DOMException(
+                  `The page navigated to ${offSiteLocation} instead of ${url.href} before its content could be read.`,
+                  "BlockedError"
+                );
+              }
+              throw error;
             } finally {
               lazy.clearTimeout(timeoutId);
-              browser.removeProgressListener(
-                onLocationChange,
-                locationChangeFlags
-              );
+              browser.removeProgressListener(progressListener, progressFlags);
             }
           },
           {
