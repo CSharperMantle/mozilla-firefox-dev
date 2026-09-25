@@ -1671,14 +1671,16 @@ export const PREFS_CONFIG = new Map([
     "widgets.focusTimer.enabled",
     {
       title: "Enables the focus timer widget",
-      value: true,
+      // pref is dynamic
+      getValue: marketGate("widgets.focusTimer.enabled"),
     },
   ],
   [
     "widgets.system.focusTimer.enabled",
     {
-      title: "Enables the focus timer widget experiment in Nimbus",
-      value: false,
+      title: "Makes the focus timer widget available",
+      // pref is dynamic
+      getValue: marketGate("widgets.system.focusTimer.enabled"),
     },
   ],
   [
