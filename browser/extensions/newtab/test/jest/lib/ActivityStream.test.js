@@ -730,6 +730,30 @@ describe("ActivityStream", () => {
       as._updateDynamicPrefs();
       expect(PREFS_CONFIG.get(AVAILABLE_PREF).value).toBe(false);
     });
+    it.each([
+      [false, true],
+      [true, false],
+    ])(
+      "on Nightly with enforceOnNightly=%s, availability in de is %s",
+      (enforce, expected) => {
+        const wasNightly = globalThis.AppConstants.NIGHTLY_BUILD;
+        globalThis.AppConstants.NIGHTLY_BUILD = true;
+        services.prefs.getBoolPref = argsStub(
+          (_pref, defaultValue) => defaultValue
+        );
+        services.prefs.getBoolPref
+          .whenCalledWith(`${BRANCH}widgets.marketGate.enforceOnNightly`, false)
+          .returns(enforce);
+        try {
+          region.home = "US";
+          services.locale.appLocaleAsBCP47 = "de";
+          as._updateDynamicPrefs();
+          expect(PREFS_CONFIG.get(AVAILABLE_PREF).value).toBe(expected);
+        } finally {
+          globalThis.AppConstants.NIGHTLY_BUILD = wasNightly;
+        }
+      }
+    );
   });
   describe("stocks widget defaults", () => {
     it("should be off everywhere by default", () => {

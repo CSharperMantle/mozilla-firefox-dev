@@ -503,7 +503,14 @@ function marketGate(prefKey) {
   return ({ geo, locale }) => {
     // Nightly gets every widget in every market so the team sees the whole
     // feature, which is why no widget pref carries an #ifdef in firefox.js.
-    if (AppConstants.NIGHTLY_BUILD && !skipsNightlyDefault(prefKey)) {
+    if (
+      AppConstants.NIGHTLY_BUILD &&
+      !skipsNightlyDefault(prefKey) &&
+      !Services.prefs.getBoolPref(
+        `${ACTIVITY_STREAM_PREF_BRANCH}widgets.marketGate.enforceOnNightly`,
+        false
+      )
+    ) {
       return true;
     }
     // With nothing restricting the region, geo cannot change the answer, so a
@@ -1564,6 +1571,14 @@ export const PREFS_CONFIG = new Map([
     {
       title: "How many positions can be filled by frecency",
       value: "0, 0, 0",
+    },
+  ],
+  [
+    "widgets.marketGate.enforceOnNightly",
+    {
+      title:
+        "Applies widget region and locale gating on Nightly, for debugging. Restart to apply",
+      value: false,
     },
   ],
   [
