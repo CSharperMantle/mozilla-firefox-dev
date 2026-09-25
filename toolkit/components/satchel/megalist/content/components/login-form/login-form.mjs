@@ -65,9 +65,6 @@ export class LoginForm extends MozLitElement {
   }
 
   #revealPassword() {
-    if (!Services.policies.isAllowed("passwordReveal")) {
-      return;
-    }
     this.passwordField.inputEl.type = "text";
   }
 

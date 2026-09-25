@@ -249,8 +249,7 @@ var EditContextMenu = {
 };
 
 EditContextMenu.addItems({
-  matches: input =>
-    input.type == "password" && Services.policies.isAllowed("passwordReveal"),
+  matches: input => input.type == "password",
   createItems() {
     return MozXULElement.parseXULToFragment(`
       <menuitem id="edit-contextmenu-reveal-password"

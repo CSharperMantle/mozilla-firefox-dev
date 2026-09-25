@@ -1442,8 +1442,7 @@ export class nsContextMenu {
   }
 
   initPasswordControlItems() {
-    let shouldShow =
-      this.onPassword && Services.policies.isAllowed("passwordReveal");
+    let shouldShow = this.onPassword;
     if (shouldShow) {
       let revealPassword = this.document.getElementById(
         "context-reveal-password"
