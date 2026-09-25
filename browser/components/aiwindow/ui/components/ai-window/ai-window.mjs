@@ -88,6 +88,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "moz-src:///browser/components/aiwindow/ui/modules/SmartWindowTelemetry.sys.mjs",
   ResumeActivity:
     "moz-src:///browser/components/aiwindow/ui/modules/ResumeActivity.sys.mjs",
+  NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "log", function () {
@@ -171,6 +172,8 @@ const PREF_TOPSITES_FEED_ENABLED =
   "browser.newtabpage.activity-stream.feeds.topsites";
 const PREF_AGENT_ENABLED = "browser.smartwindow.agent.enabled";
 const PREF_RESUME_CARDS = "browser.smartwindow.resumeCards.enabled";
+const NIMBUS_FEATURE_SMART_WINDOW = "smartWindow";
+const NIMBUS_VARIABLE_RESUME_ACTIVITY = "resumeActivity";
 const MAX_INTERACTION_COUNT = 1000;
 const HISTORY_MENU_MAX_RECENT_CHATS = 6;
 
@@ -291,6 +294,16 @@ export class AIWindow extends MozLitElement {
       this.memoriesConversationPref ||
       this.memoriesHistoryPref ||
       this.#hasMemories
+    );
+  }
+
+  // Falls back to the pref when there is no enrollment, which includes the
+  // window or two before the enrollment store finishes loading at startup.
+  get #resumeActivityEnabled() {
+    return (
+      lazy.NimbusFeatures[NIMBUS_FEATURE_SMART_WINDOW].getVariable(
+        NIMBUS_VARIABLE_RESUME_ACTIVITY
+      ) ?? true
     );
   }
 
@@ -1362,7 +1375,9 @@ export class AIWindow extends MozLitElement {
 
       let resumeStartersPromise = null;
       const shouldLoadResumeStarters =
-        this.mode === MODE.FULLPAGE && this.#canLoadResumeStarters;
+        this.mode === MODE.FULLPAGE &&
+        this.#canLoadResumeStarters &&
+        this.#resumeActivityEnabled;
 
       if (shouldLoadResumeStarters) {
         this.#canLoadResumeStarters = false;
