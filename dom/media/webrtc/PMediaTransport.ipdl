@@ -27,11 +27,14 @@ using mozilla::dom::RTCIceTransportPolicy from "mozilla/dom/RTCConfigurationBind
 using mozilla::dom::RTCIceGathererState from "mozilla/dom/RTCIceTransportBinding.h";
 using mozilla::dom::RTCIceTransportState from "mozilla/dom/RTCIceTransportBinding.h";
 using mozilla::dom::RTCErrorInit from "mozilla/dom/RTCErrorBinding.h";
+using mozilla::dom::CertFingerprint from "mozilla/dom/RTCCertServiceData.h";
 
 // ParamTraits stuff for our own classes
 using mozilla::MediaPacket from "transport/mediapacket.h";
 include "mozilla/net/NrIceStunAddrMessageUtils.h";
 using mozilla::net::NrIceStunAddrArray from "mozilla/net/PStunAddrsParams.h";
+using nsID from "nsID.h";
+
 #endif // MOZ_WEBRTC
 
 namespace mozilla {
@@ -87,9 +90,7 @@ parent:
                           int componentCount,
                           string remoteUfrag,
                           string remotePwd,
-                          uint8_t[] keyDer,
-                          uint8_t[] certDer,
-                          SSLKEAType authType,
+                          nsID certId,
                           bool dtlsClient,
                           DtlsDigestList digests,
                           bool privacyRequested);

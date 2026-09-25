@@ -7,6 +7,7 @@
 #include "common/browser_logging/CSFLog.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/dom/MediaTransportChild.h"
+#include "mozilla/dom/RTCCertServiceData.h"
 #include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/ipc/Endpoint.h"
 #include "mozilla/ipc/PBackgroundChild.h"
@@ -266,18 +267,15 @@ void MediaTransportHandlerIPC::ActivateTransport(
     const std::string& aTransportId, const std::string& aLocalUfrag,
     const std::string& aLocalPwd, size_t aComponentCount,
     const std::string& aUfrag, const std::string& aPassword,
-    const nsTArray<uint8_t>& aKeyDer, const nsTArray<uint8_t>& aCertDer,
-    SSLKEAType aAuthType, bool aDtlsClient, const DtlsDigestList& aDigests,
+    const nsID& aCertId, bool aDtlsClient, const DtlsDigestList& aDigests,
     bool aPrivacyRequested) {
   mInitPromise->Then(
       mThread, __func__,
-      [=, this, keyDer = aKeyDer.Clone(), certDer = aCertDer.Clone(),
-       self = RefPtr<MediaTransportHandlerIPC>(this)](bool /*dummy*/) {
+      [=, this, self = RefPtr<MediaTransportHandlerIPC>(this)](bool /*dummy*/) {
         if (mChild) {
-          mChild->SendActivateTransport(aTransportId, aLocalUfrag, aLocalPwd,
-                                        aComponentCount, aUfrag, aPassword,
-                                        keyDer, certDer, aAuthType, aDtlsClient,
-                                        aDigests, aPrivacyRequested);
+          mChild->SendActivateTransport(
+              aTransportId, aLocalUfrag, aLocalPwd, aComponentCount, aUfrag,
+              aPassword, aCertId, aDtlsClient, aDigests, aPrivacyRequested);
         }
       },
       [](const nsCString& aError) {});

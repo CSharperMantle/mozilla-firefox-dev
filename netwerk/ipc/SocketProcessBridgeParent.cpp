@@ -8,6 +8,7 @@
 
 #ifdef MOZ_WEBRTC
 #  include "mozilla/dom/MediaTransportParent.h"
+#  include "mozilla/dom/RTCCertServiceParent.h"
 #endif
 #include "SocketProcessChild.h"
 #include "mozilla/ipc/BackgroundParent.h"
@@ -79,6 +80,35 @@ mozilla::ipc::IPCResult SocketProcessBridgeParent::RecvInitMediaTransport(
         RefPtr<MediaTransportParent> actor = new MediaTransportParent();
         endpoint.Bind(actor);
       }));
+  return IPC_OK();
+}
+
+mozilla::ipc::IPCResult SocketProcessBridgeParent::RecvInitRTCCertService(
+    mozilla::ipc::Endpoint<mozilla::dom::PRTCCertServiceParent>&& aEndpoint) {
+  LOG(("SocketProcessBridgeParent::RecvInitRTCCertService\n"));
+
+  if (!aEndpoint.IsValid()) {
+    return IPC_FAIL(this, "Invalid endpoint");
+  }
+
+  if (!mMediaTransportTaskQueue) {
+    nsCOMPtr<nsISerialEventTarget> transportQueue;
+    if (NS_FAILED(NS_CreateBackgroundTaskQueue(
+            "MediaTransport", getter_AddRefs(transportQueue)))) {
+      return IPC_FAIL(this, "NS_CreateBackgroundTaskQueue failed");
+    }
+
+    mMediaTransportTaskQueue = std::move(transportQueue);
+  }
+
+  mMediaTransportTaskQueue->Dispatch(
+      NS_NewRunnableFunction("BackgroundDataBridgeParent::Bind",
+                             [endpoint = std::move(aEndpoint)]() mutable {
+                               RefPtr<dom::RTCCertServiceParent> actor =
+                                   new dom::RTCCertServiceParent();
+                               endpoint.Bind(actor);
+                             }));
+
   return IPC_OK();
 }
 #endif

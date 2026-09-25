@@ -17,11 +17,6 @@ support-files = [
 ]
 tags = "mtg"
 
-["test_fingerprints.html"]
-scheme = "https"
-
-["test_getIdentityAssertion.html"]
-
 ["test_idpproxy.html"]
 support-files = [
   "/.well-known/idp-proxy/idp-redirect-http.js",

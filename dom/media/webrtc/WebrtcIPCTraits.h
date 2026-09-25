@@ -17,7 +17,7 @@
 #include "mozilla/dom/RTCErrorBinding.h"
 #include "mozilla/dom/RTCIceTransportBinding.h"
 #include "mozilla/media/webrtc/WebrtcGlobal.h"
-#include "transport/dtlsidentity.h"
+#include "transport/dtlsdigest.h"
 #include "transport/transportlayer.h"
 
 namespace mozilla {

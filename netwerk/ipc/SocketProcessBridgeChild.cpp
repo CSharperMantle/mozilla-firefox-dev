@@ -10,6 +10,7 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/dom/ContentChild.h"
+#include "mozilla/dom/RTCCertService.h"
 #include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/ipc/Endpoint.h"
 #include "mozilla/net/NeckoChild.h"

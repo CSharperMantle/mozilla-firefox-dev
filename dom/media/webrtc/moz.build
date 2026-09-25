@@ -44,6 +44,8 @@ LOCAL_INCLUDES += [
     "/dom/media/systemservices",
 ]
 
+IPDL_SOURCES += ["PRTCCertService.ipdl"]
+
 if CONFIG["MOZ_WEBRTC"]:
     EXPORTS += [
         "MediaEngineRemoteVideoSource.h",
@@ -56,7 +58,12 @@ if CONFIG["MOZ_WEBRTC"]:
         "H264FmtpParser.cpp",
         "MediaEngineRemoteVideoSource.cpp",
         "MediaEngineWebRTCAudio.cpp",
+        "RTCCertCleanupTimer.cpp",
         "RTCCertificate.cpp",
+        "RTCCertService.cpp",
+        "RTCCertServiceData.cpp",
+        "RTCCertServiceParent.cpp",
+        "RTCCertStore.cpp",
         "RTCIdentityProviderRegistrar.cpp",
     ]
     # MediaEngineWebRTC.cpp needs to be built separately.
@@ -114,9 +121,15 @@ UNIFIED_SOURCES += [
 
 EXPORTS.mozilla += [
     "PeerIdentity.h",
+    "RTCCertCleanupTimer.h",
 ]
 EXPORTS.mozilla.dom += [
     "RTCCertificate.h",
+    "RTCCertService.h",
+    "RTCCertServiceChild.h",
+    "RTCCertServiceData.h",
+    "RTCCertServiceParent.h",
+    "RTCCertStore.h",
 ]
 EXPORTS.mozilla.media.webrtc += [
     "AV1FmtpParser.h",

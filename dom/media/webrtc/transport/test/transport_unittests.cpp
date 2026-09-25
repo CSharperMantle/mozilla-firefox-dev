@@ -15,16 +15,29 @@
 #  include <Security/CipherSuite.h>
 #endif
 
-#include "dtlsidentity.h"
+#include "cert.h"
+#include "cryptohi.h"
+#include "dtlsdigest.h"
+#include "keyhi.h"
 #include "logging.h"
 #include "mediapacket.h"
+#include "mozilla/Sprintf.h"
 #include "mozilla/UniquePtr.h"
+#include "mozilla/dom/RTCCertServiceData.h"
+#include "mozilla/dom/RTCCertStore.h"
+#include "mozpkix/nss_scoped_ptrs.h"
 #include "nricectx.h"
 #include "nricemediastream.h"
+#include "nsError.h"
+#include "nsIUUIDGenerator.h"
 #include "nsThreadUtils.h"
+#include "pk11pub.h"
 #include "runnable_utils.h"
+#include "secerr.h"
+#include "sechash.h"
 #include "sigslot.h"
 #include "ssl.h"
+#include "sslerr.h"
 #include "sslexp.h"
 #include "sslproto.h"
 #include "stunserver.h"
@@ -417,7 +430,146 @@ class TlsServerKeyExchangeECDHE {
   MediaPacket public_key_;
 };
 
+static RefPtr<dom::SharedCertificate> GenerateDtlsTestCertificate() {
+  UniquePK11SlotInfo slot(PK11_GetInternalSlot());
+  if (!slot) {
+    return nullptr;
+  }
+
+  uint8_t random_name[16];
+
+  SECStatus rv =
+      PK11_GenerateRandomOnSlot(slot.get(), random_name, sizeof(random_name));
+  if (rv != SECSuccess) return nullptr;
+
+  std::string name;
+  char chunk[3];
+  for (unsigned char r_name : random_name) {
+    SprintfLiteral(chunk, "%.2x", r_name);
+    name += chunk;
+  }
+
+  std::string subject_name_string = "CN=" + name;
+  UniqueCERTName subject_name(CERT_AsciiToName(subject_name_string.c_str()));
+  if (!subject_name) {
+    return nullptr;
+  }
+
+  unsigned char paramBuf[12];
+  SECItem ecdsaParams = {siBuffer, paramBuf, sizeof(paramBuf)};
+  SECOidData* oidData = SECOID_FindOIDByTag(SEC_OID_SECG_EC_SECP256R1);
+  if (!oidData || (oidData->oid.len > (sizeof(paramBuf) - 2))) {
+    return nullptr;
+  }
+  ecdsaParams.data[0] = SEC_ASN1_OBJECT_ID;
+  ecdsaParams.data[1] = oidData->oid.len;
+  memcpy(ecdsaParams.data + 2, oidData->oid.data, oidData->oid.len);
+  ecdsaParams.len = oidData->oid.len + 2;
+
+  SECKEYPublicKey* pubkey;
+  UniqueSECKEYPrivateKey private_key(
+      PK11_GenerateKeyPair(slot.get(), CKM_EC_KEY_PAIR_GEN, &ecdsaParams,
+                           &pubkey, PR_FALSE, PR_TRUE, nullptr));
+  if (private_key == nullptr) return nullptr;
+  UniqueSECKEYPublicKey public_key(pubkey);
+  pubkey = nullptr;
+
+  UniqueCERTSubjectPublicKeyInfo spki(
+      SECKEY_CreateSubjectPublicKeyInfo(public_key.get()));
+  if (!spki) {
+    return nullptr;
+  }
+
+  UniqueCERTCertificateRequest certreq(
+      CERT_CreateCertificateRequest(subject_name.get(), spki.get(), nullptr));
+  if (!certreq) {
+    return nullptr;
+  }
+
+  static const PRTime oneDay =
+      PRTime(PR_USEC_PER_SEC) * PRTime(60) * PRTime(60) * PRTime(24);
+  PRTime now = PR_Now();
+  PRTime notBefore = now - oneDay;
+  PRTime notAfter = now + (PRTime(30) * oneDay);
+
+  UniqueCERTValidity validity(CERT_CreateValidity(notBefore, notAfter));
+  if (!validity) {
+    return nullptr;
+  }
+
+  unsigned long serial;
+  rv = PK11_GenerateRandomOnSlot(
+      slot.get(), reinterpret_cast<unsigned char*>(&serial), sizeof(serial));
+  if (rv != SECSuccess) {
+    return nullptr;
+  }
+
+  UniqueCERTCertificate tbsCertificate(CERT_CreateCertificate(
+      serial, subject_name.get(), validity.get(), certreq.get()));
+  if (!tbsCertificate) {
+    return nullptr;
+  }
+
+  PLArenaPool* arena = tbsCertificate->arena;
+
+  rv = SECOID_SetAlgorithmID(arena, &tbsCertificate->signature,
+                             SEC_OID_ANSIX962_ECDSA_SHA256_SIGNATURE, nullptr);
+  if (rv != SECSuccess) return nullptr;
+
+  *(tbsCertificate->version.data) = SEC_CERTIFICATE_VERSION_3;
+  tbsCertificate->version.len = 1;
+
+  SECItem innerDER;
+  innerDER.len = 0;
+  innerDER.data = nullptr;
+
+  if (!SEC_ASN1EncodeItem(arena, &innerDER, tbsCertificate.get(),
+                          SEC_ASN1_GET(CERT_CertificateTemplate))) {
+    return nullptr;
+  }
+
+  SECItem* certDer = PORT_ArenaZNew(arena, SECItem);
+  if (!certDer) {
+    return nullptr;
+  }
+
+  rv = SEC_DerSignData(arena, certDer, innerDER.data, innerDER.len,
+                       private_key.get(),
+                       SEC_OID_ANSIX962_ECDSA_SHA256_SIGNATURE);
+  if (rv != SECSuccess) {
+    return nullptr;
+  }
+
+  UniqueCERTCertificate certificate(CERT_NewTempCertificate(
+      CERT_GetDefaultCertDB(), certDer, nullptr, false, true));
+
+  nsID certId{};
+  if (NS_FAILED(nsID::GenerateUUIDInPlace(certId))) {
+    return nullptr;
+  }
+
+  dom::GeneratedCertificate genCert;
+  genCert.mId = certId;
+  genCert.mPrivateKey = std::move(private_key);
+  genCert.mCertificate = std::move(certificate);
+  genCert.mAuthType = ssl_kea_ecdh;
+
+  DtlsDigest digest(DEFAULT_DTLS_HASH_ALGORITHM);
+  if (NS_FAILED(ComputeFingerprint(genCert.mCertificate, &digest))) {
+    return nullptr;
+  }
+  genCert.mCertFingerprint.mHash = {};
+  std::copy(digest.value_.begin(), digest.value_.end(),
+            genCert.mCertFingerprint.mHash.begin());
+
+  genCert.mExpires = PR_Now() + (PRTime(30) * oneDay);
+
+  dom::RTCCertStore::StoreCert(certId, std::move(genCert));
+  return dom::RTCCertStore::LookupCert(certId);
+}
+
 namespace {
+
 class TransportTestPeer : public sigslot::has_slots<> {
  public:
   TransportTestPeer(nsCOMPtr<nsIEventTarget> target, std::string name,
@@ -432,16 +584,17 @@ class TransportTestPeer : public sigslot::has_slots<> {
         logging_(new TransportLayerLogging()),
         lossy_(new TransportLayerLossy()),
         dtls_(new TransportLayerDtls()),
-        identity_(DtlsIdentity::Generate()),
+        shared_certificate_(GenerateDtlsTestCertificate()),
         peer_(nullptr),
         gathering_complete_(false),
         digest_("sha-1"_ns),
         test_utils_(utils) {
-    dtls_->SetIdentity(identity_);
+    dtls_->SetCertificate(shared_certificate_);
     dtls_->SetRole(offerer_ ? TransportLayerDtls::SERVER
                             : TransportLayerDtls::CLIENT);
 
-    nsresult res = identity_->ComputeFingerprint(&digest_);
+    nsresult res =
+        ComputeFingerprint(shared_certificate_->Cert().mCertificate, &digest_);
     EXPECT_TRUE(NS_SUCCEEDED(res));
     EXPECT_EQ(20u, digest_.value_.size());
   }
@@ -785,7 +938,7 @@ class TransportTestPeer : public sigslot::has_slots<> {
   TransportLayerLossy* lossy_;
   TransportLayerDtls* dtls_;
   TransportLayerIce* ice_;
-  RefPtr<DtlsIdentity> identity_;
+  RefPtr<dom::SharedCertificate> shared_certificate_;
   RefPtr<NrIceCtx> ice_ctx_;
   std::vector<RefPtr<NrIceMediaStream> > streams_;
   TransportTestPeer* peer_;

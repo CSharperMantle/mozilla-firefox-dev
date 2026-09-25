@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "mozilla/Attributes.h"
+#include "mozilla/MozPromise.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/RefPtr.h"
 #include "nsComponentManagerUtils.h"
@@ -40,7 +41,8 @@
 #include "mozilla/ErrorResult.h"
 #include "mozilla/PeerIdentity.h"
 #include "mozilla/TimeStamp.h"
-#include "mozilla/dom/PeerConnectionImplBinding.h"  // ChainedOperation
+#include "mozilla/dom/PeerConnectionImplBinding.h"           // ChainedOperation
+#include "mozilla/dom/PeerConnectionObserverEnumsBinding.h"  // PCError
 #include "mozilla/dom/PromiseNativeHandler.h"
 #include "mozilla/dom/RTCConfigurationBinding.h"
 #include "mozilla/dom/RTCPeerConnectionBinding.h"  // mozPacketDumpType, maybe move?
@@ -63,7 +65,6 @@ class nsIPrincipal;
 namespace mozilla {
 struct CandidateInfo;
 class DataChannel;
-class DtlsIdentity;
 class MediaPipeline;
 class MediaPipelineReceive;
 class MediaPipelineTransmit;
@@ -244,8 +245,6 @@ class PeerConnectionImpl final
 
   void SetCertificate(dom::RTCCertificate& aCertificate);
   const RefPtr<dom::RTCCertificate>& Certificate() const;
-  // This is a hack to support external linkage.
-  RefPtr<DtlsIdentity> Identity() const;
 
   NS_IMETHODIMP_TO_ERRORRESULT(CreateOffer, ErrorResult& rv,
                                const RTCOfferOptions& aOptions) {
@@ -602,8 +601,7 @@ class PeerConnectionImpl final
 
   RefPtr<dom::RTCStatsPromise> GetDataChannelStats(
       const DOMHighResTimeStamp aTimestamp);
-  nsresult CalculateFingerprint(const nsACString& algorithm,
-                                std::vector<uint8_t>* fingerprint) const;
+  nsresult GetFingerprint(std::vector<uint8_t>* fingerprint) const;
 
   NS_IMETHODIMP EnsureDataConnection(uint16_t aLocalPort, uint16_t aNumstreams);
 
@@ -690,6 +688,15 @@ class PeerConnectionImpl final
   RefPtr<PeerIdentity> mPeerIdentity;
   // The certificate we are using.
   RefPtr<dom::RTCCertificate> mCertificate;
+  // Resolves when the cert's backing nsID is known to exist in RTCCertStore.
+  // Initialized resolved-true; SetCertificate replaces it with a pending IPC
+  // promise when handed a cert revived via RTCCertificate::ReadStructuredClone.
+  // createOffer/createAnswer chain on this so a stale cert produces a
+  // PCError-typed rejection (currently InvalidAccessError) rather than an
+  // opaque DTLS-layer failure. Non-exclusive so each createOffer/createAnswer
+  // call can attach its own Then.
+  using CertVerifiedPromise = MozPromise<bool, dom::PCError, false>;
+  RefPtr<CertVerifiedPromise> mCertificateVerified;
   // Whether an app should be prevented from accessing media produced by the PC
   // If this is true, then media will not be sent until mPeerIdentity matches
   // local streams PeerIdentity; and remote streams are protected from content

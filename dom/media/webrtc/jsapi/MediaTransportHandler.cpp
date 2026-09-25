@@ -6,7 +6,7 @@
 
 #include "MediaTransportHandlerIPC.h"
 #include "nsITimer.h"
-#include "transport/dtlsidentity.h"
+#include "mozilla/dom/RTCCertServiceData.h"
 #include "transport/nricemediastream.h"
 #include "transport/nriceresolver.h"
 #include "transport/sigslot.h"
@@ -36,6 +36,7 @@
 #include "mozilla/ProfilerMarkers.h"
 #include "mozilla/PublicSSL.h"  // For psm::InitializeCipherSuite
 #include "mozilla/ReverseIterator.h"
+#include "mozilla/dom/RTCCertStore.h"
 #include "mozilla/dom/RTCStatsReportBinding.h"
 #include "nsDNSService2.h"
 #include "nsFmtString.h"
@@ -99,13 +100,13 @@ class MediaTransportHandlerSTS : public MediaTransportHandler,
                          // via IPC anymore
                          const nsTArray<NrIceStunAddr>& aStunAddrs) override;
 
-  void ActivateTransport(
-      const std::string& aTransportId, const std::string& aLocalUfrag,
-      const std::string& aLocalPwd, size_t aComponentCount,
-      const std::string& aUfrag, const std::string& aPassword,
-      const nsTArray<uint8_t>& aKeyDer, const nsTArray<uint8_t>& aCertDer,
-      SSLKEAType aAuthType, bool aDtlsClient, const DtlsDigestList& aDigests,
-      bool aPrivacyRequested) override;
+  void ActivateTransport(const std::string& aTransportId,
+                         const std::string& aLocalUfrag,
+                         const std::string& aLocalPwd, size_t aComponentCount,
+                         const std::string& aUfrag,
+                         const std::string& aPassword, const nsID& aCertId,
+                         bool aDtlsClient, const DtlsDigestList& aDigests,
+                         bool aPrivacyRequested) override;
 
   void RemoveTransportsExcept(
       const std::set<std::string>& aTransportIds) override;
@@ -133,7 +134,7 @@ class MediaTransportHandlerSTS : public MediaTransportHandler,
   void Shutdown_s();
   RefPtr<TransportFlow> CreateTransportFlow(
       const std::string& aTransportId, bool aIsRtcp,
-      const RefPtr<DtlsIdentity>& aDtlsIdentity, bool aDtlsClient,
+      const RefPtr<dom::SharedCertificate>& aCertificate, bool aDtlsClient,
       const DtlsDigestList& aDigests, bool aPrivacyRequested);
 
   // Everything we track per transport id: the flows, the previous
@@ -610,6 +611,7 @@ void MediaTransportHandlerSTS::Shutdown_s() {
   // the close_notify alerts have a chance to be sent as the
   // TransportFlow destructors execute.
   mTransports.clear();
+
   if (mIceCtx) {
     NrIceStats stats = mIceCtx->Destroy();
     CSFLogDebug(LOGTAG,
@@ -719,24 +721,35 @@ void MediaTransportHandlerSTS::ActivateTransport(
     const std::string& aTransportId, const std::string& aLocalUfrag,
     const std::string& aLocalPwd, size_t aComponentCount,
     const std::string& aUfrag, const std::string& aPassword,
-    const nsTArray<uint8_t>& aKeyDer, const nsTArray<uint8_t>& aCertDer,
-    SSLKEAType aAuthType, bool aDtlsClient, const DtlsDigestList& aDigests,
+    const nsID& aCertId, bool aDtlsClient, const DtlsDigestList& aDigests,
     bool aPrivacyRequested) {
   MOZ_RELEASE_ASSERT(mInitPromise);
 
   mInitPromise->Then(
       mStsThread, __func__,
-      [=, this, keyDer = aKeyDer.Clone(), certDer = aCertDer.Clone(),
-       self = RefPtr<MediaTransportHandlerSTS>(this)]() {
+      [=, this, self = RefPtr<MediaTransportHandlerSTS>(this)]() {
         if (!mIceCtx) {
           return;  // Probably due to XPCOM shutdown
         }
 
         MOZ_ASSERT(aComponentCount);
-        RefPtr<DtlsIdentity> dtlsIdentity(
-            DtlsIdentity::Deserialize(keyDer, certDer, aAuthType));
-        if (!dtlsIdentity) {
-          MOZ_ASSERT(false);
+        RefPtr<dom::SharedCertificate> certificate(
+            dom::RTCCertStore::LookupCert(aCertId));
+        // This is highly unlikely to happen. We checked the existence of the
+        // certificate before, but in a rare race condition we may have lost it
+        // since.
+        if (!certificate) {
+          CSFLogError(LOGTAG,
+                      "%s: Failed to find certificate in RTCCertStore, ID: %s",
+                      mIceCtx->name().c_str(), aCertId.ToString().get());
+          // Report error to JavaScript via RTCDtlsTransport.onerror
+          dom::RTCErrorInit error;
+          error.mErrorDetail = dom::RTCErrorDetailType::Dtls_failure;
+          dom::RTCErrorParams errorParams{error, "Certificate not available"};
+          OnStateChange(aTransportId, TransportLayer::TS_ERROR, {},
+                        Some(errorParams));
+          OnRtcpStateChange(aTransportId, TransportLayer::TS_ERROR,
+                            Some(errorParams));
           return;
         }
 
@@ -792,8 +805,8 @@ void MediaTransportHandlerSTS::ActivateTransport(
 
         if (!transport.mFlow) {
           transport.mFlow =
-              CreateTransportFlow(aTransportId, false, dtlsIdentity,
-                                  aDtlsClient, aDigests, aPrivacyRequested);
+              CreateTransportFlow(aTransportId, false, certificate, aDtlsClient,
+                                  aDigests, aPrivacyRequested);
           if (!transport.mFlow) {
             return;
           }
@@ -811,7 +824,7 @@ void MediaTransportHandlerSTS::ActivateTransport(
         if (aComponentCount == 2) {
           if (!transport.mRtcpFlow) {
             transport.mRtcpFlow =
-                CreateTransportFlow(aTransportId, true, dtlsIdentity,
+                CreateTransportFlow(aTransportId, true, certificate,
                                     aDtlsClient, aDigests, aPrivacyRequested);
             if (!transport.mRtcpFlow) {
               return;
@@ -1194,9 +1207,9 @@ static nsString BuildCertificateStats(const nsTArray<uint8_t>& aDerCert,
     return nsString();
   }
 
-  DtlsDigest digest(DtlsIdentity::DEFAULT_HASH_ALGORITHM);
-  if (NS_FAILED(DtlsIdentity::ComputeFingerprint(aDerCert.Elements(),
-                                                 aDerCert.Length(), &digest))) {
+  DtlsDigest digest(DEFAULT_DTLS_HASH_ALGORITHM);
+  if (NS_FAILED(ComputeFingerprint(aDerCert.Elements(), aDerCert.Length(),
+                                   &digest))) {
     return nsString();
   }
   NS_ConvertUTF8toUTF16 fingerprint(
@@ -1764,7 +1777,7 @@ RefPtr<TransportFlow> MediaTransportHandlerSTS::GetTransportFlow(
 
 RefPtr<TransportFlow> MediaTransportHandlerSTS::CreateTransportFlow(
     const std::string& aTransportId, bool aIsRtcp,
-    const RefPtr<DtlsIdentity>& aDtlsIdentity, bool aDtlsClient,
+    const RefPtr<dom::SharedCertificate>& aCertificate, bool aDtlsClient,
     const DtlsDigestList& aDigests, bool aPrivacyRequested) {
   nsresult rv;
   RefPtr flow = MakeRefPtr<TransportFlow>(aTransportId);
@@ -1776,7 +1789,7 @@ RefPtr<TransportFlow> MediaTransportHandlerSTS::CreateTransportFlow(
   dtls->SetRole(aDtlsClient ? TransportLayerDtls::CLIENT
                             : TransportLayerDtls::SERVER);
 
-  dtls->SetIdentity(aDtlsIdentity);
+  dtls->SetCertificate(aCertificate);
 
   dtls->SetMinMaxVersion(
       static_cast<TransportLayerDtls::Version>(mMinDtlsVersion),
@@ -1972,7 +1985,8 @@ Maybe<dom::RTCErrorParams> GetErrorInfo(const TransportLayerDtls& aDtlsLayer) {
     error.mErrorDetail = dom::RTCErrorDetailType::Fingerprint_failure;
   } else if (aDtlsLayer.HasDtlsFailureError()) {
     error.mErrorDetail = dom::RTCErrorDetailType::Dtls_failure;
-    // Spec says these cannot be set in the "fingerprint-failure" case
+    // Include alerts if they were exchanged during the handshake.
+    // For local certificate issues (expired/missing), these will be empty.
     aDtlsLayer.GetSentAlert().apply(
         [&](auto value) { error.mSentAlert.Construct(value); });
     aDtlsLayer.GetReceivedAlert().apply(
