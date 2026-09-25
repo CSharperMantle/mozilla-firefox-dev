@@ -572,10 +572,12 @@ class TelemetryHandler {
         provider.nonAdsLinkQueryParamNames ?? [];
 
       newProvider.subframes =
-        provider.subframes?.map(obj => {
-          let regexp = new RegExp(obj.regexp);
-          return { ...obj, regexp };
-        }) ?? [];
+        provider.subframes
+          ?.filter(obj => obj.inspectRegexpInParent)
+          .map(obj => {
+            let regexp = new RegExp(obj.regexp);
+            return { ...obj, regexp };
+          }) ?? [];
 
       if (provider.impressionAttributes?.length) {
         newProvider.impressionAttributes = provider.impressionAttributes.map(
