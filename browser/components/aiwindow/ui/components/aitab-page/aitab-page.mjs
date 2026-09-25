@@ -4,6 +4,7 @@
 
 import { html, nothing } from "chrome://global/content/vendor/lit.all.mjs";
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
+import { httpUrl } from "chrome://browser/content/aiwindow/modules/AITabUtils.mjs";
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://browser/content/aiwindow/components/aitab-header.mjs";
 // eslint-disable-next-line import/no-unassigned-import
@@ -14,7 +15,8 @@ import "chrome://browser/content/aiwindow/components/aitab-timeline.mjs";
 import "chrome://browser/content/aiwindow/components/aitab-table.mjs";
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://browser/content/aiwindow/components/aitab-highlights.mjs";
-import { httpUrl } from "chrome://browser/content/aiwindow/modules/AITabUtils.mjs";
+// eslint-disable-next-line import/no-unassigned-import
+import "chrome://browser/content/aiwindow/components/aitab-error.mjs";
 
 // The same names the child and parent actors use, so a message can be traced
 // straight through without a translation table.
@@ -214,13 +216,8 @@ export class AITabPage extends MozLitElement {
     if (this.status == "loading") {
       return nothing;
     }
-    return html`<p
-      class="aitab-status"
-      role="alert"
-      data-l10n-id=${this.status == "error"
-        ? "ai-tab-page-error"
-        : "ai-tab-page-unavailable"}
-    ></p>`;
+
+    return html`<aitab-error></aitab-error>`;
   }
 
   render() {

@@ -328,12 +328,12 @@ ai-tasks-alert-history-error-unknown = Something went wrong on our side and this
 # the user did not say what the page should focus on.
 ai-tab-default-page-title = Generated page
 
-# Shown in place of a generated page when it can no longer be found, for
-# example because the user deleted it.
-ai-tab-page-unavailable = This page isn’t available anymore.
-
-# Shown in place of a generated page when it could not be loaded.
-ai-tab-page-error = Something went wrong loading this page.
+# Shown in place of a generated page when it can't be displayed, for
+# example because the user deleted it, the address is wrong, or it
+# failed to load.
+aitab-page-error-heading = This page isn’t available anymore.
+# TODO - Bug 2075639: update this string based on UX feedback
+aitab-page-error-description = Some other supplementary string.
 
 # Page context menu entry that builds a generated page from the current page.
 main-context-menu-create-aitab =

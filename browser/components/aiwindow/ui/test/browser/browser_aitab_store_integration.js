@@ -52,13 +52,12 @@ describe("about:smartpage store integration", () => {
       Assert.equal(
         page.status,
         "unavailable",
-        "An unknown slug produces the unavailable state"
+        "An unknown slug produces the unavailable error state"
       );
       Assert.equal(page.page, null, "No page data is returned");
-      Assert.equal(
-        element.shadowRoot.querySelector(".aitab-status")?.dataset.l10nId,
-        "ai-tab-page-unavailable",
-        "The unavailable message is rendered"
+      Assert.ok(
+        element.shadowRoot.querySelector("aitab-error"),
+        "The error component is rendered"
       );
     });
   });
