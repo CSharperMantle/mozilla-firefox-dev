@@ -6,13 +6,12 @@
 module to handle Gecko profiling.
 """
 
-import json
 import os
 import tempfile
 import zipfile
 
 import mozfile
-from mozgeckoprofiler import save_gecko_profile, symbolicate_profile
+from mozgeckoprofiler import symbolicate_profile_json
 from mozlog import get_proxy_logger
 
 LOG = get_proxy_logger()
@@ -107,16 +106,7 @@ class GeckoProfile:
 
     def _save_gecko_profile(self, cycle, profile_path):
         try:
-            with open(profile_path, encoding="utf-8") as profile_file:
-                profile = json.load(profile_file)
-            symbolicate_profile(profile)
-            save_gecko_profile(profile, profile_path)
-        except MemoryError:
-            LOG.critical(
-                "Ran out of memory while trying"
-                f" to symbolicate profile {profile_path} (cycle {cycle})",
-                exc_info=True,
-            )
+            symbolicate_profile_json(profile_path)
         except Exception:
             LOG.critical(
                 "Encountered an exception during profile"
