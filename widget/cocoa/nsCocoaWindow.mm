@@ -7079,15 +7079,13 @@ CGFloat nsCocoaWindow::BackingScaleFactor() const {
 void nsCocoaWindow::BackingScaleFactorChanged() {
   CGFloat newScale = ComputeBackingScaleFactor();
 
-  // Ignore notification if it hasn't really changed
   if (BackingScaleFactor() == newScale) {
     return;
   }
 
-  UpdateBounds();
-
   SuspendAsyncCATransactions();
   mBackingScaleFactor = newScale;
+  UpdateBounds();
   if (mNativeLayerRoot) {
     mNativeLayerRoot->SetBackingScale(newScale);
   }
