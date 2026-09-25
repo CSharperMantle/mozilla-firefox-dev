@@ -299,11 +299,11 @@ export class NewTabContentPing {
     if (Services.vc.compare(AppConstants.MOZ_APP_VERSION, "157.0a1") < 0) {
       delete result.layout_name;
     }
-    // @backward-compat { version 157 } variant_id and source_section_id were
-    // added as extra_keys to the newtab_content impression/click events in 157.
+    // @backward-compat { version 158 } variant_id and source_section_id were
+    // added as extra_keys to the newtab_content impression/click events in 158.
     // A train-hopped XPI can run on older platform builds whose schema lacks
-    // them, which would throw a Glean error, so drop them below 157.
-    if (Services.vc.compare(AppConstants.MOZ_APP_VERSION, "157.0a1") < 0) {
+    // them, which would throw a Glean error, so drop them below 158.
+    if (Services.vc.compare(AppConstants.MOZ_APP_VERSION, "158.0a1") < 0) {
       delete result.variant_id;
       delete result.source_section_id;
     }
