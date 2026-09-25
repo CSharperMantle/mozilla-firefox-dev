@@ -43,6 +43,4 @@ class nsContentPolicy : public nsIContentPolicy {
                        nsILoadInfo* aLoadInfo, int16_t* decision);
 };
 
-nsresult NS_NewContentPolicy(nsIContentPolicy** aResult);
-
 #endif /* _nsContentPolicy_h_ */

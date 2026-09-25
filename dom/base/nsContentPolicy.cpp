@@ -33,13 +33,6 @@ NS_IMPL_ISUPPORTS(nsContentPolicy, nsIContentPolicy)
 
 static mozilla::LazyLogModule gConPolLog("nsContentPolicy");
 
-nsresult NS_NewContentPolicy(nsIContentPolicy** aResult) {
-  RefPtr<nsContentPolicy> policy = new nsContentPolicy();
-  MOZ_TRY(policy->Init());
-  policy.forget(aResult);
-  return NS_OK;
-}
-
 nsContentPolicy::nsContentPolicy() : mPolicies(NS_CONTENTPOLICY_CATEGORY) {}
 
 nsresult nsContentPolicy::Init() {
