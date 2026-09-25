@@ -2,11 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+import { readFileSync } from "fs";
+import path from "path";
 import { CONTENT_MESSAGE_TYPE } from "common/Actions.mjs";
 import { WIDGET_REGISTRY } from "common/WidgetsRegistry.mjs";
 import { DEFAULT_SITES } from "lib/DefaultSites.sys.mjs";
 import {
   ActivityStream,
+  MARKET_PREF_FALLBACKS,
   PREFS_CONFIG,
   csvPrefHasValue,
 } from "lib/ActivityStream.sys.mjs";
@@ -476,6 +479,9 @@ describe("ActivityStream", () => {
       expect(PREFS_CONFIG.get(AVAILABLE_PREF).value).toBe(false);
     });
     it("should not wait for the region when no list restricts it", () => {
+      getStringPrefStub
+        .whenCalledWith(`${BRANCH}widgets.system.region-block`)
+        .returns("");
       region.home = "";
       as._updateDynamicPrefs();
       expect(PREFS_CONFIG.get(AVAILABLE_PREF).value).toBe(true);
@@ -754,6 +760,68 @@ describe("ActivityStream", () => {
         }
       }
     );
+  });
+  describe("market gating on a host without the firefox.js prefs", () => {
+    const BRANCH = "browser.newtabpage.activity-stream.";
+    let getStringPrefStub;
+    beforeEach(() => {
+      services.locale.appLocaleAsBCP47 = "en-US";
+      getStringPrefStub = argsStub((_pref, defaultValue) => defaultValue);
+      services.prefs.getStringPref = getStringPrefStub;
+    });
+    it.each(["CN", "JP", "RU"])(
+      "should make widgets available and on in %s",
+      geo => {
+        region.home = geo;
+        as._updateDynamicPrefs();
+        expect(PREFS_CONFIG.get("widgets.system.enabled").value).toBe(true);
+        expect(PREFS_CONFIG.get("widgets.enabled").value).toBe(true);
+      }
+    );
+    it("should keep Lists available but off in the US", () => {
+      region.home = "US";
+      as._updateDynamicPrefs();
+      expect(PREFS_CONFIG.get("widgets.system.lists.enabled").value).toBe(true);
+      expect(PREFS_CONFIG.get("widgets.lists.enabled").value).toBe(false);
+    });
+    it("should make Lists unavailable in PL", () => {
+      region.home = "PL";
+      as._updateDynamicPrefs();
+      expect(PREFS_CONFIG.get("widgets.system.lists.enabled").value).toBe(
+        false
+      );
+    });
+    it("should keep Crossword English-only", () => {
+      region.home = "US";
+      services.locale.appLocaleAsBCP47 = "de";
+      as._updateDynamicPrefs();
+      expect(PREFS_CONFIG.get("widgets.system.crossword.enabled").value).toBe(
+        false
+      );
+    });
+    it("should have a fallback matching every widget market pref in firefox.js", () => {
+      const firefoxJs = readFileSync(
+        path.resolve(__dirname, "../../../../../app/profile/firefox.js"),
+        "utf8"
+      );
+      const prefs = [
+        ...firefoxJs.matchAll(
+          /^pref\("(browser\.newtabpage\.activity-stream\.widgets\.[^"]+\.(?:region|locale)-(?:block|config))",\s*"([^"]*)"\);/gm
+        ),
+      ].map(([, name, value]) => [name, value]);
+      expect(prefs.length).toBeGreaterThan(0);
+      for (const [name, value] of prefs) {
+        expect([name, MARKET_PREF_FALLBACKS.get(name)]).toEqual([name, value]);
+      }
+    });
+    it("should let a pref that exists win over the fallback", () => {
+      getStringPrefStub
+        .whenCalledWith(`${BRANCH}widgets.lists.region-block`)
+        .returns("");
+      region.home = "US";
+      as._updateDynamicPrefs();
+      expect(PREFS_CONFIG.get("widgets.lists.enabled").value).toBe(true);
+    });
   });
   describe("stocks widget defaults", () => {
     it("should be off everywhere by default", () => {

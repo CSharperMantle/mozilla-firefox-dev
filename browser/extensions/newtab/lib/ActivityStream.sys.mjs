@@ -462,16 +462,53 @@ function showSectionLayout({ geo, locale }) {
  * @param {string} value - the profile's region or locale
  * @returns {boolean}
  */
+/**
+ * @backward-compat { version 158 }
+ * Mirrors the widget market prefs in firefox.js. A train-hopped newtab on an
+ * older host has none of them, and a missing list means no restriction, which
+ * would make every widget available and on everywhere. Used only when the pref
+ * does not exist, so firefox.js and about:config still win. Remove once 158
+ * reaches Release, and keep in sync with firefox.js until then.
+ */
+export const MARKET_PREF_FALLBACKS = new Map(
+  Object.entries({
+    "widgets.system.region-block": "",
+    "widgets.system.lists.region-block": "PL",
+    "widgets.lists.region-block": "DE,FR,PL,US",
+    "widgets.system.focusTimer.region-block": "PL",
+    "widgets.focusTimer.region-block": "DE,FR,PL,US",
+    "widgets.system.clocks.region-block": "PL",
+    "widgets.clocks.region-block": "DE,FR,PL,US",
+    "widgets.system.pictureOfTheDay.region-block": "PL",
+    "widgets.pictureOfTheDay.region-block": "DE,FR,PL,US",
+    "widgets.system.crossword.locale-config": "en-CA,en-GB,en-US",
+    "widgets.system.crossword.region-block": "PL",
+  }).map(([name, value]) => [ACTIVITY_STREAM_PREF_BRANCH + name, value])
+);
+
+/**
+ * @backward-compat { version 158 }
+ * Once MARKET_PREF_FALLBACKS is removed, inline this as getStringPref(name, "").
+ */
+function marketPref(prefName) {
+  return (
+    Services.prefs.getStringPref(
+      prefName,
+      MARKET_PREF_FALLBACKS.get(prefName) ?? ""
+    ) || ""
+  );
+}
+
 function marketAllows(allowPref, blockPref, value) {
-  if (csvPrefHasValue(blockPref, value)) {
+  if (csvHasValue(marketPref(blockPref), value)) {
     return false;
   }
-  const allowed = Services.prefs.getStringPref(allowPref, "") || "";
+  const allowed = marketPref(allowPref);
   return !allowed.trim() || csvHasValue(allowed, value);
 }
 
 function prefIsSet(prefName) {
-  return Boolean(Services.prefs.getStringPref(prefName, "")?.trim());
+  return Boolean(marketPref(prefName).trim());
 }
 
 /**
