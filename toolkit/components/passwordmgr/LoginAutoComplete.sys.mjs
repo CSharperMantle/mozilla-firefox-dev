@@ -166,6 +166,11 @@ class LoginAutocompleteItem extends AutocompleteItem {
             actions: [
               {
                 label: lazy.l10n.formatValueSync("autocomplete-edit-password"),
+                fillMessageName: "PasswordManager:OpenPreferences",
+                fillMessageData: {
+                  loginGuid: login.guid,
+                  entryPoint: "Autocomplete",
+                },
               },
               {
                 label: lazy.l10n.formatValueSync(
