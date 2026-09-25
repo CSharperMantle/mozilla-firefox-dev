@@ -17,16 +17,29 @@ const BASE = getRootDirectory(gTestPath).replace(
 const TEST_URL = BASE + "browser_shareurl.html";
 
 let shareUrlWithPickerSpy = sinon.spy();
+// Latest raw XPCOM arguments so tests can invoke handlers on the underlying
+// objects (`.handler.handle()`), which the sinon spy strips down to POJOs.
+let lastArgs = null;
 
 const mockMacSharingService = MockRegistrar.register(
   "@mozilla.org/widget/macsharingservice;1",
   {
-    shareUrlWithPicker(anchor, urls, titles, shareTitle) {
+    shareUrlWithPicker(
+      anchor,
+      urls,
+      titles,
+      shareTitle,
+      customItems,
+      copyItem
+    ) {
+      lastArgs = { anchor, urls, titles, shareTitle, customItems, copyItem };
       shareUrlWithPickerSpy(
         anchor,
         Array.from(urls),
         Array.from(titles),
-        shareTitle
+        shareTitle,
+        Array.from(customItems).map(i => ({ label: i.label, icon: i.icon })),
+        copyItem ? { label: copyItem.label, icon: copyItem.icon } : null
       );
     },
     QueryInterface: ChromeUtils.generateQI([Ci.nsIMacSharingService]),
@@ -37,130 +50,101 @@ registerCleanupFunction(function () {
   MockRegistrar.unregister(mockMacSharingService);
 });
 
-const qrCodeEnabled = Services.prefs.getBoolPref(
-  "browser.shareqrcode.enabled",
-  false
-);
-// Copy Link + the picker entry, plus QR code if enabled.
-const expectedItemCount = qrCodeEnabled ? 3 : 2;
-
-async function openShareTabPopup() {
-  await waitForOverflowButtonShown();
-  await document.getElementById("nav-bar").overflowable.show();
-
-  let shareTabButton = document.getElementById("share-tab-button");
-  shareTabButton.click();
-
-  let popupElement = document.getElementById("share-tab-popup");
-  await BrowserTestUtils.waitForPopupEvent(popupElement, "shown");
-
-  return { shareTabButton, popupElement };
-}
-
-async function closePopup(popupElement) {
-  let menuPopupClosedPromise = BrowserTestUtils.waitForPopupEvent(
-    popupElement,
-    "hidden"
-  );
-  popupElement.hidePopup();
-  await menuPopupClosedPromise;
-  ok(true, "Menu popup closed");
-
-  if (isOverflowOpen()) {
-    await hideOverflow();
-  }
+function resetSpy() {
+  shareUrlWithPickerSpy.resetHistory();
+  lastArgs = null;
 }
 
 add_setup(async function () {
+  // Place the share button in the nav bar so it is always instantiated in the
+  // DOM and directly clickable, without needing to open the overflow panel.
   CustomizableUI.addWidgetToArea(
     "share-tab-button",
-    CustomizableUI.AREA_FIXED_OVERFLOW_PANEL
+    CustomizableUI.AREA_NAVBAR
   );
   registerCleanupFunction(() => CustomizableUI.reset());
 });
 
 add_task(async function test_button_exists() {
-  await BrowserTestUtils.withNewTab(TEST_URL, async () => {
-    await waitForOverflowButtonShown();
-    await document.getElementById("nav-bar").overflowable.show();
-
-    let shareTabButton = document.getElementById("share-tab-button");
-    Assert.ok(shareTabButton, "Share tab button appears in Panel Menu");
-    await hideOverflow();
-  });
+  let shareTabButton = document.getElementById("share-tab-button");
+  Assert.ok(shareTabButton, "Share tab button exists in the nav bar");
+  Assert.ok(
+    shareTabButton.classList.contains("share-toolbar-picker"),
+    "Button carries the share-toolbar-picker class on macOS"
+  );
+  Assert.ok(
+    !shareTabButton.hasAttribute("type"),
+    "Button is not a menu-type button on macOS (no submenu popup)"
+  );
 });
 
-add_task(async function test_popup_opens_with_picker_entry() {
+add_task(async function test_share_button_invokes_picker() {
   await BrowserTestUtils.withNewTab(TEST_URL, async () => {
-    let { popupElement } = await openShareTabPopup();
-    Assert.ok(popupElement, "Popup element is open");
-
-    let items = Array.from(popupElement.querySelectorAll("menuitem"));
-    is(
-      items.length,
-      expectedItemCount,
-      `There should be ${expectedItemCount} menu items`
-    );
-
-    let pickerItem = items.find(item =>
-      item.classList.contains("share-mac-picker-item")
-    );
-    ok(pickerItem, "The macOS share picker entry is present");
-    is(
-      pickerItem.getAttribute("data-l10n-id"),
-      "menu-share-mac-picker-single",
-      "Picker entry uses the expected string"
-    );
-
-    await closePopup(popupElement);
-  });
-});
-
-add_task(async function test_picker_entry_click() {
-  await BrowserTestUtils.withNewTab(TEST_URL, async () => {
-    shareUrlWithPickerSpy.resetHistory();
-
-    let { popupElement } = await openShareTabPopup();
-
-    let pickerItem = popupElement.querySelector(".share-mac-picker-item");
-
-    let menuPopupClosedPromise = BrowserTestUtils.waitForPopupEvent(
-      popupElement,
-      "hidden"
-    );
-    popupElement.activateItem(pickerItem);
-    await menuPopupClosedPromise;
+    resetSpy();
+    document.getElementById("share-tab-button").doCommand();
 
     await TestUtils.waitForCondition(
       () => shareUrlWithPickerSpy.calledOnce,
       "shareUrlWithPicker was called"
     );
 
-    let [, urls, titles, shareTitle] = shareUrlWithPickerSpy.getCall(0).args;
-    Assert.deepEqual(urls, [TEST_URL], "Shared the correct URL");
-    is(titles[0], "Sharing URL", "Shared the correct title");
+    let [anchor, urls, titles, shareTitle, , copyItem] =
+      shareUrlWithPickerSpy.getCall(0).args;
+    is(anchor.id, "share-tab-button", "anchor is the toolbar button");
+    Assert.deepEqual(urls, [TEST_URL], "urls contains the current tab URL");
+    is(titles[0], "Sharing URL", "titles contains the current tab title");
     is(shareTitle, "Sharing URL", "shareTitle matches the tab title");
+    ok(copyItem, "copyItem is provided");
+    ok(copyItem.label, "copyItem has a non-empty label");
   });
 });
 
-add_task(async function test_copy_link() {
+add_task(async function test_qr_custom_item_present_when_pref_on() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.shareqrcode.enabled", true]],
+  });
   await BrowserTestUtils.withNewTab(TEST_URL, async () => {
-    let { popupElement } = await openShareTabPopup();
+    resetSpy();
+    document.getElementById("share-tab-button").doCommand();
+    await TestUtils.waitForCondition(
+      () => shareUrlWithPickerSpy.calledOnce,
+      "shareUrlWithPicker was called"
+    );
+    let customItems = shareUrlWithPickerSpy.getCall(0).args[4];
+    is(customItems.length, 1, "one custom item when QR pref is on");
+    ok(customItems[0].label, "QR custom item has a non-empty label");
+  });
+  await SpecialPowers.popPrefEnv();
+});
 
-    let items = Array.from(popupElement.querySelectorAll("menuitem"));
-    let copyLinkItem = items.find(item =>
-      item.classList.contains("share-copy-link")
+add_task(async function test_qr_custom_item_absent_when_pref_off() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.shareqrcode.enabled", false]],
+  });
+  await BrowserTestUtils.withNewTab(TEST_URL, async () => {
+    resetSpy();
+    document.getElementById("share-tab-button").doCommand();
+    await TestUtils.waitForCondition(
+      () => shareUrlWithPickerSpy.calledOnce,
+      "shareUrlWithPicker was called"
     );
-    ok(copyLinkItem, "Copy link item exists");
+    let customItems = shareUrlWithPickerSpy.getCall(0).args[4];
+    is(customItems.length, 0, "no custom items when QR pref is off");
+  });
+  await SpecialPowers.popPrefEnv();
+});
 
-    let menuPopupClosedPromise = BrowserTestUtils.waitForPopupEvent(
-      popupElement,
-      "hidden"
+add_task(async function test_copy_item_writes_url_to_clipboard() {
+  await BrowserTestUtils.withNewTab(TEST_URL, async () => {
+    resetSpy();
+    document.getElementById("share-tab-button").doCommand();
+    await TestUtils.waitForCondition(
+      () => lastArgs !== null,
+      "copyItem captured"
     );
-    await SimpleTest.promiseClipboardChange(TEST_URL, () =>
-      popupElement.activateItem(copyLinkItem)
-    );
-    await menuPopupClosedPromise;
-    ok(true, "Menu popup closed after button click");
+    ok(lastArgs.copyItem, "copyItem present");
+    await SimpleTest.promiseClipboardChange(TEST_URL, () => {
+      lastArgs.copyItem.handler.handle();
+    });
   });
 });

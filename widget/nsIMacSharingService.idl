@@ -29,7 +29,7 @@ interface nsIMacShareCustomItem : nsISupports {
 };
 
 
-[scriptable, uuid(14b90906-99c1-4bed-a74c-479a6ad6ea1a)]
+[scriptable, uuid(00de6161-61e5-4b1e-a251-7a8d4ea4b0c0)]
 interface nsIMacSharingService : nsISupports
 {
   /**
@@ -49,5 +49,6 @@ interface nsIMacSharingService : nsISupports
                           in Array<AString> urls,
                           in Array<AString> titles,
                           in AString shareTitle,
+                          in Array<nsIMacShareCustomItem> customItems,
                           in nsIMacShareCustomItem copyItem);
 };

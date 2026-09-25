@@ -454,8 +454,11 @@ class SharingUtilsCls {
    * Open the macOS system share picker.
    *
    * @param {Node} node - Carries contextBrowserToShare and browsersToShare.
+   * @param {object} [options]
+   * @param {boolean} [options.injectQR] - Prepend a QR Code entry inside the
+   *   picker.
    */
-  async shareOnMacPicker(node) {
+  async shareOnMacPicker(node, { injectQR = false } = {}) {
     let anchor = this.#resolvePickerAnchor(node);
     if (!anchor) {
       return;
@@ -463,12 +466,20 @@ class SharingUtilsCls {
 
     let isMultiTab = node.browsersToShare !== null;
     let links;
+    let customItems = [];
 
     if (isMultiTab) {
       links = this.getLinksToShare(node);
     } else {
       let { urlToShare, titleToShare } = this.getLinkToShare(node);
       links = urlToShare ? [{ url: urlToShare, title: titleToShare }] : [];
+      if (
+        injectQR &&
+        links.length &&
+        Services.prefs.getBoolPref("browser.shareqrcode.enabled", false)
+      ) {
+        customItems.push(await this.#makeQRCodeCustomItem(node, links[0].url));
+      }
     }
     if (!links.length) {
       return;
@@ -497,6 +508,7 @@ class SharingUtilsCls {
       urls,
       titles,
       shareTitle,
+      customItems,
       copyItem
     );
   }
@@ -508,11 +520,25 @@ class SharingUtilsCls {
     return msg?.attributes?.find(a => a.name === "label")?.value ?? "";
   }
 
+  async #makeQRCodeCustomItem(node, url) {
+    let label = await this.#formatLabel(node, "menu-file-share-qrcode3");
+    let win = node.documentGlobal;
+    let browser = node.contextBrowserToShare?.get();
+    return makeMacShareCustomItem({
+      label,
+      icon: "qrcode",
+      handler: () => this.showQRCodePanel(win, browser, url),
+    });
+  }
+
   #resolvePickerAnchor(node) {
     // Resolve gBrowser/gURLBar through the menu's own chrome window
     // rather than browser.ownerGlobal, which can be null for remote browsers
     // during menu teardown.
     let win = node.documentGlobal;
+    if (node.classList.contains("share-toolbar-picker")) {
+      return node;
+    }
     // Tab right-click: anchor to the tab that was right-clicked.
     if (node.closest("#tabContextMenu")) {
       let browser = node.contextBrowserToShare?.get();

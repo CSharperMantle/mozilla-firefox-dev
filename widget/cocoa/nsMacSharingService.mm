@@ -50,11 +50,13 @@ NS_IMPL_ISUPPORTS(nsMacSharingService, nsIMacSharingService)
     : NSObject <NSSharingServicePickerDelegate> {
   NSSharingServicePicker* mPicker;
   NSUserActivity* mShareActivity;
+  NSArray<NSSharingService*>* mCustomServices;
   mozilla::UniquePtr<MacShareCopyOverride> mCopyOverride;
   BOOL mIsMultiUrl;
 }
 - (id)initWithPicker:(NSSharingServicePicker*)aPicker
             activity:(NSUserActivity*)aActivity
+      customServices:(NSArray<NSSharingService*>*)aCustomServices
           isMultiUrl:(BOOL)aIsMultiUrl
         copyOverride:(mozilla::UniquePtr<MacShareCopyOverride>&&)aCopyOverride;
 
@@ -63,18 +65,20 @@ NS_IMPL_ISUPPORTS(nsMacSharingService, nsIMacSharingService)
 @implementation SharingServicePickerDelegate
 - (id)initWithPicker:(NSSharingServicePicker*)aPicker
             activity:(NSUserActivity*)aActivity
+      customServices:(NSArray<NSSharingService*>*)aCustomServices
           isMultiUrl:(BOOL)aIsMultiUrl
         copyOverride:(mozilla::UniquePtr<MacShareCopyOverride>&&)aCopyOverride {
   self = [super init];
   mPicker = [aPicker retain];
   mShareActivity = [aActivity retain];
+  mCustomServices = [aCustomServices retain];
   mCopyOverride = std::move(aCopyOverride);
   mIsMultiUrl = aIsMultiUrl;
   return self;
 }
 
-// NSSharingServicePickerDelegate filters the proposed services. Called by
-// AppKit when the picker is about to show.
+// NSSharingServicePickerDelegate filters the proposed services and prepends
+// custom services. Called by AppKit when the picker is about to show.
 - (NSArray<NSSharingService*>*)
        sharingServicePicker:(NSSharingServicePicker*)aPicker
     sharingServicesForItems:(NSArray*)aItems
@@ -88,10 +92,15 @@ NS_IMPL_ISUPPORTS(nsMacSharingService, nsIMacSharingService)
   if (mIsMultiUrl) {
     [excluded addObject:@"com.apple.journal.JournalShareExtension"];
   }
-  return [aProposed
+  NSArray* filtered = [aProposed
       filteredArrayUsingPredicate:[NSPredicate
                                       predicateWithFormat:@"NOT (name IN %@)",
                                                           excluded]];
+
+  if (mCustomServices.count) {
+    filtered = [mCustomServices arrayByAddingObjectsFromArray:filtered];
+  }
+  return filtered;
 }
 
 // NSSharingServicePickerDelegate picker is done (user chose or dismissed).
@@ -109,6 +118,7 @@ NS_IMPL_ISUPPORTS(nsMacSharingService, nsIMacSharingService)
   [mShareActivity invalidate];
   [mShareActivity release];
   [mPicker release];
+  [mCustomServices release];
   [super dealloc];
 }
 
@@ -154,6 +164,43 @@ static id MakeMultiUrlShareItem(const nsTArray<nsString>& aUrls,
                 icon:nil] autorelease];
   }
   return pasteboardItem;
+}
+
+// Convert each XPCOM custom item into an NSSharingService whose handler
+// block holds a strong reference to the JS callback. Returns an autoreleased
+// array. Used for inserting custom sharing services (like Create QR Code)
+// into native Picker.
+static NSArray<NSSharingService*>* BuildCustomServices(
+    const nsTArray<RefPtr<nsIMacShareCustomItem>>& aCustomItems) {
+  NSMutableArray<NSSharingService*>* services = [NSMutableArray array];
+  for (const auto& item : aCustomItems) {
+    nsAutoString label, icon;
+    item->GetLabel(label);
+    item->GetIcon(icon);
+    nsCOMPtr<nsIMacShareCustomItemHandler> handler;
+    item->GetHandler(getter_AddRefs(handler));
+    if (label.IsEmpty() || !handler) {
+      continue;
+    }
+    NSImage* iconImage = nil;
+    if (!icon.IsEmpty()) {
+      if (@available(macOS 11.0, *)) {
+        iconImage =
+            [NSImage imageWithSystemSymbolName:nsCocoaUtils::ToNSString(icon)
+                      accessibilityDescription:nil];
+      }
+    }
+    nsCOMPtr<nsIMacShareCustomItemHandler> handlerRef = handler;
+    NSSharingService* service =
+        [[[NSSharingService alloc] initWithTitle:nsCocoaUtils::ToNSString(label)
+                                           image:iconImage
+                                  alternateImage:iconImage
+                                         handler:^{
+                                           handlerRef->Handle();
+                                         }] autorelease];
+    [services addObject:service];
+  }
+  return services;
 }
 
 // Resolve a DOM anchor element to the NSView + rect (in the view's local
@@ -237,11 +284,11 @@ static mozilla::UniquePtr<MacShareCopyOverride> MakeCopyOverride(
 }  // namespace
 
 NS_IMETHODIMP
-nsMacSharingService::ShareUrlWithPicker(mozilla::dom::Element* aAnchor,
-                                        const nsTArray<nsString>& aUrls,
-                                        const nsTArray<nsString>& aTitles,
-                                        const nsAString& aShareTitle,
-                                        nsIMacShareCustomItem* aCopyItem) {
+nsMacSharingService::ShareUrlWithPicker(
+    mozilla::dom::Element* aAnchor, const nsTArray<nsString>& aUrls,
+    const nsTArray<nsString>& aTitles, const nsAString& aShareTitle,
+    const nsTArray<RefPtr<nsIMacShareCustomItem>>& aCustomItems,
+    nsIMacShareCustomItem* aCopyItem) {
   NS_OBJC_BEGIN_TRY_BLOCK_RETURN;
   if (!aAnchor || aUrls.IsEmpty()) {
     return NS_ERROR_INVALID_ARG;
@@ -262,6 +309,8 @@ nsMacSharingService::ShareUrlWithPicker(mozilla::dom::Element* aAnchor,
   nsresult rv = ResolveAnchorViewRect(aAnchor, anchorView, anchorRect);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  NSArray<NSSharingService*>* customServices =
+      BuildCustomServices(aCustomItems);
   NSUserActivity* shareActivity = MakeSingleUrlActivity(singleURL, shareTitle);
   mozilla::UniquePtr<MacShareCopyOverride> copyOverride =
       MakeCopyOverride(aCopyItem);
@@ -272,6 +321,7 @@ nsMacSharingService::ShareUrlWithPicker(mozilla::dom::Element* aAnchor,
   SharingServicePickerDelegate* delegate = [[SharingServicePickerDelegate alloc]
       initWithPicker:picker
             activity:shareActivity
+      customServices:customServices
           isMultiUrl:!isSingle
         copyOverride:std::move(copyOverride)];
   // The delegate retains the picker, so releasing our reference here is safe.
