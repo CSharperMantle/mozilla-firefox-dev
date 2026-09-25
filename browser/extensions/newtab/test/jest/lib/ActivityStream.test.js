@@ -695,6 +695,16 @@ describe("ActivityStream", () => {
       );
     });
   });
+  describe("recent searches widget defaults", () => {
+    it("should be off everywhere by default", () => {
+      expect(PREFS_CONFIG.get("widgets.recentSearches.enabled").value).toBe(
+        false
+      );
+      expect(
+        PREFS_CONFIG.get("widgets.system.recentSearches.enabled").value
+      ).toBe(false);
+    });
+  });
   describe("getWeatherWidgetSize", () => {
     let getBoolPrefStub;
     let getStringPrefStub;

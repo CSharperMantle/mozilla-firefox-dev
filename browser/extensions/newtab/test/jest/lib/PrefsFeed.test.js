@@ -933,6 +933,31 @@ describe("PrefsFeed", () => {
       }
     );
 
+    it.each([
+      ["widgets", { recentSearchesEnabled: true }],
+      ["widgetsSettings", { recentSearchesEnabled: true }],
+      ["widgetRecentSearches", { enabled: true }],
+    ])(
+      "should turn on the preffed-off recent searches default from %s",
+      (type, payload) => {
+        const setBoolPref = jest.fn();
+        services.prefs.getDefaultBranch.mockReturnValue({
+          setBoolPref,
+          setStringPref: jest.fn(),
+        });
+        nimbusFeatures.newtabTrainhop.getAllEnrollments.mockReturnValue([
+          { meta: { isRollout: false }, value: { type, payload } },
+        ]);
+
+        feed.onTrainhopExperimentUpdated();
+
+        expect(setBoolPref).toHaveBeenCalledWith(
+          "widgets.recentSearches.enabled",
+          true
+        );
+      }
+    );
+
     it("should let widgetsSettings win over widgets for a widget default", () => {
       const setBoolPref = jest.fn();
       services.prefs.getDefaultBranch.mockReturnValue({
