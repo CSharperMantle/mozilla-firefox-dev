@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <iterator>
 #include <new>
 #include <numeric>
 #include <string>
@@ -14,6 +15,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "mozilla/Assertions.h"
+#include "mozilla/Atomics.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/FixedBufferOutputStream.h"
 #include "mozilla/NotNull.h"
@@ -34,10 +36,12 @@
 #include "nsISeekableStream.h"
 #include "nsISupports.h"
 #include "nsITellableStream.h"
+#include "nsIThread.h"
 #include "nsStreamUtils.h"
 #include "nsString.h"
 #include "nsStringFwd.h"
 #include "nsTArray.h"
+#include "nsThreadUtils.h"
 #include "nscore.h"
 #include "nss.h"
 
@@ -663,6 +667,74 @@ TEST_P(ParametrizedCryptTest, zeroInitializedEncryptedBlock) {
   auto unusedBytesInFirstBlock = firstBlock.from(sizeof(uint16_t));
 
   EXPECT_THAT(unusedBytesInFirstBlock, testing::Each(0ul));
+}
+
+// Regression test for bug 2072411: an HTTP upload stream is read on the socket
+// thread while a redirect rewinds it on the main thread. Read and Seek must
+// serialize, otherwise ReadSegments copies from a stale cursor with a stale
+// count. The test data is a byte ramp, so a torn read shows up as a
+// non-consecutive chunk even when it does not crash.
+TEST_F(DOM_Quota_EncryptedStream, DummyCipherStrategy_ConcurrentReadAndSeek) {
+  using CipherStrategy = DummyCipherStrategy;
+  constexpr size_t kBlockSize = 1024;
+  constexpr size_t kDataSize = 4000;
+  constexpr size_t kReadChunkSize = 64;
+  constexpr size_t kSeekIterations = 5000;
+
+  const auto baseOutputStream = WrapNotNull(
+      RefPtr<FixedBufferOutputStream>{FixedBufferOutputStream::Create(8192)});
+
+  const auto data = MakeTestData(kDataSize);
+
+  WriteTestData<CipherStrategy>(
+      nsCOMPtr<nsIOutputStream>{baseOutputStream.get()}, Span{data}, kDataSize,
+      kBlockSize, CipherStrategy::KeyType{}, FlushMode::Never);
+
+  const auto baseInputStream =
+      MakeRefPtr<ArrayBufferInputStream>(baseOutputStream->WrittenData());
+
+  const auto inStream = MakeRefPtr<DecryptingInputStream<CipherStrategy>>(
+      WrapNotNull(nsCOMPtr<nsIInputStream>{baseInputStream}), kBlockSize,
+      CipherStrategy::KeyType{});
+
+  Atomic<bool> done{false};
+  Atomic<uint32_t> seekFailures{0};
+
+  nsCOMPtr<nsIThread> seekThread;
+  ASSERT_EQ(NS_OK, NS_NewNamedThread(
+                       "SeekThread", getter_AddRefs(seekThread),
+                       NS_NewRunnableFunction(
+                           "DOM_Quota_EncryptedStream::ConcurrentSeek", [&] {
+                             constexpr int64_t kOffsets[] = {0, kDataSize - 48,
+                                                             kDataSize / 2,
+                                                             kDataSize - 1};
+                             for (size_t i = 0; i < kSeekIterations; ++i) {
+                               if (NS_FAILED(inStream->Seek(
+                                       nsISeekableStream::NS_SEEK_SET,
+                                       kOffsets[i % std::size(kOffsets)]))) {
+                                 ++seekFailures;
+                               }
+                             }
+                             done = true;
+                           })));
+
+  uint8_t buffer[kReadChunkSize];
+  size_t reads = 0;
+  while (!done) {
+    uint32_t read = 0;
+    ASSERT_EQ(NS_OK, inStream->Read(reinterpret_cast<char*>(buffer),
+                                    kReadChunkSize, &read));
+    ASSERT_LE(read, kReadChunkSize);
+    for (uint32_t j = 1; j < read; ++j) {
+      ASSERT_EQ(static_cast<uint8_t>(buffer[0] + j), buffer[j])
+          << "torn read at read " << reads << ", byte " << j;
+    }
+    ++reads;
+  }
+
+  EXPECT_EQ(NS_OK, seekThread->Shutdown());
+  EXPECT_EQ(0u, static_cast<uint32_t>(seekFailures));
+  EXPECT_GT(reads, 0u);
 }
 
 enum struct SeekOffset {
