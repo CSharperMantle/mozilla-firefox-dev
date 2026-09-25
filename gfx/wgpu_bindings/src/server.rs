@@ -1805,7 +1805,10 @@ impl Global {
                 &desc,
                 wgt::TextureUses::UNINITIALIZED,
                 texture_id,
-                /* cleared */ false,
+                // NOTE: We want `false`, but we can't yet, because
+                // upstream's API isn't quite right yet.
+                /* cleared */
+                true,
             )
         };
         if let Some(err) = error {
@@ -2057,7 +2060,10 @@ impl Global {
                 &desc,
                 wgt::TextureUses::UNINITIALIZED,
                 texture_id,
-                /* cleared */ false,
+                // NOTE: We want `false`, but we can't yet, because
+                // upstream's API isn't quite right yet.
+                /* cleared */
+                true,
             );
             if let Some(err) = error {
                 let msg =
@@ -3582,7 +3588,10 @@ mod macos {
                     &desc,
                     wgt::TextureUses::UNINITIALIZED,
                     texture_id,
-                    /* cleared */ false,
+                    // NOTE: We want `false`, but we can't yet, because
+                    // upstream's API isn't quite right yet.
+                    /* cleared */
+                    true,
                 )
             };
             if let Some(err) = error {
