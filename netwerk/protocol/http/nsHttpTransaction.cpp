@@ -246,11 +246,11 @@ nsresult nsHttpTransaction::Init(
 
   if (NS_FAILED(rv)) return rv;
 
-  mConnInfo = cinfo->Clone();
+  mConnInfo = cinfo;
   // No lock needed: the transaction is initialized on the main thread only,
   // so there is no possibility of a race at this point.
   MOZ_PUSH_IGNORE_THREAD_SAFETY
-  mFinalizedConnInfo = mConnInfo;
+  mFinalizedConnInfo = cinfo;
   mCallbacks = callbacks;
   mEarlyHintObserver = do_QueryInterface(eventsink);
   MOZ_POP_THREAD_SAFETY
@@ -1144,7 +1144,11 @@ bool nsHttpTransaction::Http3Disabled() const {
 }
 
 already_AddRefed<nsHttpConnectionInfo> nsHttpTransaction::GetConnInfo() const {
-  RefPtr<nsHttpConnectionInfo> connInfo = mConnInfo->Clone();
+  RefPtr<nsHttpConnectionInfo> connInfo;
+  {
+    MutexAutoLock lock(mLock);
+    connInfo = mConnInfo;
+  }
   return connInfo.forget();
 }
 
@@ -1270,8 +1274,11 @@ void nsHttpTransaction::PrepareConnInfoForRetry(nsresult aReason) {
   LOG(("nsHttpTransaction::PrepareConnInfoForRetry [this=%p reason=%" PRIx32
        "]",
        this, static_cast<uint32_t>(aReason)));
-  RefPtr<nsHttpConnectionInfo> failedConnInfo = mConnInfo->Clone();
-  mConnInfo = nullptr;
+  RefPtr<nsHttpConnectionInfo> failedConnInfo = mConnInfo;
+  {
+    MutexAutoLock lock(mLock);
+    mConnInfo = nullptr;
+  }
   bool echConfigUsed =
       nsHttpHandler::EchConfigEnabled(failedConnInfo->IsHttp3()) &&
       !failedConnInfo->GetEchConfig().IsEmpty();
@@ -1279,12 +1286,18 @@ void nsHttpTransaction::PrepareConnInfoForRetry(nsresult aReason) {
   if (mFastFallbackTriggered) {
     mFastFallbackTriggered = false;
     MOZ_ASSERT(mBackupConnInfo);
-    mConnInfo.swap(mBackupConnInfo);
+    {
+      MutexAutoLock lock(mLock);
+      mConnInfo.swap(mBackupConnInfo);
+    }
     return;
   }
 
   auto useOrigConnInfoToRetry = [&]() {
-    mOrigConnInfo.swap(mConnInfo);
+    {
+      MutexAutoLock lock(mLock);
+      mOrigConnInfo.swap(mConnInfo);
+    }
     if (mConnInfo->IsHttp3() &&
         ((mCaps & NS_HTTP_DISALLOW_HTTP3) ||
          gHttpHandler->IsHttp3Excluded(mConnInfo->GetRoutedHost().IsEmpty()
@@ -1292,7 +1305,10 @@ void nsHttpTransaction::PrepareConnInfoForRetry(nsresult aReason) {
                                            : mConnInfo->GetRoutedHost()))) {
       RefPtr<nsHttpConnectionInfo> ci;
       mConnInfo->CloneAsDirectRoute(getter_AddRefs(ci));
-      mConnInfo = ci;
+      {
+        MutexAutoLock lock(mLock);
+        mConnInfo = ci;
+      }
     }
   };
 
@@ -1313,8 +1329,11 @@ void nsHttpTransaction::PrepareConnInfoForRetry(nsresult aReason) {
 
   if (aReason == psm::GetXPCOMFromNSSError(SSL_ERROR_ECH_RETRY_WITHOUT_ECH)) {
     LOG((" Got SSL_ERROR_ECH_RETRY_WITHOUT_ECH, use empty echConfig to retry"));
-    failedConnInfo->SetEchConfig(EmptyCString());
-    failedConnInfo.swap(mConnInfo);
+    {
+      MutexAutoLock lock(mLock);
+      mConnInfo =
+          failedConnInfo->Mutate().SetEchConfig(EmptyCString()).Finalize();
+    }
     id = TRANSACTION_ECH_RETRY_WITHOUT_ECH_COUNT;
     return;
   }
@@ -1334,8 +1353,11 @@ void nsHttpTransaction::PrepareConnInfoForRetry(nsresult aReason) {
         NS_SUCCEEDED(socketControl->GetRetryEchConfig(retryEchConfig))) {
       MOZ_ASSERT(!retryEchConfig.IsEmpty());
 
-      failedConnInfo->SetEchConfig(retryEchConfig);
-      failedConnInfo.swap(mConnInfo);
+      {
+        MutexAutoLock lock(mLock);
+        mConnInfo =
+            failedConnInfo->Mutate().SetEchConfig(retryEchConfig).Finalize();
+      }
     }
     id = TRANSACTION_ECH_RETRY_WITH_ECH_COUNT;
     return;
@@ -1388,7 +1410,10 @@ void nsHttpTransaction::PrepareConnInfoForRetry(nsresult aReason) {
 
     RefPtr<nsISVCBRecord> recordsForRetry =
         mRecordsForRetry.PopLastElement().forget();
-    mConnInfo = mOrigConnInfo->CloneAndAdoptHTTPSSVCRecord(recordsForRetry);
+    {
+      MutexAutoLock lock(mLock);
+      mConnInfo = mOrigConnInfo->CloneAndAdoptHTTPSSVCRecord(recordsForRetry);
+    }
   }
 }
 
@@ -1696,7 +1721,10 @@ void nsHttpTransaction::Close(nsresult reason) {
       // back to mOrigConnInfo to make sure no crash when mConnInfo being
       // accessed again.
       if (!mConnInfo) {
-        mConnInfo.swap(mOrigConnInfo);
+        {
+          MutexAutoLock lock(mLock);
+          mConnInfo.swap(mOrigConnInfo);
+        }
         MOZ_ASSERT(mConnInfo);
       }
     }
@@ -1991,11 +2019,8 @@ static inline void RemoveAlternateServiceUsedHeader(
 }
 
 void nsHttpTransaction::FinalizeConnInfo() {
-  RefPtr<nsHttpConnectionInfo> cloned = mConnInfo->Clone();
-  {
-    MutexAutoLock lock(mLock);
-    mFinalizedConnInfo.swap(cloned);
-  }
+  MutexAutoLock lock(mLock);
+  mFinalizedConnInfo = mConnInfo;
 }
 
 void nsHttpTransaction::SetRestartReason(TRANSACTION_RESTART_REASON aReason) {
@@ -2078,12 +2103,18 @@ nsresult nsHttpTransaction::Restart() {
     if (mConnInfo->IsHttp3ProxyConnection()) {
       RefPtr<nsHttpConnectionInfo> ci =
           mConnInfo->CreateConnectUDPFallbackConnInfo();
-      mConnInfo = ci;
+      {
+        MutexAutoLock lock(mLock);
+        mConnInfo = ci;
+      }
       RemoveAlternateServiceUsedHeader(mRequestHead);
     } else if (!mConnInfo->GetRoutedHost().IsEmpty() || mConnInfo->IsHttp3()) {
       RefPtr<nsHttpConnectionInfo> ci;
       mConnInfo->CloneAsDirectRoute(getter_AddRefs(ci));
-      mConnInfo = ci;
+      {
+        MutexAutoLock lock(mLock);
+        mConnInfo = ci;
+      }
       RemoveAlternateServiceUsedHeader(mRequestHead);
     }
   }
@@ -2966,10 +2997,9 @@ void nsHttpTransaction::ReleaseBlockingTransaction() {
 
 void nsHttpTransaction::DisableSpdy() {
   mCaps |= NS_HTTP_DISALLOW_SPDY;
+  MutexAutoLock lock(mLock);
   if (mConnInfo) {
-    // This is our clone of the connection info, not the persistent one that
-    // is owned by the connection manager, so we're safe to change this here
-    mConnInfo->SetNoSpdy(true);
+    mConnInfo = mConnInfo->Mutate().SetNoSpdy(true).Finalize();
   }
 }
 
@@ -3004,7 +3034,10 @@ void nsHttpTransaction::DisableHttp3(bool aAllowRetryHTTPSRR) {
     mConnInfo->CloneAsDirectRoute(getter_AddRefs(connInfo));
     RemoveAlternateServiceUsedHeader(mRequestHead);
     MOZ_ASSERT(!connInfo->IsHttp3());
-    mConnInfo.swap(connInfo);
+    {
+      MutexAutoLock lock(mLock);
+      mConnInfo.swap(connInfo);
+    }
   }
 }
 
@@ -3695,8 +3728,11 @@ void nsHttpTransaction::UpdateConnectionInfo(nsHttpConnectionInfo* aConnInfo) {
     return;
   }
 
-  mOrigConnInfo = mConnInfo->Clone();
-  mConnInfo = aConnInfo;
+  {
+    MutexAutoLock lock(mLock);
+    mOrigConnInfo = mConnInfo;
+    mConnInfo = aConnInfo;
+  }
 }
 
 nsresult nsHttpTransaction::OnHTTPSRRAvailable(
@@ -3912,7 +3948,6 @@ void nsHttpTransaction::OnBackupConnectionReady(bool aTriggeredByHTTPSRR) {
 static void CreateBackupConnection(
     nsHttpConnectionInfo* aBackupConnInfo, nsIInterfaceRequestor* aCallbacks,
     uint32_t aCaps, std::function<void(nsresult)>&& aResultCallback) {
-  aBackupConnInfo->SetFallbackConnection(true);
   RefPtr<SpeculativeTransaction> trans = new FallbackTransaction(
       aBackupConnInfo, aCallbacks, aCaps | NS_HTTP_DISALLOW_HTTP3,
       std::move(aResultCallback));
@@ -3938,6 +3973,8 @@ void nsHttpTransaction::OnHttp3BackupTimer() {
     mConnInfo->CloneAsDirectRoute(getter_AddRefs(mBackupConnInfo));
     MOZ_ASSERT(!mBackupConnInfo->IsHttp3());
   }
+  mBackupConnInfo =
+      mBackupConnInfo->Mutate().SetFallbackConnection(true).Finalize();
 
   RefPtr<nsHttpTransaction> self = this;
   auto callback = [self](nsresult aResult) {
@@ -3971,6 +4008,7 @@ void nsHttpTransaction::OnHttp3TunnelFallbackTimer() {
   if (fallbackCI) {
     mCaps |= NS_HTTP_DISALLOW_HTTP3;
     RemoveAlternateServiceUsedHeader(mRequestHead);
+    MutexAutoLock lock(mLock);
     mConnInfo.swap(fallbackCI);
   } else {
     DisableHttp3(false);
@@ -4002,6 +4040,8 @@ void nsHttpTransaction::OnFastFallbackTimer() {
   }
 
   MOZ_ASSERT(!mBackupConnInfo->IsHttp3());
+  mBackupConnInfo =
+      mBackupConnInfo->Mutate().SetFallbackConnection(true).Finalize();
 
   RefPtr<nsHttpTransaction> self = this;
   auto callback = [self](nsresult aResult) {

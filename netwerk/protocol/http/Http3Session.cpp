@@ -96,7 +96,7 @@ static nsresult RawBytesToNetAddr(uint16_t aFamily, const uint8_t* aRemoteAddr,
   return NS_OK;
 }
 
-nsresult Http3Session::Init(const nsHttpConnectionInfo* aConnInfo,
+nsresult Http3Session::Init(nsHttpConnectionInfo* aConnInfo,
                             nsINetAddr* aSelfAddr, nsINetAddr* aPeerAddr,
                             HttpConnectionUDP* udpConn, uint32_t aProviderFlags,
                             nsIInterfaceRequestor* callbacks,
@@ -106,7 +106,7 @@ nsresult Http3Session::Init(const nsHttpConnectionInfo* aConnInfo,
   MOZ_ASSERT(OnSocketThread(), "not on socket thread");
   MOZ_ASSERT(udpConn);
 
-  mConnInfo = aConnInfo->Clone();
+  mConnInfo = aConnInfo;
   mNetAddr = aPeerAddr;
 
   // When `isOuterConnection` is true, this Http3Session represents the *outer*
@@ -308,7 +308,7 @@ void Http3Session::RekeyAfterHttp3OnlyHandOff(nsHttpConnectionInfo* aConnInfo) {
 
   LOG(("Http3Session::RekeyAfterHttp3OnlyHandOff [this=%p] %s -> %s", this,
        mConnInfo->HashKey().get(), aConnInfo->HashKey().get()));
-  mConnInfo = aConnInfo->Clone();
+  mConnInfo = aConnInfo;
 }
 
 void Http3Session::DoSetEchConfig(const nsACString& aEchConfig) {

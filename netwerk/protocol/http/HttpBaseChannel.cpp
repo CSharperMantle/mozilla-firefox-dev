@@ -6819,7 +6819,7 @@ NS_IMETHODIMP HttpBaseChannel::GetDocumentCharacterSet(
 }
 
 void HttpBaseChannel::SetConnectionInfo(nsHttpConnectionInfo* aCI) {
-  mConnectionInfo = aCI ? aCI->Clone() : nullptr;
+  mConnectionInfo = aCI;
 }
 
 NS_IMETHODIMP
