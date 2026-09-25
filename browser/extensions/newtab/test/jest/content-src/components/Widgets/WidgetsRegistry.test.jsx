@@ -421,6 +421,24 @@ describe("isWidgetAddable", () => {
     ).toBe(true);
   });
 
+  it.each([
+    ["widgets", { privacyEnabled: true }],
+    ["widgetsSettings", { privacyVisible: true }],
+  ])(
+    "makes privacy addable via %s despite its preffed-off default",
+    (type, payload) => {
+      const privacy = WIDGET_REGISTRY.find(w => w.id === "privacy");
+      const prefs = { [privacy.systemEnabledPref]: false };
+      expect(isWidgetAddable(privacy, prefs)).toBe(false);
+      expect(
+        isWidgetAddable(privacy, {
+          ...prefs,
+          trainhopConfig: { [type]: payload },
+        })
+      ).toBe(true);
+    }
+  );
+
   it("is addable when revealed via the dedicated widgetPrivacy namespace", () => {
     const privacy = WIDGET_REGISTRY.find(w => w.id === "privacy");
     expect(

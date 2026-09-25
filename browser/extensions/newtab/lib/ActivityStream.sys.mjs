@@ -1872,7 +1872,8 @@ export const PREFS_CONFIG = new Map([
     "widgets.privacy.enabled",
     {
       title: "Enables the privacy widget",
-      value: true,
+      // Off everywhere. To release organically: add locale-config to firefox.js, switch to marketGate.
+      value: false,
     },
   ],
   [
@@ -1932,6 +1933,7 @@ export const PREFS_CONFIG = new Map([
     "widgets.system.privacy.enabled",
     {
       title: "Enables the privacy widget experiment in Nimbus",
+      // Off everywhere. To release organically: add locale-config to firefox.js, switch to marketGate.
       value: false,
     },
   ],
