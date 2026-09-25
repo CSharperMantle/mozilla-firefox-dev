@@ -8,9 +8,7 @@ const AC_L10N = new Localization(
 const CC_URL =
   "https://example.org/browser/browser/extensions/formautofill/test/browser/creditCard/autocomplete_creditcard_basic.html";
 
-// Name the flyout item by its string rather than its position, so adding
-// another action to the menu later does not move this test's target.
-const DELETE_LABEL = AC_L10N.formatValueSync(
+const DELETE_TOOLTIP = AC_L10N.formatValueSync(
   "autocomplete-delete-payment-method"
 );
 
@@ -42,7 +40,7 @@ add_task(async function test_no_secondary_action_when_pref_disabled() {
   await SpecialPowers.popPrefEnv();
 });
 
-add_task(async function test_flyout_when_pref_enabled() {
+add_task(async function test_trash_button_when_pref_enabled() {
   await SpecialPowers.pushPrefEnv({ set: [[PREF, true]] });
   await BrowserTestUtils.withNewTab(
     { gBrowser, url: CC_URL },
@@ -53,20 +51,27 @@ add_task(async function test_flyout_when_pref_enabled() {
       );
       is(
         rowItem.actions.secondary.type,
-        "menupopup",
-        "Payment rows show a flyout secondary action when the pref is on"
+        "delete",
+        "Payment rows show a delete secondary action when the pref is on"
       );
-      is(
-        rowItem.actions.secondary.actions.length,
-        2,
-        "The flyout has an edit and a delete item"
+      ok(
+        !rowItem.actions.secondary.actions,
+        "The trash is a single action, not a flyout"
       );
+
+      const { label, tooltip } = rowItem.actions.secondary;
+      is(tooltip, DELETE_TOOLTIP, "The tooltip stays short and omits the row");
+      ok(
+        label.includes(TEST_CREDIT_CARD_1["cc-number"].slice(-4)),
+        `The accessible name names the row it belongs to, got "${label}"`
+      );
+
       const button = rowItem.shadowRoot.querySelector(
         "moz-button.secondary-action"
       );
       ok(
-        button.iconSrc.endsWith("more.svg"),
-        "The secondary action shows the more icon"
+        button.iconSrc.endsWith("delete.svg"),
+        "The secondary action shows the trash icon"
       );
       await closePopup(browser);
     }
@@ -82,53 +87,26 @@ async function selectFirstRow(browser, item) {
   );
 }
 
-async function openFlyout(popup, rowItem, label) {
+// The Lit render lags the row's selected attribute, so the button can still be
+// hidden when the row is already active. Wait it out before clicking, or the
+// click falls through to the row and fills the form instead.
+async function clickTrashButton(rowItem) {
   const button = rowItem.shadowRoot.querySelector(
     "moz-button.secondary-action"
   );
 
-  const menuShown = BrowserTestUtils.waitForEvent(
-    popup,
-    "popupshown",
-    false,
-    event => event.target.localName == "menupopup"
-  );
-  const panelHidden = BrowserTestUtils.waitForEvent(
-    popup,
-    "popuphidden",
-    false,
-    event => event.target == popup
-  );
-
   await EventUtils.promiseElementReadyForUserInput(button, window, info);
-
   await TestUtils.waitForCondition(
     () => button.checkVisibility({ checkVisibilityCSS: true }),
-    "Wait for the secondary action button to be visible"
+    "Wait for the trash button to be visible"
   );
   EventUtils.synthesizeMouseAtCenter(button, {}, window);
-
-  const event = await Promise.race([menuShown, panelHidden]);
-  Assert.equal(
-    event.type,
-    "popupshown",
-    "The click reached the secondary action button instead of the row"
-  );
-
-  const menupopup = event.target;
-  Assert.ok(
-    [...menupopup.querySelectorAll("menuitem")].some(
-      mi => mi.getAttribute("label") === label
-    ),
-    "The flyout belongs to the row's secondary action"
-  );
-  return menupopup;
 }
 
-// Opens the dropdown and its delete flyout with device sign in stubbed out, so
-// the tests below never depend on a real OS prompt. `verifyArgs` records what
-// the parent asked for, and `restore` puts the real implementation back.
-async function openDeleteFlyout(browser, { verified = true } = {}) {
+// Opens the dropdown on a selected row with device sign in stubbed out, so the
+// tests below never depend on a real OS prompt. `verifyArgs` records what the
+// parent asked for, and `restore` puts the real implementation back.
+async function openDeleteTarget(browser, { verified = true } = {}) {
   const originalVerify = FormAutofillUtils.verifyUserOSAuth;
   const verifyArgs = [];
   FormAutofillUtils.verifyUserOSAuth = (...args) => {
@@ -141,18 +119,8 @@ async function openDeleteFlyout(browser, { verified = true } = {}) {
   const rowItem = item.querySelector("autocomplete-row-item");
   await selectFirstRow(browser, item);
 
-  const menupopup = await openFlyout(
-    browser.autoCompletePopup,
-    rowItem,
-    DELETE_LABEL
-  );
-  const menuitem = [...menupopup.querySelectorAll("menuitem")].find(
-    mi => mi.getAttribute("label") === DELETE_LABEL
-  );
-
   return {
-    menupopup,
-    menuitem,
+    rowItem,
     verifyArgs,
     restore: () => {
       FormAutofillUtils.verifyUserOSAuth = originalVerify;
@@ -160,10 +128,10 @@ async function openDeleteFlyout(browser, { verified = true } = {}) {
   };
 }
 
-async function acceptRemoval(menupopup, menuitem) {
+async function acceptRemoval(rowItem) {
   await withStorageChange("remove", async () => {
     const dialogClosed = BrowserTestUtils.promiseAlertDialog("accept");
-    menupopup.activateItem(menuitem);
+    await clickTrashButton(rowItem);
     await dialogClosed;
   });
 }
@@ -175,8 +143,9 @@ add_task(async function test_delete_asks_for_device_sign_in_then_confirms() {
   await BrowserTestUtils.withNewTab(
     { gBrowser, url: CC_URL },
     async browser => {
-      const { menupopup, menuitem, verifyArgs, restore } =
-        await openDeleteFlyout(browser, { verified: true });
+      const { rowItem, verifyArgs, restore } = await openDeleteTarget(browser, {
+        verified: true,
+      });
 
       const dialogClosed = BrowserTestUtils.promiseAlertDialog(
         null,
@@ -203,12 +172,8 @@ add_task(async function test_delete_asks_for_device_sign_in_then_confirms() {
         }
       );
 
-      menupopup.activateItem(menuitem);
+      await clickTrashButton(rowItem);
       await dialogClosed;
-      await TestUtils.waitForCondition(
-        () => !menupopup.isConnected,
-        "Wait for the flyout to be torn down"
-      );
       await TestUtils.waitForCondition(
         () => browser.autoCompletePopup.popupOpen,
         "Wait for the dropdown to come back after the confirmation"
@@ -259,10 +224,11 @@ add_task(async function test_delete_skips_confirm_when_device_sign_in_fails() {
   await BrowserTestUtils.withNewTab(
     { gBrowser, url: CC_URL },
     async browser => {
-      const { menupopup, menuitem, verifyArgs, restore } =
-        await openDeleteFlyout(browser, { verified: false });
+      const { rowItem, verifyArgs, restore } = await openDeleteTarget(browser, {
+        verified: false,
+      });
 
-      menupopup.activateItem(menuitem);
+      await clickTrashButton(rowItem);
       await TestUtils.waitForCondition(
         () => verifyArgs.length,
         "Wait for device sign in to be requested"
@@ -296,10 +262,10 @@ add_task(async function test_delete_removes_the_payment_method() {
   await BrowserTestUtils.withNewTab(
     { gBrowser, url: CC_URL },
     async browser => {
-      const { menupopup, menuitem, restore } = await openDeleteFlyout(browser);
+      const { rowItem, restore } = await openDeleteTarget(browser);
       const rowCount = getDisplayedPopupItems(browser).length;
 
-      await acceptRemoval(menupopup, menuitem);
+      await acceptRemoval(rowItem);
       restore();
 
       const remaining = await getCreditCards();
@@ -338,10 +304,9 @@ add_task(
     await BrowserTestUtils.withNewTab(
       { gBrowser, url: CC_URL },
       async browser => {
-        const { menupopup, menuitem, restore } =
-          await openDeleteFlyout(browser);
+        const { rowItem, restore } = await openDeleteTarget(browser);
 
-        await acceptRemoval(menupopup, menuitem);
+        await acceptRemoval(rowItem);
         restore();
 
         is(
@@ -350,8 +315,8 @@ add_task(
           "The last payment method was removed from storage"
         );
         await TestUtils.waitForCondition(
-          () => !browser.autoCompletePopup.popupOpen && !menupopup.isConnected,
-          "Wait for the dropdown and its flyout to be torn down"
+          () => !browser.autoCompletePopup.popupOpen,
+          "Wait for the dropdown to be torn down"
         );
       }
     );
@@ -419,10 +384,9 @@ add_task(async function test_delete_removes_a_card_that_cannot_be_decrypted() {
     await BrowserTestUtils.withNewTab(
       { gBrowser, url: CC_URL },
       async browser => {
-        const { menupopup, menuitem, restore } =
-          await openDeleteFlyout(browser);
+        const { rowItem, restore } = await openDeleteTarget(browser);
 
-        await acceptRemoval(menupopup, menuitem);
+        await acceptRemoval(rowItem);
         restore();
 
         is(

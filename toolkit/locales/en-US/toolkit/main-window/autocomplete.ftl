@@ -34,10 +34,25 @@ autocomplete-more-options-for-entry = More options for { $entry }
 
 autocomplete-edit-password = Edit this password
 autocomplete-delete-password = Delete this password
+
 autocomplete-edit-address = Edit this address
-autocomplete-delete-address = Delete this address
 autocomplete-edit-payment-method = Edit this payment method
+
+# Tooltip for the trash button on an address row.
+autocomplete-delete-address = Delete this address
+# Accessible name for the button. Names the address so screen reader
+# users know which entry the button deletes.
+# Variables:
+#   $entry (String) - The saved address the button would delete.
+autocomplete-delete-address-entry = Delete address { $entry }
+
+# Tooltip for the trash button on a payment method row.
 autocomplete-delete-payment-method = Delete this payment method
+# Accessible name for the button. Names the payment method so screen reader
+# users know which entry the button deletes.
+# Variables:
+#   $entry (String) - The saved payment method the button would delete.
+autocomplete-delete-payment-method-entry = Delete payment method { $entry }
 
 # Tooltip for the trash button on a form history entry.
 autocomplete-delete-entry = Delete
