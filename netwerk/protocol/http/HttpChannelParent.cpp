@@ -1275,6 +1275,11 @@ HttpChannelParent::OnStartRequest(nsIRequest* aRequest) {
     mCacheEntry = do_QueryInterface(cacheEntry);
     args.cacheEntryAvailable() = static_cast<bool>(mCacheEntry);
 
+    // Capture the load's principal origin now, while the channel is alive, to
+    // bind any alt-data written later (after the channel may have been
+    // cleared).
+    chan->GetAltDataBindingOrigin(mAltDataBindingOrigin);
+
     httpChannelImpl->GetCacheKey(&args.cacheKey());
     httpChannelImpl->GetAlternativeDataType(args.altDataType());
   }
@@ -2012,9 +2017,26 @@ NS_INTERFACE_MAP_BEGIN(CacheEntryWriteHandleParent)
   NS_INTERFACE_MAP_ENTRY(nsICacheEntryWriteHandle)
 NS_INTERFACE_MAP_END
 
+// Records, atomically with the alt-data write, the origin of the principal
+// that produced the alt-data.
+static void RecordAltDataPrincipal(nsICacheEntry* aCacheEntry,
+                                   const nsACString& aOrigin) {
+  if (!aCacheEntry) {
+    return;
+  }
+  if (aOrigin.IsEmpty()) {
+    // Fail closed: without a known principal, clear any binding so that reads
+    // reject this alt-data.
+    aCacheEntry->SetMetaDataElement("alt-data-principal", nullptr);
+  } else {
+    aCacheEntry->SetMetaDataElement("alt-data-principal",
+                                    PromiseFlatCString(aOrigin).get());
+  }
+}
+
 CacheEntryWriteHandleParent::CacheEntryWriteHandleParent(
-    nsICacheEntry* aCacheEntry)
-    : mCacheEntry(aCacheEntry) {}
+    nsICacheEntry* aCacheEntry, const nsACString& aBindingOrigin)
+    : mCacheEntry(aCacheEntry), mBindingOrigin(aBindingOrigin) {}
 
 NS_IMETHODIMP
 CacheEntryWriteHandleParent::OpenAlternativeOutputStream(
@@ -2028,12 +2050,13 @@ CacheEntryWriteHandleParent::OpenAlternativeOutputStream(
       mCacheEntry->OpenAlternativeOutputStream(type, predictedSize, _retval);
   if (NS_SUCCEEDED(rv)) {
     mCacheEntry->SetMetaDataElement("alt-data-from-child", "1");
+    RecordAltDataPrincipal(mCacheEntry, mBindingOrigin);
   }
   return rv;
 }
 
 CacheEntryWriteHandleParent* HttpChannelParent::AllocCacheEntryWriteHandle() {
-  return new CacheEntryWriteHandleParent(mCacheEntry);
+  return new CacheEntryWriteHandleParent(mCacheEntry, mAltDataBindingOrigin);
 }
 
 nsresult HttpChannelParent::OpenAlternativeOutputStream(
@@ -2048,6 +2071,7 @@ nsresult HttpChannelParent::OpenAlternativeOutputStream(
       mCacheEntry->OpenAlternativeOutputStream(type, predictedSize, _retval);
   if (NS_SUCCEEDED(rv)) {
     mCacheEntry->SetMetaDataElement("alt-data-from-child", "1");
+    RecordAltDataPrincipal(mCacheEntry, mAltDataBindingOrigin);
   }
   return rv;
 }
