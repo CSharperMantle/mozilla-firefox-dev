@@ -5,8 +5,8 @@
 #include "MediaTransportHandler.h"
 
 #include "MediaTransportHandlerIPC.h"
-#include "nsITimer.h"
 #include "mozilla/dom/RTCCertServiceData.h"
+#include "nsITimer.h"
 #include "transport/nricemediastream.h"
 #include "transport/nriceresolver.h"
 #include "transport/sigslot.h"
