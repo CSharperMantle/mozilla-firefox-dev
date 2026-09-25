@@ -45,8 +45,6 @@ class BackupTest(MarionetteTestCase):
             # Prevent WallpaperFeed from fetching Remote Settings attachments
             # from the CDN, which is blocked in CI test environments.
             "browser.newtabpage.activity-stream.newtabWallpapers.enabled": False,
-            # Prevent PictureOfTheDayFeed from fetching from Merino.
-            "browser.newtabpage.activity-stream.widgets.system.pictureOfTheDay.enabled": False,
         })
 
         self.marionette.set_context("chrome")

@@ -421,24 +421,6 @@ describe("isWidgetAddable", () => {
     ).toBe(true);
   });
 
-  it.each([
-    ["widgets", { privacyEnabled: true }],
-    ["widgetsSettings", { privacyVisible: true }],
-  ])(
-    "makes privacy addable via %s despite its preffed-off default",
-    (type, payload) => {
-      const privacy = WIDGET_REGISTRY.find(w => w.id === "privacy");
-      const prefs = { [privacy.systemEnabledPref]: false };
-      expect(isWidgetAddable(privacy, prefs)).toBe(false);
-      expect(
-        isWidgetAddable(privacy, {
-          ...prefs,
-          trainhopConfig: { [type]: payload },
-        })
-      ).toBe(true);
-    }
-  );
-
   it("is addable when revealed via the dedicated widgetPrivacy namespace", () => {
     const privacy = WIDGET_REGISTRY.find(w => w.id === "privacy");
     expect(
@@ -448,48 +430,6 @@ describe("isWidgetAddable", () => {
       })
     ).toBe(true);
   });
-
-  it.each([
-    ["widgets", { stocksEnabled: true }],
-    ["widgetsSettings", { stocksVisible: true }],
-  ])(
-    "makes stocks addable via %s despite its preffed-off default",
-    (type, payload) => {
-      const stocks = WIDGET_REGISTRY.find(w => w.id === "stocks");
-      const prefs = { [stocks.systemEnabledPref]: false };
-      expect(isWidgetAddable(stocks, prefs)).toBe(false);
-      expect(
-        isWidgetAddable(stocks, {
-          ...prefs,
-          trainhopConfig: { [type]: payload },
-        })
-      ).toBe(true);
-    }
-  );
-
-  it.each([
-    ["widgets", { recentSearchesEnabled: true }],
-    ["widgetsSettings", { recentSearchesVisible: true }],
-    ["widgetRecentSearches", { visible: true }],
-  ])(
-    "makes recent searches addable via %s despite its preffed-off default",
-    (type, payload) => {
-      const recentSearches = WIDGET_REGISTRY.find(
-        w => w.id === "recentSearches"
-      );
-      const prefs = {
-        [recentSearches.systemEnabledPref]: false,
-        supportsWidgetSearchSap: true,
-      };
-      expect(isWidgetAddable(recentSearches, prefs)).toBe(false);
-      expect(
-        isWidgetAddable(recentSearches, {
-          ...prefs,
-          trainhopConfig: { [type]: payload },
-        })
-      ).toBe(true);
-    }
-  );
 
   it("is addable when revealed via the dedicated widgetRecentSearches namespace", () => {
     const recentSearches = WIDGET_REGISTRY.find(w => w.id === "recentSearches");

@@ -201,9 +201,6 @@ export const PREF_WIDGETS_SYSTEM_RECENT_SEARCHES_ENABLED =
  * @property {string|null} [trainhopNamespace] - When set, the widget ships its whole config in one dedicated object at trainhopConfig.<namespace>. Its `enabled` overrides the default value of enabledPref on the default branch (user toggle still wins, like widgetsSettings.*Enabled); `visible` reveals the widget (isWidgetAddable) without writing a pref; `size` is read by resolveWidgetSize. Picture of the Day, Crossword, Privacy and Recent Searches use this today.
  */
 
-// If you add a widget market pref to firefox.js that older hosts don't have,
-// also add it to MARKET_PREF_FALLBACKS in ActivityStream.sys.mjs as a
-// @backward-compat stub, or train-hops to those hosts will ignore it.
 /** @type {WidgetRegistryEntry[]} */
 export const WIDGET_REGISTRY = [
   {
