@@ -15,32 +15,19 @@ const BASE = getRootDirectory(gTestPath).replace(
   "https://example.com"
 );
 const TEST_URL = BASE + "browser_shareurl.html";
-const mockShareData = [
-  {
-    name: "Test",
-    menuItemTitle: "Sharing Service Test",
-    image:
-      "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAAKE" +
-      "lEQVR42u3NQQ0AAAgEoNP+nTWFDzcoQE1udQQCgUAgEAgEAsGTYAGjxAE/G/Q2tQAAAABJRU5ErkJggg==",
-  },
-];
 
-let shareUrlSpy = sinon.spy();
-let openSharingPreferencesSpy = sinon.spy();
-let getSharingProvidersSpy = sinon.spy();
+let shareUrlWithPickerSpy = sinon.spy();
 
 const mockMacSharingService = MockRegistrar.register(
   "@mozilla.org/widget/macsharingservice;1",
   {
-    getSharingProviders(url) {
-      getSharingProvidersSpy(url);
-      return mockShareData;
-    },
-    shareUrl(name, url, title) {
-      shareUrlSpy(name, url, title);
-    },
-    openSharingPreferences() {
-      openSharingPreferencesSpy();
+    shareUrlWithPicker(anchor, urls, titles, shareTitle) {
+      shareUrlWithPickerSpy(
+        anchor,
+        Array.from(urls),
+        Array.from(titles),
+        shareTitle
+      );
     },
     QueryInterface: ChromeUtils.generateQI([Ci.nsIMacSharingService]),
   }
@@ -54,8 +41,8 @@ const qrCodeEnabled = Services.prefs.getBoolPref(
   "browser.shareqrcode.enabled",
   false
 );
-// copy link + service + More, plus QR code if enabled.
-const expectedItemCount = qrCodeEnabled ? 4 : 3;
+// Copy Link + the picker entry, plus QR code if enabled.
+const expectedItemCount = qrCodeEnabled ? 3 : 2;
 
 async function openShareTabPopup() {
   await waitForOverflowButtonShown();
@@ -103,14 +90,10 @@ add_task(async function test_button_exists() {
   });
 });
 
-add_task(async function test_popup_opens_with_share_services() {
+add_task(async function test_popup_opens_with_picker_entry() {
   await BrowserTestUtils.withNewTab(TEST_URL, async () => {
-    getSharingProvidersSpy.resetHistory();
-
     let { popupElement } = await openShareTabPopup();
     Assert.ok(popupElement, "Popup element is open");
-
-    ok(getSharingProvidersSpy.calledOnce, "getSharingProviders was called");
 
     let items = Array.from(popupElement.querySelectorAll("menuitem"));
     is(
@@ -119,47 +102,44 @@ add_task(async function test_popup_opens_with_share_services() {
       `There should be ${expectedItemCount} menu items`
     );
 
-    let shareButton = items.find(
-      item => item.getAttribute("label") == mockShareData[0].menuItemTitle
+    let pickerItem = items.find(item =>
+      item.classList.contains("share-mac-picker-item")
     );
-    ok(
-      shareButton,
-      "Share button's label should match the service's menu item title"
-    );
+    ok(pickerItem, "The macOS share picker entry is present");
     is(
-      shareButton?.getAttribute("data-share-name"),
-      mockShareData[0].name,
-      "Share button's share-name value should match the service's name"
+      pickerItem.getAttribute("data-l10n-id"),
+      "menu-share-mac-picker-single",
+      "Picker entry uses the expected string"
     );
 
     await closePopup(popupElement);
   });
 });
 
-add_task(async function test_share_service_click() {
+add_task(async function test_picker_entry_click() {
   await BrowserTestUtils.withNewTab(TEST_URL, async () => {
-    shareUrlSpy.resetHistory();
+    shareUrlWithPickerSpy.resetHistory();
 
     let { popupElement } = await openShareTabPopup();
 
-    let items = Array.from(popupElement.querySelectorAll("menuitem"));
-    let shareButton = items.find(
-      item => item.getAttribute("label") == mockShareData[0].menuItemTitle
-    );
+    let pickerItem = popupElement.querySelector(".share-mac-picker-item");
 
     let menuPopupClosedPromise = BrowserTestUtils.waitForPopupEvent(
       popupElement,
       "hidden"
     );
-    popupElement.activateItem(shareButton);
+    popupElement.activateItem(pickerItem);
     await menuPopupClosedPromise;
 
-    ok(shareUrlSpy.calledOnce, "shareUrl was called");
+    await TestUtils.waitForCondition(
+      () => shareUrlWithPickerSpy.calledOnce,
+      "shareUrlWithPicker was called"
+    );
 
-    let [name, url, title] = shareUrlSpy.getCall(0).args;
-    is(name, mockShareData[0].name, "Shared correct service name");
-    is(url, TEST_URL, "Shared correct URL");
-    is(title, "Sharing URL", "Shared the correct title");
+    let [, urls, titles, shareTitle] = shareUrlWithPickerSpy.getCall(0).args;
+    Assert.deepEqual(urls, [TEST_URL], "Shared the correct URL");
+    is(titles[0], "Sharing URL", "Shared the correct title");
+    is(shareTitle, "Sharing URL", "shareTitle matches the tab title");
   });
 });
 
@@ -182,31 +162,5 @@ add_task(async function test_copy_link() {
     );
     await menuPopupClosedPromise;
     ok(true, "Menu popup closed after button click");
-  });
-});
-
-add_task(async function test_more_button() {
-  await BrowserTestUtils.withNewTab(TEST_URL, async () => {
-    openSharingPreferencesSpy.resetHistory();
-
-    let { popupElement } = await openShareTabPopup();
-
-    let items = Array.from(popupElement.querySelectorAll("menuitem"));
-    let moreItem = items.find(
-      item => item.getAttribute("data-l10n-id") == "menu-share-more"
-    );
-    ok(moreItem, "More item exists");
-
-    let menuPopupClosedPromise = BrowserTestUtils.waitForPopupEvent(
-      popupElement,
-      "hidden"
-    );
-    popupElement.activateItem(moreItem);
-    await menuPopupClosedPromise;
-
-    ok(
-      openSharingPreferencesSpy.calledOnce,
-      "openSharingPreferences was called"
-    );
   });
 });

@@ -38,6 +38,7 @@ UNIFIED_SOURCES += [
     "MOZDynamicCursor.mm",
     "MOZIconHelper.mm",
     "MOZMenuOpeningCoordinator.mm",
+    "MOZShareURLPasteboardItem.mm",
     "NativeKeyBindings.mm",
     "NativeMenuMac.mm",
     "NativeMenuSupport.mm",

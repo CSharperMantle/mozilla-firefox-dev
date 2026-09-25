@@ -41,7 +41,7 @@ add_task(async function test_qrcode_share_menu() {
     );
     Assert.equal(
       qrCodeItem.getAttribute("data-l10n-id"),
-      "menu-file-share-qrcode",
+      "menu-file-share-qrcode3",
       "QR Code menu item should have correct localization ID"
     );
   });

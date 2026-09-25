@@ -4,27 +4,26 @@
 
 #include "nsISupports.idl"
 
+webidl Element;
+
 /**
  * Allow applications to interface with the Mac OS X Sharing APIs.
  */
 
-[scriptable, uuid(de59fe1a-46c8-490f-b04d-34545acb06c9)]
+[scriptable, uuid(4a1e2b73-8c5d-4f6a-9b21-0c7de5a13f88)]
 interface nsIMacSharingService : nsISupports
 {
   /**
-   * Get list of sharing providers
+   * Show the native NSSharingServicePicker, anchored to the given DOM element.
+   * The picker owns the list of providers and the UI. macOS invokes the
+   * service that the user chooses.
+   *
+   * `urls.length == 1` implies a single-tab share, otherwise the share item exposes
+   * text/html structure covering all URLs. `shareTitle` populates the picker's
+   * preview area (the page title for single tab share or "Share N Links" for multiple).
    */
-  [implicit_jscontext] jsval getSharingProviders(in AString pageUrl);
-
-  /**
-   * Launch service with shareTitle with given url
-   */
-  void shareUrl(in AString serviceName,
-                in AString pageUrl,
-                in AString pageTitle);
-
-  /**
-   * Open the MacOS preferences window to the sharing panel
-   */
-  void openSharingPreferences();
+  void shareUrlWithPicker(in Element anchor,
+                          in Array<AString> urls,
+                          in Array<AString> titles,
+                          in AString shareTitle);
 };
