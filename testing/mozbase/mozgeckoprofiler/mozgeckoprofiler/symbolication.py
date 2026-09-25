@@ -1,15 +1,18 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
+import atexit
 import gzip
 import json
 import os
 import platform
+import shutil
 import signal
 import subprocess
 import tempfile
 import time
 import zipfile
+from functools import cache
 from pathlib import Path
 from urllib.parse import unquote
 
@@ -26,18 +29,21 @@ SYMBOL_SERVER_TIMEOUT = 60  # seconds
 SAMPLY_WAIT_TIMEOUT = 60  # seconds
 
 
-def get_extracted_symbols(work_dir=None):
+@cache
+def get_extracted_symbols():
+    """Return a directory of Breakpad symbols, or None if there is none.
+
+    The result is computed once per process. In automation the symbols zip is
+    unpacked into a temporary directory that this module owns and removes at
+    exit, so a task that symbolicates several profiles unpacks it once.
+    """
     try:
         if "MOZ_AUTOMATION" in os.environ:
             base_path = os.environ["MOZ_FETCHES_DIR"]
             symbol_zip = Path(base_path) / "target.crashreporter-symbols.zip"
             if symbol_zip.exists():
-                if work_dir is None:
-                    raise ValueError(
-                        "work_dir must be provided in MOZ_AUTOMATION environment"
-                    )
-                breakpad_symbol_dir = Path(work_dir) / "breakpad_symbols"
-                breakpad_symbol_dir.mkdir(exist_ok=True)
+                breakpad_symbol_dir = Path(tempfile.mkdtemp(prefix="breakpad_symbols"))
+                atexit.register(shutil.rmtree, breakpad_symbol_dir, ignore_errors=True)
                 with zipfile.ZipFile(symbol_zip, "r") as zipf:
                     zipf.extractall(breakpad_symbol_dir)
                 LOG.info(f"Extracted symbols to {breakpad_symbol_dir}")
@@ -120,7 +126,7 @@ def symbolicate_profile(profile_json, symbol_dir=None):
     try:
         with tempfile.TemporaryDirectory() as work_dir:
             if symbol_dir is None:
-                symbol_dir = get_extracted_symbols(work_dir)
+                symbol_dir = get_extracted_symbols()
                 if symbol_dir is None:
                     LOG.warning(
                         f"Symbol directory not found. Attempting to symbolicate with {BREAKPAD_SYMBOL_SERVER}"
