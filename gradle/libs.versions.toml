@@ -10,7 +10,7 @@ serialization = "1.11.0"
 
 # AndroidX
 activity = "1.13.0"
-annotation = "1.10.0"
+annotation = "1.11.0"
 annotation-experimental = "1.6.0"
 appcompat = "1.8.0"
 arch = "2.2.0"
