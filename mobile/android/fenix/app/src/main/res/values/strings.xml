@@ -2263,6 +2263,8 @@
     <string name="sync_send_tab_error_connection_title">Check your internet connection</string>
     <!-- Send tab to synced devices: Connectivity Error message - Suggested user action after internet connection has been established -->
     <string name="sync_send_tab_error_connection_text">Then try resending your tab.</string>
+    <!-- Send tab to synced devices: Connectivity Error button - When tapped, refreshes the list of connected devices. -->
+    <string name="sync_send_tab_error_connection_button">Retry</string>
 
     <!-- Notifications -->
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active. -->
