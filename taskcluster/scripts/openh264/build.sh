@@ -51,7 +51,7 @@ case "$TARGET" in
         MAKE_ARCH=x86_64
         MACOS_SDK=$(ls -d "$MOZ_FETCHES_DIR"/MacOSX*.sdk)
         CROSS_FLAGS="-target x86_64-apple-darwin -isysroot $MACOS_SDK -mmacosx-version-min=10.12"
-        export PATH="$MOZ_FETCHES_DIR/clang/bin:$MOZ_FETCHES_DIR/cctools/bin:$MOZ_FETCHES_DIR/nasm:$PATH"
+        export PATH="$MOZ_FETCHES_DIR/clang/bin:$MOZ_FETCHES_DIR/nasm:$PATH"
         CC=clang; CXX=clang++
         ;;
     aarch64-apple-darwin)
@@ -60,7 +60,7 @@ case "$TARGET" in
         MAKE_ARCH=arm64
         MACOS_SDK=$(ls -d "$MOZ_FETCHES_DIR"/MacOSX*.sdk)
         CROSS_FLAGS="-target aarch64-apple-darwin -mcpu=apple-a12 -isysroot $MACOS_SDK -mmacosx-version-min=11.0"
-        export PATH="$MOZ_FETCHES_DIR/clang/bin:$MOZ_FETCHES_DIR/cctools/bin:$PATH"
+        export PATH="$MOZ_FETCHES_DIR/clang/bin:$PATH"
         CC=clang; CXX=clang++
         ;;
     i686-pc-windows-msvc)
@@ -100,6 +100,10 @@ case "$TARGET" in
         export CFLAGS="$CROSS_FLAGS $OVERLAY"
         CXX_LINK_O="$CROSS_FLAGS -nologo -fuse-ld=lld -Fe\$@"
         . "$GECKO_PATH/taskcluster/scripts/misc/vs-setup.sh"
+        ;;
+    *-apple-darwin)
+        export CFLAGS="$CROSS_FLAGS"
+        export LDFLAGS="$CROSS_FLAGS -fuse-ld=lld"
         ;;
     *)
         export CFLAGS="$CROSS_FLAGS"

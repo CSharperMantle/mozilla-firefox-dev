@@ -4894,6 +4894,8 @@ enum class ComponentNameFragmentKind {
   }
 
   ComponentNameAttributes attrs;
+  uint8_t attributesLength = 0;
+  uint32_t resourceNameLength = 0;
   Decoder nameDecoder(d.currentPosition(), d.currentPosition() + len,
                       d.currentOffset(), d.error(), d.warnings());
   {
@@ -4931,6 +4933,8 @@ enum class ComponentNameFragmentKind {
     // does not recognize the symbols used to delimit namespaces, projections,
     // or versions.
 
+    const uint8_t* beforeAttributes = d.currentPosition();
+
     // [constructor]/[method]/[static] must come first and are mutually
     // exclusive
     if (d.readLiteral("[constructor]")) {
@@ -4948,6 +4952,11 @@ enum class ComponentNameFragmentKind {
       attrs += Attr::Set;
     }
 
+    const uint8_t* afterAttributes = d.currentPosition();
+    MOZ_ASSERT(afterAttributes - beforeAttributes <=
+               std::numeric_limits<decltype(attributesLength)>::max());
+    attributesLength = afterAttributes - beforeAttributes;
+
     if (attrs.contains(Attr::Constructor)) {
       if (attrs.contains(Attr::Get) || attrs.contains(Attr::Set)) {
         return d.fail("cannot use [get] or [set] with [constructor]");
@@ -4955,10 +4964,12 @@ enum class ComponentNameFragmentKind {
       if (!DecodeComponentLabel(d, thing, /*allowUppercase=*/true)) {
         return false;
       }
+      resourceNameLength = d.currentPosition() - afterAttributes;
     } else if (attrs.contains(Attr::Method) || attrs.contains(Attr::Static)) {
       if (!DecodeComponentLabel(d, thing, /*allowUppercase=*/true)) {
         return false;
       }
+      resourceNameLength = d.currentPosition() - afterAttributes;
       if (d.done()) {
         return d.failf("%s name ended unexpectedly", thing);
       } else if (!d.readLiteral(".")) {
@@ -4982,7 +4993,8 @@ enum class ComponentNameFragmentKind {
   if (!d.readUTF8Bytes(len, &utf8Bytes)) {
     MOZ_CRASH("full name should have been decoded earlier");
   }
-  *name = ComponentName(std::move(utf8Bytes), attrs);
+  *name = ComponentName(std::move(utf8Bytes), attrs, attributesLength,
+                        resourceNameLength);
 
   return true;
 }
@@ -5402,8 +5414,7 @@ enum class ComponentTypeKindRaw : uint8_t {
       }
     } break;
 
-    case uint8_t(ComponentTypeKindRaw::Func):
-    case uint8_t(ComponentTypeKindRaw::AsyncFunc): {
+    case uint8_t(ComponentTypeKindRaw::Func): {
       ComponentFuncType ft;
 
       uint32_t numParams;
@@ -5466,6 +5477,8 @@ enum class ComponentTypeKindRaw : uint8_t {
         return false;
       }
     } break;
+    case uint8_t(ComponentTypeKindRaw::AsyncFunc):
+      return d.fail("async functions are not supported");
 
     case uint8_t(ComponentTypeKindRaw::Resource): {
       uint8_t repType;
@@ -6536,6 +6549,172 @@ enum class CanonDefKindRaw : uint8_t {
   return true;
 }
 
+// [constructor], [method], and [static] must reference a preceding resource
+// type in their name, and [constructor] and [method] have additional
+// restrictions on results/params.
+template <typename HasFunc, typename GetFunc>
+static bool ValidateResourceFuncs(Decoder& d, const ComponentName& name,
+                                  const ComponentFuncType& funcType,
+                                  const HasFunc& hasItemWithName,
+                                  const GetFunc& getItemByName) {
+  if (!name.attributes.contains(ComponentNameAttribute::Constructor) &&
+      !name.attributes.contains(ComponentNameAttribute::Method) &&
+      !name.attributes.contains(ComponentNameAttribute::Static)) {
+    return true;
+  }
+
+  mozilla::Span<const char> resourceName = name.resourceName();
+
+  bool resourceOk = false;
+  ComponentType resourceType;
+  if (hasItemWithName(resourceName)) {
+    const ComponentExternDesc& resourceTypeDesc = getItemByName(resourceName);
+    if (resourceTypeDesc.sort() == ComponentSort::Type &&
+        resourceTypeDesc.asType().isAnyResource()) {
+      resourceOk = true;
+      resourceType = resourceTypeDesc.asType();
+    }
+  }
+  if (!resourceOk) {
+    return d.failf(
+        "no preceding resource type named \"%.*s\" for func \"%.*s\"",
+        ComponentNameSpan_Printf(resourceName),
+        ComponentName_Printf(name.name));
+  }
+  MOZ_ASSERT(resourceType.isValid());
+
+  if (name.attributes.contains(ComponentNameAttribute::Constructor)) {
+    bool resultOk = false;
+    if (funcType.resultType.isSome()) {
+      bool isOwn = funcType.resultType->kind() == ComponentTypeKind::Own &&
+                   funcType.resultType->asOwn() == resourceType;
+      bool isResultOwn =
+          funcType.resultType->kind() == ComponentTypeKind::Result &&
+          funcType.resultType->asResult().type.isSome() &&
+          funcType.resultType->asResult().type->kind() ==
+              ComponentTypeKind::Own &&
+          funcType.resultType->asResult().type->asOwn() == resourceType;
+      if (isOwn || isResultOwn) {
+        resultOk = true;
+      }
+    }
+    if (!resultOk) {
+      return d.failf("constructor \"%.*s\" must return (own %.*s)",
+                     ComponentName_Printf(name.name),
+                     ComponentNameSpan_Printf(resourceName));
+    }
+  } else if (name.attributes.contains(ComponentNameAttribute::Method)) {
+    if (funcType.paramTypes.length() == 0 ||
+        funcType.paramNames[0].utf8Bytes() !=
+            mozilla::Span<const char>("self", strlen("self")) ||
+        funcType.paramTypes[0].kind() != ComponentTypeKind::Borrow ||
+        funcType.paramTypes[0].asBorrow() != resourceType) {
+      return d.failf(
+          "method \"%.*s\" must have a first parameter (param \"self\" "
+          "(borrow %.*s))",
+          ComponentName_Printf(name.name),
+          ComponentNameSpan_Printf(resourceName));
+    }
+  }
+
+  return true;
+}
+
+// [get] and [set] have restrictions on the number and type of their
+// params/results.
+template <typename HasFunc, typename GetFunc>
+static bool ValidateAccessors(Decoder& d, const ComponentName& name,
+                              const ComponentFuncType& funcType,
+                              const HasFunc& hasItemWithName,
+                              const GetFunc& getItemByName) {
+  bool isMethod = name.attributes.contains(ComponentNameAttribute::Method);
+  if (name.attributes.contains(ComponentNameAttribute::Get)) {
+    // [get] must have no parameters (except "self" for [method])
+    if (funcType.paramTypes.length() != (isMethod ? 1 : 0)) {
+      return d.failf("getter \"%.*s\" must have no parameters%s",
+                     ComponentName_Printf(name.name),
+                     isMethod ? " besides self" : "");
+    }
+    // [get] must return something, and if it returns result<T> then it must
+    // have an inner type
+    if (funcType.resultType.isNothing() ||
+        (funcType.resultType->kind() == ComponentTypeKind::Result &&
+         funcType.resultType->asResult().type.isNothing())) {
+      return d.failf("getter \"%.*s\" must return a value",
+                     ComponentName_Printf(name.name));
+    }
+  } else if (name.attributes.contains(ComponentNameAttribute::Set)) {
+    // [set] must be preceded by a matching getter
+    CacheableName getterName;
+    if (!name.getterForSetter(&getterName)) {
+      return false;
+    }
+    if (!hasItemWithName(getterName.utf8Bytes())) {
+      return d.failf("setter \"%.*s\" must be preceded by getter \"%.*s\"",
+                     ComponentName_Printf(name.name),
+                     ComponentName_Printf(getterName));
+    }
+
+    // We know the getter previously validated.
+    const ComponentFuncType& getterType =
+        getItemByName(getterName.utf8Bytes()).asFunc().asFunc();
+    ComponentType getterPropertyType =
+        getterType.resultType->kind() == ComponentTypeKind::Result
+            ? getterType.resultType->asResult().type.value()
+            : getterType.resultType.value();
+
+    // [set] must have exactly one parameter (besides "self" for [method]),
+    // and this parameter must match the getter's property type
+    if (funcType.paramTypes.length() != (isMethod ? 2 : 1)) {
+      return d.failf("setter \"%.*s\" must have only one parameter%s",
+                     ComponentName_Printf(name.name),
+                     isMethod ? " besides self" : "");
+    }
+    if (funcType.paramTypes[isMethod ? 1 : 0] != getterPropertyType) {
+      return d.failf("setter \"%.*s\"'s parameter must match its getter",
+                     ComponentName_Printf(name.name));
+    }
+
+    // [set] must return nothing or result<E?> (no value type)
+    if (funcType.resultType.isSome() &&
+        (funcType.resultType->kind() != ComponentTypeKind::Result ||
+         funcType.resultType->asResult().type.isSome())) {
+      return d.failf("setter \"%.*s\" must return nothing",
+                     ComponentName_Printf(name.name));
+    }
+  }
+
+  return true;
+}
+
+// Validate extra conditions from name annotations like [constructor], [method],
+// [static], [get], and [set].
+template <typename HasFunc, typename GetFunc>
+static bool ValidateComponentNameAnnotations(
+    Decoder& d, const ComponentName& name,
+    const ComponentExternDesc& externDesc, const HasFunc& hasItemWithName,
+    const GetFunc& getItemByName) {
+  if (name.attributes.isEmpty()) {
+    return true;
+  }
+
+  if (externDesc.sort() != ComponentSort::Func) {
+    return d.fail("name annotations can only be used with functions");
+  }
+  const ComponentFuncType& funcType = externDesc.asFunc().asFunc();
+
+  if (!ValidateResourceFuncs(d, name, funcType, hasItemWithName,
+                             getItemByName)) {
+    return false;
+  }
+
+  if (!ValidateAccessors(d, name, funcType, hasItemWithName, getItemByName)) {
+    return false;
+  }
+
+  return true;
+}
+
 enum class ComponentImportFlagsRaw : uint8_t {
   // Strangely, the binary encoding currently allows either 0x00 or 0x01 for the
   // flags. Both do exactly the same thing. This is supposed to be cleaned up
@@ -6587,6 +6766,17 @@ static bool DecodeComponentImport(Decoder& d, MutableComponent& c,
   if (duplicate) {
     return d.failf("import name \"%.*s\" is not strongly-unique",
                    ComponentName_Printf(importName.name));
+  }
+
+  if (!ValidateComponentNameAnnotations(
+          d, importName, externDesc,
+          [&](mozilla::Span<const char> name) -> bool {
+            return c->hasImportWithName(name);
+          },
+          [&](mozilla::Span<const char> name) -> const ComponentExternDesc& {
+            return c->getImportByName(name).externDesc();
+          })) {
+    return false;
   }
 
   return c->addImport(ComponentImport(std::move(importName), externDesc));
@@ -6689,8 +6879,6 @@ enum class ComponentExportFlagsRaw : uint8_t {
   // restriction as well, including e.g. records but excluding e.g. s32. What is
   // this list? Who knows.)
 
-  // TODO(wasm-cm): Validate all the naming-related conditions
-
   bool duplicate;
   if (!nameDedup.add(exportName.name.utf8Bytes(), &duplicate)) {
     return false;
@@ -6698,6 +6886,17 @@ enum class ComponentExportFlagsRaw : uint8_t {
   if (duplicate) {
     return d.failf("export name \"%.*s\" is not strongly-unique",
                    ComponentName_Printf(exportName.name));
+  }
+
+  if (!ValidateComponentNameAnnotations(
+          d, exportName, externDesc,
+          [&](mozilla::Span<const char> name) -> bool {
+            return c->hasExportWithName(name);
+          },
+          [&](mozilla::Span<const char> name) -> const ComponentExternDesc& {
+            return c->getExportByName(name).externDesc();
+          })) {
+    return false;
   }
 
   return c->addExport(ComponentExport(std::move(exportName), externDesc));

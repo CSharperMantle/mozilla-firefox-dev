@@ -1205,11 +1205,33 @@ panel-save-update-password-2 =
 
 ##
 
-# "More" item in macOS share menu
-menu-share-more =
-    .label = More…
-menu-share-windows =
-    .label = More Options
+# Caption shown in the native macOS share picker for the items being shared.
+# Variables:
+#   $count (Number) - The number of links being shared.
+menu-share-links =
+    .label =
+        { $count ->
+            [one] { $count } Link
+           *[other] { $count } Links
+        }
+# macOS-only item that opens the system share picker, used when a single link
+# is shared. "AirDrop" and "Messages" are names of macOS apps, so they should
+# match the macOS translation of those names where possible.
+menu-share-mac-picker-single =
+    .label = AirDrop, Messages, and More…
+    .accesskey = M
+# macOS-only item that opens the system share picker, used when more than one
+# link is shared. AirDrop is not mentioned here because it can only share a
+# single URL. "Messages" and "Mail" are names of macOS apps, so they should
+# match the macOS translation of those names where possible.
+menu-share-mac-picker-multiple =
+    .label = Messages, Mail, and More…
+    .accesskey = M
+# Share entry in the addressbar context menu. Opens the macOS share picker
+# directly, hence the ellipsis.
+urlbar-share-url =
+    .label = Share…
+    .accesskey = h
 # Variables:
 #   $count (Number) - The number of links that will be copied.
 menu-share-copy-links =
@@ -1219,6 +1241,8 @@ menu-share-copy-links =
            *[other] Copy { $count } Links
         }
     .accesskey = L
+menu-share-windows =
+    .label = More Options
 ui-tour-info-panel-close =
     .tooltiptext = Close
 

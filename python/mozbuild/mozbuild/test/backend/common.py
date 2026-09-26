@@ -86,6 +86,25 @@ CONFIGS = defaultdict(
                 "LIB_SUFFIX": "a",
             },
         },
+        "rust-library-flags": {
+            "defines": {},
+            "substs": {
+                "COMPILE_ENVIRONMENT": "1",
+                "RUST_TARGET": "x86_64-unknown-linux-gnu",
+                "LIB_PREFIX": "lib",
+                "LIB_SUFFIX": "a",
+            },
+        },
+        "rust-megazord-library": {
+            "defines": {},
+            "substs": {
+                "COMPILE_ENVIRONMENT": "1",
+                "OS_TARGET": "WINNT",
+                "RUST_TARGET": "x86_64-pc-windows-msvc",
+                "LIB_PREFIX": "lib",
+                "LIB_SUFFIX": "a",
+            },
+        },
         "host-rust-library": {
             "defines": {},
             "substs": {
@@ -174,6 +193,7 @@ CONFIGS = defaultdict(
             "defines": {},
             "substs": {
                 "COMPILE_ENVIRONMENT": "1",
+                "MOZ_WIDGET_TOOLKIT": "windows",
                 "RUST_TARGET": "i686-pc-windows-msvc",
                 "RUST_HOST_TARGET": "i686-pc-windows-msvc",
                 "BIN_SUFFIX": ".exe",

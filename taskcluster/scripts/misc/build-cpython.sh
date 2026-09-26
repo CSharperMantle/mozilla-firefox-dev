@@ -46,6 +46,7 @@ case `uname -s` in
             openssl_libssl_crypto_id=/openssl/lib/libcrypto.1.1.dylib
         else
             openssl_prefix=/usr/local/opt/openssl
+            export DYLD_FALLBACK_LIBRARY_PATH=${xz_prefix}/lib:/usr/local/lib:/usr/lib
             openssl_ssl_id=/usr/local/opt/openssl@1.1/lib/libssl.1.1.dylib
             openssl_crypto_id=/usr/local/opt/openssl@1.1/lib/libcrypto.1.1.dylib
             openssl_libssl_crypto_id=/usr/local/Cellar/openssl@1.1/1.1.1h/lib/libcrypto.1.1.dylib

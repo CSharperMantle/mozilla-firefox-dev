@@ -25,6 +25,8 @@ subsuite = "mozbuild"
 
 ["action/test_process_install_manifest.py"]
 
+["action/test_run_cargo.py"]
+
 ["action/test_zip.py"]
 
 ["backend/test_build.py"]
@@ -129,6 +131,8 @@ subsuite = "mozbuild"
 
 ["test_line_endings.py"]
 
+["test_mach_cargo.py"]
+
 ["test_makeutil.py"]
 
 ["test_manifest.py"]
@@ -150,6 +154,8 @@ subsuite = "mozbuild"
 ["test_pythonutil.py"]
 
 ["test_rewrite_mozbuild.py"]
+
+["test_rust_commands.py"]
 
 ["test_site_dependency_extractor.py"]
 

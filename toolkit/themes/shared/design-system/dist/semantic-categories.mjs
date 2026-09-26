@@ -758,6 +758,10 @@ export const tokensTable = {
       name: "--toggle-background-color-active",
     },
     {
+      value: { forcedColors: "var(--button-background-color-disabled)" },
+      name: "--toggle-background-color-disabled",
+    },
+    {
       value: "var(--color-accent-primary)",
       name: "--toggle-background-color-pressed",
     },
@@ -768,6 +772,12 @@ export const tokensTable = {
     {
       value: "var(--color-accent-primary-active)",
       name: "--toggle-background-color-pressed-active",
+    },
+    {
+      value: {
+        forcedColors: "var(--button-background-color-primary-disabled)",
+      },
+      name: "--toggle-background-color-pressed-disabled",
     },
     {
       value: {
@@ -791,11 +801,19 @@ export const tokensTable = {
       name: "--toggle-dot-background-color-active",
     },
     {
+      value: { forcedColors: "var(--button-text-color-disabled)" },
+      name: "--toggle-dot-background-color-disabled",
+    },
+    {
       value: {
         default: "var(--background-color-canvas)",
         forcedColors: "var(--button-background-color)",
       },
       name: "--toggle-dot-background-color-on-pressed",
+    },
+    {
+      value: { forcedColors: "var(--button-text-color-primary-disabled)" },
+      name: "--toggle-dot-background-color-on-pressed-disabled",
     },
     {
       value: "var(--background-color-box)",
@@ -1393,6 +1411,10 @@ export const tokensTable = {
         forcedColors: "var(--border-color-interactive-active)",
       },
       name: "--toggle-border-color-active",
+    },
+    {
+      value: { forcedColors: "var(--border-color-interactive-disabled)" },
+      name: "--toggle-border-color-disabled",
     },
     {
       value: "var(--border-color-interactive)",
@@ -2436,7 +2458,7 @@ export const tokensTable = {
       name: "--button-text-color-ghost-hover",
     },
     {
-      value: "var(--button-text-color-ghost-active)",
+      value: { default: "var(--button-text-color-ghost-active)" },
       name: "--button-text-color-ghost-selected",
     },
     { value: "var(--button-text-color)", name: "--button-text-color-muted" },
@@ -4361,7 +4383,9 @@ export const variableLookupTable = {
     prefersContrast: "var(--button-text-color-hover)",
     forcedColors: "var(--button-text-color-hover)",
   },
-  "button-text-color-ghost-selected": "var(--button-text-color-ghost-active)",
+  "button-text-color-ghost-selected": {
+    default: "var(--button-text-color-ghost-active)",
+  },
   "button-text-color-muted": "var(--button-text-color)",
   "button-text-color-muted-active": "var(--button-text-color-active)",
   "button-text-color-muted-hover": "var(--button-text-color-hover)",
@@ -5278,10 +5302,16 @@ export const variableLookupTable = {
   "toggle-background-color": "var(--button-background-color)",
   "toggle-background-color-hover": "var(--button-background-color-hover)",
   "toggle-background-color-active": "var(--button-background-color-active)",
+  "toggle-background-color-disabled": {
+    forcedColors: "var(--button-background-color-disabled)",
+  },
   "toggle-background-color-pressed": "var(--color-accent-primary)",
   "toggle-background-color-pressed-hover": "var(--color-accent-primary-hover)",
   "toggle-background-color-pressed-active":
     "var(--color-accent-primary-active)",
+  "toggle-background-color-pressed-disabled": {
+    forcedColors: "var(--button-background-color-primary-disabled)",
+  },
   "toggle-border-color": {
     light: "var(--color-gray-70)",
     dark: "var(--border-color-interactive)",
@@ -5297,6 +5327,9 @@ export const variableLookupTable = {
   "toggle-border-color-active": {
     default: "var(--toggle-border-color)",
     forcedColors: "var(--border-color-interactive-active)",
+  },
+  "toggle-border-color-disabled": {
+    forcedColors: "var(--border-color-interactive-disabled)",
   },
   "toggle-border-radius": "var(--border-radius-circle)",
   "toggle-border-width": "var(--border-width)",
@@ -5314,9 +5347,15 @@ export const variableLookupTable = {
     default: "var(--toggle-dot-background-color)",
     forcedColors: "var(--color-accent-primary-active)",
   },
+  "toggle-dot-background-color-disabled": {
+    forcedColors: "var(--button-text-color-disabled)",
+  },
   "toggle-dot-background-color-on-pressed": {
     default: "var(--background-color-canvas)",
     forcedColors: "var(--button-background-color)",
+  },
+  "toggle-dot-background-color-on-pressed-disabled": {
+    forcedColors: "var(--button-text-color-primary-disabled)",
   },
   "toggle-dot-margin": "1px",
   "toggle-dot-height":

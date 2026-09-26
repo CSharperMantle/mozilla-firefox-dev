@@ -25,6 +25,8 @@ import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
  * @property {string} href - URL for the link (used with context-chip type)
  * @property {boolean} removable - Whether the chip shows a remove button on hover (default false)
  * @property {string} itemRole - ARIA role for the inner element
+ * @property {string} openLinkEvent - Event dispatched when a linked chip is
+ *   clicked. Each host opens links itself, so it names the event it listens for.
  */
 export class AIWebsiteChip extends MozLitElement {
   // Forward focus to the inner element for keyboard navigation.

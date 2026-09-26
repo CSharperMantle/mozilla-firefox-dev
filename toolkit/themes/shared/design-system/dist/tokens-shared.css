@@ -824,6 +824,7 @@
       --button-text-color-destructive-selected: light-dark(var(--button-text-color-destructive), var(--button-text-color-destructive-active));
       --button-text-color-ghost-hover: var(--button-text-color-ghost);
       --button-text-color-ghost-active: var(--button-text-color-ghost);
+      --button-text-color-ghost-selected: var(--button-text-color-ghost-active);
       --button-text-color-menu-hover: light-dark(var(--button-text-color-ghost-hover), var(--button-text-color-hover));
       --button-text-color-menu-active: light-dark(var(--button-text-color-ghost-active), var(--button-text-color-active));
       --button-text-color-menu-disabled: light-dark(var(--button-text-color-ghost-disabled), var(--button-text-color-disabled));
@@ -1113,6 +1114,7 @@
         --button-text-color-destructive-disabled: var(--button-text-color-primary);
         --button-text-color-destructive-selected: var(--button-text-color-destructive-active);
         --button-text-color-ghost-hover: var(--button-text-color-ghost-active);
+        --button-text-color-ghost-selected: var(--button-text-color-selected);
         --button-text-color-menu-hover: -moz-menuhovertext;
         --button-text-color-menu-disabled: var(--button-text-color-disabled);
         --button-text-color-menu-selected: var(--button-text-color-primary-selected);

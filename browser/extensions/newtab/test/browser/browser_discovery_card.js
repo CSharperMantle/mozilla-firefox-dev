@@ -76,8 +76,7 @@ test_newtab({
       [
         "browser.newtabpage.activity-stream.discoverystream.endpoints",
         "https://example.com",
-      ],
-      ["browser.newtabpage.activity-stream.widgets.enabled", false]
+      ]
     );
   },
   test: async function test_card_menu_item_is_clickable() {

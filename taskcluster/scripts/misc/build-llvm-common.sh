@@ -36,18 +36,23 @@ case "$target" in
   EXTRA_CMAKE_FLAGS="
     $EXTRA_CMAKE_FLAGS
     -DCMAKE_LINKER=$MACOS_LD
-    -DCMAKE_LIPO=$MACOS_LIPO
     -DCMAKE_SYSTEM_NAME=Darwin
     -DCMAKE_SYSTEM_VERSION=$MACOSX_DEPLOYMENT_TARGET
     -DCMAKE_OSX_SYSROOT=$MACOS_SDK
     -DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=lld
     -DCMAKE_SHARED_LINKER_FLAGS=-fuse-ld=lld
-    -DDARWIN_osx_ARCHS=$arch
-    -DDARWIN_osx_SYSROOT=$MACOS_SDK
-    -DDARWIN_macosx_OVERRIDE_SDK_VERSION=11.0
-    -DDARWIN_osx_BUILTIN_ARCHS=$arch
     -DLLVM_DEFAULT_TARGET_TRIPLE=$target
   "
+  if [ "$what" = "compiler-rt" ]; then
+    EXTRA_CMAKE_FLAGS="
+      $EXTRA_CMAKE_FLAGS
+      -DCMAKE_LIPO=$MACOS_LIPO
+      -DDARWIN_osx_ARCHS=$arch
+      -DDARWIN_osx_SYSROOT=$MACOS_SDK
+      -DDARWIN_macosx_OVERRIDE_SDK_VERSION=11.0
+      -DDARWIN_osx_BUILTIN_ARCHS=$arch
+    "
+  fi
   # compiler-rt build script expects to find `codesign` in $PATH.
   # Give it a fake one.
   echo "#!/bin/sh" > codesign
