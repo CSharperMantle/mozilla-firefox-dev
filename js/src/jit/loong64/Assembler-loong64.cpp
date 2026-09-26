@@ -9,6 +9,9 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/Sprintf.h"
 
+#include <algorithm>
+#include <iterator>
+
 #include "gc/Marking.h"
 #include "jit/AutoWritableJitCode.h"
 #include "jit/loong64/disasm/Disasm-loong64.h"
@@ -3264,6 +3267,232 @@ BufferOffset AssemblerLOONG64::as_vori_b(FloatRegister vd, FloatRegister vj,
 
 BufferOffset AssemblerLOONG64::as_vldi(FloatRegister vd, int32_t imm13) {
   return emit(InstImm(op_vldi, imm13, vd).encode());
+}
+
+/* static */
+std::optional<uint16_t> AssemblerLOONG64::EncodeVldiImmediate(
+    const SimdConstant& v) {
+  // Function names and patterns follow the "VLDI Helper" from "AreWeLoongYet?".
+  // <https://areweloongyet.com/asmdb/vldiHelper>
+  // <https://github.com/loongson-community/areweloongyet/blob/49a0f6d22506c1fbebc97da24d4c34a9cc116ee5/src/components/AsmDB/vldi.ts>
+
+  // vldi function codes, i.e. the imm12:8 field.
+  constexpr uint32_t BroadcastU8To8 = 0b00000;
+  constexpr uint32_t BroadcastS10To16 = 0b00100;
+  constexpr uint32_t BroadcastS10To32 = 0b01000;
+  constexpr uint32_t BroadcastS10To64 = 0b01100;
+  constexpr uint32_t BroadcastU8Shl8To32 = 0b10001;
+  constexpr uint32_t BroadcastU8Shl16To32 = 0b10010;
+  constexpr uint32_t BroadcastU8Shl24To32 = 0b10011;
+  constexpr uint32_t BroadcastU8To16 = 0b10100;
+  constexpr uint32_t BroadcastU8Shl8To16 = 0b10101;
+  constexpr uint32_t BroadcastU8FFTo32 = 0b10110;
+  constexpr uint32_t BroadcastU8FFFFTo32 = 0b10111;
+  constexpr uint32_t BroadcastBitExpandedU8To64 = 0b11001;
+  constexpr uint32_t BroadcastVldiMinifloatToF32 = 0b11010;
+  constexpr uint32_t BroadcastVldiMinifloatToEvenF32 = 0b11011;
+  constexpr uint32_t BroadcastVldiMinifloatToF64 = 0b11100;
+
+  constexpr uint32_t Data32Bits = 32;
+  constexpr uint32_t Data10Mask = (1 << 10) - 1;
+  constexpr uint32_t Imm6Mask = (1 << 6) - 1;
+  constexpr uint32_t Imm9Mask = (1 << 9) - 1;
+  constexpr uint32_t Imm6Shift = 6;
+  constexpr uint32_t Imm7Shift = 7;
+  constexpr uint32_t SignBit32Shift = 31;
+  constexpr uint32_t SignBit64Shift = 63;
+
+  // Minifloat is a small-magnitude, 8-bit FP format that can be packed into the
+  // vldi immediate. It has 1 sign bit, 3 exponent bits (bias=2), and 4 mantissa
+  // bits. Zeros are not supported. The following constants are for determining
+  // if a "normal" IEEE 754 binary32 or binary64 can be represented as a
+  // Minifloat.
+  constexpr uint32_t MinifloatF32ExponentShift = 25;
+  constexpr uint32_t MinifloatF32MantissaShift = 19;
+  constexpr uint32_t MinifloatF32TrailingMask =
+      (1 << MinifloatF32MantissaShift) - 1;
+  constexpr uint32_t MinifloatF32ExponentImm6Clear = 0b100000;
+  constexpr uint32_t MinifloatF32ExponentImm6Set = 0b011111;
+  constexpr uint32_t MinifloatF64ExponentShift = 54;
+  constexpr uint32_t MinifloatF64MantissaShift = 48;
+  constexpr uint64_t MinifloatF64TrailingMask =
+      (UINT64_C(1) << MinifloatF64MantissaShift) - 1;
+  constexpr uint32_t MinifloatF64ExponentImm6Clear = 0b100000000;
+  constexpr uint32_t MinifloatF64ExponentImm6Set = 0b011111111;
+  // BroadcastVldiMinifloatToEvenF32 repeats (payload, 0) f32 pairs, so its
+  // high word must be zero, and the f32 minifloat pattern sits in the low
+  // word.
+  constexpr uint64_t EvenF32HighWordMask = ((UINT64_C(1) << Data32Bits) - 1)
+                                           << Data32Bits;
+
+  constexpr auto vldiImm = [](uint32_t function, uint32_t data) {
+    return static_cast<uint16_t>((function << 8) | data);
+  };
+  constexpr auto byteAt = [](uint64_t value, uint32_t index) {
+    return static_cast<uint8_t>((value >> (8 * index)) & 0xFF);
+  };
+  constexpr auto allEqual = [](const auto& lanes) {
+    return std::all_of(std::begin(lanes), std::end(lanes),
+                       [&](const auto& lane) { return lane == lanes[0]; });
+  };
+  constexpr auto minifloatF32Data =
+      [](uint32_t word) -> std::optional<uint32_t> {
+    const uint32_t exponent = (word >> MinifloatF32ExponentShift) & Imm6Mask;
+    if ((word & MinifloatF32TrailingMask) != 0 ||
+        (exponent != MinifloatF32ExponentImm6Clear &&
+         exponent != MinifloatF32ExponentImm6Set)) {
+      return std::nullopt;
+    }
+    const uint32_t imm6 = exponent == MinifloatF32ExponentImm6Set ? 1 : 0;
+    return ((word >> SignBit32Shift) << Imm7Shift) | (imm6 << Imm6Shift) |
+           ((word >> MinifloatF32MantissaShift) & Imm6Mask);
+  };
+
+  const SimdConstant shape64 =
+      SimdConstant::CreateX2(reinterpret_cast<const int64_t*>(v.bytes()));
+  const SimdConstant shape32 =
+      SimdConstant::CreateX4(reinterpret_cast<const int32_t*>(v.bytes()));
+  const SimdConstant shape16 =
+      SimdConstant::CreateX8(reinterpret_cast<const int16_t*>(v.bytes()));
+  const SimdConstant shape8 =
+      SimdConstant::CreateX16(reinterpret_cast<const int8_t*>(v.bytes()));
+  const auto& lanes64 = shape64.asInt64x2();
+  const auto& lanes32 = shape32.asInt32x4();
+  const auto& lanes16 = shape16.asInt16x8();
+  const auto& bytes = shape8.asInt8x16();
+
+  // === 8-BIT MODES ===
+
+  // BroadcastU8To8: Simple case where all bytes are equal.
+  if (allEqual(bytes)) {
+    return vldiImm(BroadcastU8To8, static_cast<uint8_t>(bytes[0]));
+  }
+
+  // Every remaining function broadcasts one 64-bit pattern, so fast-fail if the
+  // upper and lower 64-bit lanes don't match.
+  if (lanes64[0] != lanes64[1]) {
+    return std::nullopt;
+  }
+
+  // === 64-BIT MODES ===
+
+  const uint64_t dword = static_cast<uint64_t>(lanes64[0]);
+
+  // BroadcastS10To64: This mode sign-extends simm10 to 64-bit, then broadcasts.
+  if (is_intN(lanes64[0], 10)) {
+    return vldiImm(BroadcastS10To64, dword & Data10Mask);
+  }
+
+  // BroadcastBitExpandedU8To64: This mode unpacks payload bit |i| into byte
+  // |i|, so every byte is 0x00 or 0xFF.
+  {
+    bool expandable = true;
+    uint32_t data = 0;
+    for (uint8_t i = 0; i < 8; i++) {
+      const uint8_t byte = byteAt(dword, i);
+      const bool set = byte == 0xFF;
+      expandable &= (set || byte == 0);
+      data |= (static_cast<uint32_t>(set) << i);
+    }
+    if (expandable) {
+      return vldiImm(BroadcastBitExpandedU8To64, data);
+    }
+  }
+
+  // BroadcastVldiMinifloatToF64: This mode unpacks and broadcasts binary64 from
+  // a Minifloat.
+  {
+    const uint64_t exponent64 = (dword >> MinifloatF64ExponentShift) & Imm9Mask;
+    if ((dword & MinifloatF64TrailingMask) == 0 &&
+        (exponent64 == MinifloatF64ExponentImm6Clear ||
+         exponent64 == MinifloatF64ExponentImm6Set)) {
+      const uint32_t imm6 = exponent64 == MinifloatF64ExponentImm6Set ? 1 : 0;
+      const uint32_t data =
+          (static_cast<uint32_t>(dword >> SignBit64Shift) << Imm7Shift) |
+          (imm6 << Imm6Shift) |
+          static_cast<uint32_t>((dword >> MinifloatF64MantissaShift) &
+                                Imm6Mask);
+      return vldiImm(BroadcastVldiMinifloatToF64, data);
+    }
+  }
+
+  // BroadcastVldiMinifloatToEvenF32: This mode unpacks a Minifloat into
+  // binary32, then broadcast 64-bit (value.f32, 0.f32) pairs. The net effect is
+  // lane 2*N being the unpacked value, and lane 2*N+1 being zero.
+  if ((dword & EvenF32HighWordMask) == 0) {
+    if (const std::optional<uint32_t> data =
+            minifloatF32Data(static_cast<uint32_t>(dword))) {
+      return vldiImm(BroadcastVldiMinifloatToEvenF32, *data);
+    }
+  }
+
+  // === 32-BIT MODES ===
+
+  if (allEqual(lanes32)) {
+    const uint32_t word = static_cast<uint32_t>(lanes32[0]);
+
+    // BroadcastS10To32: This mode sign-extends simm10 to 32-bit, then
+    // broadcasts.
+    if (is_intN(lanes32[0], 10)) {
+      return vldiImm(BroadcastS10To32, word & Data10Mask);
+    }
+
+    // BroadcastU8Shl{8,16,24}To32: These modes unpack words with only 1
+    // non-zero aligned byte, i.e. patterned /0x(00){M}(..)(00){N}/ where
+    // M+N==3, then broadcast.
+    if (byteAt(word, 0) == 0 && byteAt(word, 1) == 0 && byteAt(word, 2) == 0) {
+      return vldiImm(BroadcastU8Shl24To32, byteAt(word, 3));
+    }
+    if (byteAt(word, 0) == 0 && byteAt(word, 1) == 0 && byteAt(word, 3) == 0) {
+      return vldiImm(BroadcastU8Shl16To32, byteAt(word, 2));
+    }
+    if (byteAt(word, 0) == 0 && byteAt(word, 2) == 0 && byteAt(word, 3) == 0) {
+      return vldiImm(BroadcastU8Shl8To32, byteAt(word, 1));
+    }
+
+    // BroadcastU8{FFFF,FF}To32: These modes unpack words patterned
+    // /0x(00){M}(..)(FF){N}/ where M+N==3 and 1<=M,N<=2, then broadcast.
+    if (byteAt(word, 3) == 0 && byteAt(word, 1) == 0xFF &&
+        byteAt(word, 0) == 0xFF) {
+      return vldiImm(BroadcastU8FFFFTo32, byteAt(word, 2));
+    }
+    if (byteAt(word, 3) == 0 && byteAt(word, 2) == 0 &&
+        byteAt(word, 0) == 0xFF) {
+      return vldiImm(BroadcastU8FFTo32, byteAt(word, 1));
+    }
+
+    // BroadcastVldiMinifloatToF32: This mode unpacks and broadcasts binary32
+    // from a Minifloat.
+    if (const std::optional<uint32_t> data = minifloatF32Data(word)) {
+      return vldiImm(BroadcastVldiMinifloatToF32, *data);
+    }
+  }
+
+  // === 16-BIT MODES ===
+
+  if (allEqual(lanes16)) {
+    const uint16_t half = static_cast<uint16_t>(lanes16[0]);
+
+    // BroadcastS10To16: This mode sign-extends simm10 to 16-bit, then
+    // broadcasts.
+    if (is_intN(lanes16[0], 10)) {
+      return vldiImm(BroadcastS10To16, half & Data10Mask);
+    }
+
+    // BroadcastU8Shl8To16: This mode unpacks and broadcasts half-words like
+    // /0x(..)(00)/.
+    if ((half & 0xFF) == 0) {
+      return vldiImm(BroadcastU8Shl8To16, half >> 8);
+    }
+
+    // BroadcastU8To16: This mode unpacks and broadcasts half-words like
+    // /0x(00)(..)/.
+    if (half <= 0xFF) {
+      return vldiImm(BroadcastU8To16, half);
+    }
+  }
+
+  return std::nullopt;
 }
 
 /* ========================================================================= */

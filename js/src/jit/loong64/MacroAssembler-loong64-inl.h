@@ -2507,6 +2507,12 @@ void MacroAssembler::wasmMulI64WideHI64(Register lhs, Register rhs,
 
 void MacroAssembler::loadConstantSimd128(const SimdConstant& v,
                                          FloatRegister dest) {
+  if (const std::optional<uint16_t> imm13 =
+          AssemblerLOONG64::EncodeVldiImmediate(v)) {
+    as_vldi(dest, static_cast<int32_t>(*imm13));
+    return;
+  }
+
   const SimdConstant c =
       SimdConstant::CreateX2(reinterpret_cast<const int64_t*>(v.bytes()));
   const SimdConstant::I64x2& lanes = c.asInt64x2();
