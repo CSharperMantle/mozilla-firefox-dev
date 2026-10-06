@@ -127,7 +127,7 @@ index c9e01624a6..5466772da5 100644
              "Generated during 'gn gen' by //BUILD.gn.",
              "",
 diff --git a/api/BUILD.gn b/api/BUILD.gn
-index 93d60b8b75..5c985d7430 100644
+index a14d250ff4..356570f0d1 100644
 --- a/api/BUILD.gn
 +++ b/api/BUILD.gn
 @@ -8,8 +8,8 @@
@@ -157,7 +157,7 @@ index edd3dcd701..c8cdec999b 100644
  
  if (rtc_include_tests) {
 diff --git a/api/audio_codecs/BUILD.gn b/api/audio_codecs/BUILD.gn
-index b5e5b105cc..2a39ce7db7 100644
+index 5614071066..1db180fe57 100644
 --- a/api/audio_codecs/BUILD.gn
 +++ b/api/audio_codecs/BUILD.gn
 @@ -8,8 +8,8 @@
@@ -247,7 +247,7 @@ index 9b12fcdf59..b32274a9ab 100644
  
  if (rtc_include_tests) {
 diff --git a/api/video/BUILD.gn b/api/video/BUILD.gn
-index df9f0d3ec0..94024bf375 100644
+index 3c5916e09e..cab728bf1f 100644
 --- a/api/video/BUILD.gn
 +++ b/api/video/BUILD.gn
 @@ -8,8 +8,8 @@
@@ -413,7 +413,7 @@ index d2eabafb59..2f2834fb28 100644
      deps = [
        ":generated_jni",
 diff --git a/logging/BUILD.gn b/logging/BUILD.gn
-index 4ad82d0c29..0cb9cfb49f 100644
+index a460cff3e6..6f8e15fb00 100644
 --- a/logging/BUILD.gn
 +++ b/logging/BUILD.gn
 @@ -11,8 +11,8 @@ if (rtc_enable_protobuf) {
@@ -428,7 +428,7 @@ index 4ad82d0c29..0cb9cfb49f 100644
  
  group("logging") {
 diff --git a/media/BUILD.gn b/media/BUILD.gn
-index cb5a98ebea..4a41e63caf 100644
+index a335824cf9..17ade70444 100644
 --- a/media/BUILD.gn
 +++ b/media/BUILD.gn
 @@ -6,7 +6,7 @@
@@ -441,7 +441,7 @@ index cb5a98ebea..4a41e63caf 100644
  import("../webrtc.gni")
  
 diff --git a/modules/audio_device/BUILD.gn b/modules/audio_device/BUILD.gn
-index 353b8adef2..1141183cb8 100644
+index cd86c1c211..2e3201ca6f 100644
 --- a/modules/audio_device/BUILD.gn
 +++ b/modules/audio_device/BUILD.gn
 @@ -9,8 +9,8 @@
@@ -547,7 +547,7 @@ index 5fbe21ec30..7d41b6d67d 100644
    }
  
 diff --git a/modules/desktop_capture/BUILD.gn b/modules/desktop_capture/BUILD.gn
-index f91d8556a5..6fdac0cabf 100644
+index 35778d6d92..7de39b993e 100644
 --- a/modules/desktop_capture/BUILD.gn
 +++ b/modules/desktop_capture/BUILD.gn
 @@ -6,8 +6,8 @@
@@ -575,7 +575,7 @@ index 43317503c1..dc0d234db3 100644
  import("../../webrtc.gni")
  
 diff --git a/modules/video_coding/BUILD.gn b/modules/video_coding/BUILD.gn
-index 953a102e95..e6c61ab8c1 100644
+index 1f6cf431c5..bb4ddd9f03 100644
 --- a/modules/video_coding/BUILD.gn
 +++ b/modules/video_coding/BUILD.gn
 @@ -6,7 +6,7 @@
@@ -603,7 +603,7 @@ index ec1467f195..9bee9706f5 100644
  
  if (rtc_build_libsrtp) {
 diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
-index 5aacec06a2..fcf493ef08 100644
+index b5eaae5a56..e7f507d44e 100644
 --- a/rtc_base/BUILD.gn
 +++ b/rtc_base/BUILD.gn
 @@ -9,8 +9,8 @@
@@ -633,7 +633,7 @@ index 9682dae9fe..4aede9e8ba 100644
  
  rtc_library("aligned_malloc") {
 diff --git a/rtc_base/synchronization/BUILD.gn b/rtc_base/synchronization/BUILD.gn
-index 81dd6e7dee..800f74757f 100644
+index 77efa54279..658830779d 100644
 --- a/rtc_base/synchronization/BUILD.gn
 +++ b/rtc_base/synchronization/BUILD.gn
 @@ -8,8 +8,8 @@
@@ -732,7 +732,7 @@ index f730c86d6a..7bd95b1630 100644
  import("../webrtc.gni")
  
 diff --git a/test/BUILD.gn b/test/BUILD.gn
-index 48d78154ff..f39813110c 100644
+index f2abed9bf9..60b8fde9f9 100644
 --- a/test/BUILD.gn
 +++ b/test/BUILD.gn
 @@ -6,10 +6,10 @@
