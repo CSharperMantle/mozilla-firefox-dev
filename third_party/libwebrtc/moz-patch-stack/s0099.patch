@@ -16,7 +16,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/4527c41ef71d7683c
  4 files changed, 21 insertions(+), 9 deletions(-)
 
 diff --git a/BUILD.gn b/BUILD.gn
-index d293ef1c9f..7647462ca6 100644
+index b7c9c0f15f..3c390db39c 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
 @@ -540,6 +540,9 @@ if (!rtc_build_ssl) {
