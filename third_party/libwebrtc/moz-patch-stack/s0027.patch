@@ -509,10 +509,10 @@ index 07a26350bf..7ce5ca4f00 100644
  #include "api/units/data_rate.h"
  #include "api/video/encoded_image.h"
 diff --git a/common_audio/BUILD.gn b/common_audio/BUILD.gn
-index 671776b456..082b3ba7fa 100644
+index 2b189eca01..99892345f3 100644
 --- a/common_audio/BUILD.gn
 +++ b/common_audio/BUILD.gn
-@@ -253,14 +253,10 @@ if (current_cpu == "x86" || current_cpu == "x64") {
+@@ -252,14 +252,10 @@ if (current_cpu == "x86" || current_cpu == "x64") {
        "resampler/sinc_resampler_avx2.cc",
      ]
  
