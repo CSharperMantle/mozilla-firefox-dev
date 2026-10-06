@@ -9,10 +9,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/f1981bae2720ec808
  1 file changed, 8 insertions(+), 12 deletions(-)
 
 diff --git a/video/video_stream_encoder.cc b/video/video_stream_encoder.cc
-index 8d1bf89c27..79d334de8b 100644
+index 854e88861f..e88ff803c6 100644
 --- a/video/video_stream_encoder.cc
 +++ b/video/video_stream_encoder.cc
-@@ -833,13 +833,11 @@ void VideoStreamEncoder::AddAdaptationResource(
+@@ -844,13 +844,11 @@ void VideoStreamEncoder::AddAdaptationResource(
    // Map any externally added resources as kCpu for the sake of stats reporting.
    // TODO(hbos): Make the manager map any unknown resources to kCpu and get rid
    // of this MapResourceToReason() call.
@@ -30,7 +30,7 @@ index 8d1bf89c27..79d334de8b 100644
      RTC_DCHECK_RUN_ON(encoder_queue_.get());
      additional_resources_.push_back(resource);
      stream_resource_manager_.AddResource(resource, VideoAdaptationReason::kCpu);
-@@ -1697,8 +1695,7 @@ void VideoStreamEncoder::TraceFrameDropStart() {
+@@ -1708,8 +1706,7 @@ void VideoStreamEncoder::TraceFrameDropStart() {
    RTC_DCHECK_RUN_ON(encoder_queue_.get());
    // Start trace event only on the first frame after encoder is paused.
    if (!encoder_paused_and_dropped_frame_) {
@@ -40,7 +40,7 @@ index 8d1bf89c27..79d334de8b 100644
    }
    encoder_paused_and_dropped_frame_ = true;
  }
-@@ -1707,8 +1704,7 @@ void VideoStreamEncoder::TraceFrameDropEnd() {
+@@ -1718,8 +1715,7 @@ void VideoStreamEncoder::TraceFrameDropEnd() {
    RTC_DCHECK_RUN_ON(encoder_queue_.get());
    // End trace event on first frame after encoder resumes, if frame was dropped.
    if (encoder_paused_and_dropped_frame_) {
@@ -50,7 +50,7 @@ index 8d1bf89c27..79d334de8b 100644
    }
    encoder_paused_and_dropped_frame_ = false;
  }
-@@ -2154,8 +2150,8 @@ void VideoStreamEncoder::EncodeVideoFrame(const VideoFrame& video_frame,
+@@ -2165,8 +2161,8 @@ void VideoStreamEncoder::EncodeVideoFrame(const VideoFrame& video_frame,
    }
    accumulated_update_rect_is_valid_ = true;
  
