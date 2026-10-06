@@ -241,7 +241,7 @@ index 3ac7d89eb1..6683fc9da6 100644
 +  private static native byte[] nativeGetLogData(String dirPath);
  }
 diff --git a/sdk/android/api/org/webrtc/DataChannel.java b/sdk/android/api/org/webrtc/DataChannel.java
-index c17ca1489f..be125e20b4 100644
+index 5d5346a49f..18c8876845 100644
 --- a/sdk/android/api/org/webrtc/DataChannel.java
 +++ b/sdk/android/api/org/webrtc/DataChannel.java
 @@ -11,8 +11,6 @@
@@ -253,71 +253,70 @@ index c17ca1489f..be125e20b4 100644
  
  /** Java wrapper for a C++ DataChannelInterface. */
  public class DataChannel {
-@@ -116,31 +114,31 @@ public class DataChannel {
-   public void registerObserver(Observer observer) {
-     checkDataChannelExists();
-     if (nativeObserver != 0) {
--      DataChannelJni.get().unregisterObserver(this, nativeObserver);
-+      nativeUnregisterObserver(nativeObserver);
-     }
--    nativeObserver = DataChannelJni.get().registerObserver(this, observer);
-+    nativeObserver = nativeRegisterObserver(observer);
+@@ -117,9 +115,9 @@ public class DataChannel {
+     lifecycleLock.run(
+         () -> {
+           if (nativeObserver != 0) {
+-            DataChannelJni.get().unregisterObserver(this, nativeObserver);
++            nativeUnregisterObserver(nativeObserver);
+           }
+-          nativeObserver = DataChannelJni.get().registerObserver(this, observer);
++          nativeObserver = nativeRegisterObserver(observer);
+         });
    }
  
-   /** Unregister the (only) observer. */
+@@ -127,21 +125,21 @@ public class DataChannel {
    public void unregisterObserver() {
-     checkDataChannelExists();
--    DataChannelJni.get().unregisterObserver(this, nativeObserver);
-+    nativeUnregisterObserver(nativeObserver);
-     nativeObserver = 0;
+     lifecycleLock.run(
+         () -> {
+-          DataChannelJni.get().unregisterObserver(this, nativeObserver);
++          nativeUnregisterObserver(nativeObserver);
+           nativeObserver = 0;
+         });
    }
  
    public String label() {
-     checkDataChannelExists();
--    return DataChannelJni.get().label(this);
-+    return nativeLabel();
+-    return lifecycleLock.call(() -> DataChannelJni.get().label(this));
++    return lifecycleLock.call(() -> nativeLabel());
    }
  
    public int id() {
-     checkDataChannelExists();
--    return DataChannelJni.get().id(this);
-+    return nativeId();
+-    return lifecycleLock.call(() -> DataChannelJni.get().id(this));
++    return lifecycleLock.call(() -> nativeId());
    }
  
    public State state() {
-     checkDataChannelExists();
--    return DataChannelJni.get().state(this);
-+    return nativeState();
+-    return lifecycleLock.call(() -> DataChannelJni.get().state(this));
++    return lifecycleLock.call(() -> nativeState());
    }
  
    /**
-@@ -150,13 +148,13 @@ public class DataChannel {
+@@ -149,12 +147,12 @@ public class DataChannel {
+    * queued using SendBuffer but have not yet been transmitted to the network.
     */
    public long bufferedAmount() {
-     checkDataChannelExists();
--    return DataChannelJni.get().bufferedAmount(this);
-+    return nativeBufferedAmount();
+-    return lifecycleLock.call(() -> DataChannelJni.get().bufferedAmount(this));
++    return lifecycleLock.call(() -> nativeBufferedAmount());
    }
  
    /** Close the channel. */
    public void close() {
-     checkDataChannelExists();
--    DataChannelJni.get().close(this);
-+    nativeClose();
+-    lifecycleLock.run(() -> DataChannelJni.get().close(this));
++    lifecycleLock.run(() -> nativeClose());
    }
  
    /** Send `data` to the remote peer; return success. */
-@@ -166,7 +164,7 @@ public class DataChannel {
-     // ByteBuffer is direct and/or is backed by an array.
-     byte[] data = new byte[buffer.data.remaining()];
-     buffer.data.get(data);
--    return DataChannelJni.get().send(this, data, buffer.binary);
-+    return nativeSend(data, buffer.binary);
+@@ -165,7 +163,7 @@ public class DataChannel {
+           // ByteBuffer is direct and/or is backed by an array.
+           byte[] data = new byte[buffer.data.remaining()];
+           buffer.data.get(data);
+-          return DataChannelJni.get().send(this, data, buffer.binary);
++          return nativeSend(data, buffer.binary);
+         });
    }
  
-   /** Dispose of native resources attached to this channel. */
-@@ -187,22 +185,12 @@ public class DataChannel {
-     }
+@@ -189,22 +187,12 @@ public class DataChannel {
+     return lifecycleLock.getNativePointer();
    }
  
 -  @NativeMethods
