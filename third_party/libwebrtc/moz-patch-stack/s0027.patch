@@ -788,7 +788,7 @@ index 98f0ee5fe7..353b8adef2 100644
  if (rtc_include_tests && !build_with_chromium) {
    rtc_library("fine_audio_buffer_unittest") {
 diff --git a/modules/audio_processing/aec3/BUILD.gn b/modules/audio_processing/aec3/BUILD.gn
-index 98d122f0be..ea2c759576 100644
+index a2363f5052..f5caa85710 100644
 --- a/modules/audio_processing/aec3/BUILD.gn
 +++ b/modules/audio_processing/aec3/BUILD.gn
 @@ -260,14 +260,11 @@ if (current_cpu == "x86" || current_cpu == "x64") {
