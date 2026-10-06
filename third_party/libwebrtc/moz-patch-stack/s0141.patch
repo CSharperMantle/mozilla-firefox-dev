@@ -102,7 +102,7 @@ index 3520196b3b..6b1f515a13 100644
    }
  }
 diff --git a/sdk/android/api/org/webrtc/AudioTrack.java b/sdk/android/api/org/webrtc/AudioTrack.java
-index 725f371792..ca745db634 100644
+index 24d35d8573..66ca1deb00 100644
 --- a/sdk/android/api/org/webrtc/AudioTrack.java
 +++ b/sdk/android/api/org/webrtc/AudioTrack.java
 @@ -10,8 +10,6 @@
@@ -115,11 +115,11 @@ index 725f371792..ca745db634 100644
  public class AudioTrack extends MediaStreamTrack {
    public AudioTrack(long nativeTrack) {
 @@ -22,7 +20,7 @@ public class AudioTrack extends MediaStreamTrack {
-    *  0 to 10.
+    * Sets the volume for the underlying MediaSource. Volume is a gain value in the range 0 to 10.
     */
    public void setVolume(double volume) {
--    AudioTrackJni.get().setVolume(getNativeAudioTrack(), volume);
-+    nativeSetVolume(getNativeAudioTrack(), volume);
+-    lifecycleLock.run(nativeTrack -> AudioTrackJni.get().setVolume(nativeTrack, volume));
++    lifecycleLock.run(nativeTrack -> nativeSetVolume(nativeTrack, volume));
    }
  
    /** Returns a pointer to webrtc::AudioTrackInterface. */
@@ -696,7 +696,7 @@ index e9cfa01271..71bcd1374b 100644
 +  static native boolean nativeIsSupported();
  }
 diff --git a/sdk/android/api/org/webrtc/MediaSource.java b/sdk/android/api/org/webrtc/MediaSource.java
-index 59a7b8b2df..66e4af5247 100644
+index 6334832177..1216187cdf 100644
 --- a/sdk/android/api/org/webrtc/MediaSource.java
 +++ b/sdk/android/api/org/webrtc/MediaSource.java
 @@ -10,8 +10,6 @@
@@ -708,16 +708,16 @@ index 59a7b8b2df..66e4af5247 100644
  /** Java wrapper for a C++ MediaSourceInterface. */
  public class MediaSource {
    /** Tracks MediaSourceInterface.SourceState */
-@@ -37,7 +35,7 @@ public class MediaSource {
+@@ -36,7 +34,7 @@ public class MediaSource {
+   }
  
    public State state() {
-     checkMediaSourceExists();
--    return MediaSourceJni.get().getState(nativeSource);
-+    return nativeGetState(nativeSource);
+-    return lifecycleLock.call(nativeSource -> MediaSourceJni.get().getState(nativeSource));
++    return lifecycleLock.call(nativeSource -> nativeGetState(nativeSource));
    }
  
    public void dispose() {
-@@ -72,8 +70,5 @@ public class MediaSource {
+@@ -62,8 +60,5 @@ public class MediaSource {
      }
    }
  
@@ -728,7 +728,7 @@ index 59a7b8b2df..66e4af5247 100644
 +  private static native State nativeGetState(long pointer);
  }
 diff --git a/sdk/android/api/org/webrtc/MediaStreamTrack.java b/sdk/android/api/org/webrtc/MediaStreamTrack.java
-index b3ac30d793..c73ee20ab6 100644
+index c3948aa098..c172b7cf64 100644
 --- a/sdk/android/api/org/webrtc/MediaStreamTrack.java
 +++ b/sdk/android/api/org/webrtc/MediaStreamTrack.java
 @@ -11,7 +11,6 @@
@@ -748,41 +748,38 @@ index b3ac30d793..c73ee20ab6 100644
      if (trackKind.equals(AUDIO_TRACK_KIND)) {
        return new AudioTrack(nativeTrack);
      } else if (trackKind.equals(VIDEO_TRACK_KIND)) {
-@@ -82,27 +81,27 @@ public class MediaStreamTrack {
+@@ -81,24 +80,24 @@ public class MediaStreamTrack {
+   }
  
    public String id() {
-     checkMediaStreamTrackExists();
--    return MediaStreamTrackJni.get().getId(nativeTrack);
-+    return nativeGetId(nativeTrack);
+-    return lifecycleLock.call(nativeTrack -> MediaStreamTrackJni.get().getId(nativeTrack));
++    return lifecycleLock.call(nativeTrack -> nativeGetId(nativeTrack));
    }
  
    public String kind() {
-     checkMediaStreamTrackExists();
--    return MediaStreamTrackJni.get().getKind(nativeTrack);
-+    return nativeGetKind(nativeTrack);
+-    return lifecycleLock.call(nativeTrack -> MediaStreamTrackJni.get().getKind(nativeTrack));
++    return lifecycleLock.call(nativeTrack -> nativeGetKind(nativeTrack));
    }
  
    public boolean enabled() {
-     checkMediaStreamTrackExists();
--    return MediaStreamTrackJni.get().getEnabled(nativeTrack);
-+    return nativeGetEnabled(nativeTrack);
+-    return lifecycleLock.call(nativeTrack -> MediaStreamTrackJni.get().getEnabled(nativeTrack));
++    return lifecycleLock.call(nativeTrack -> nativeGetEnabled(nativeTrack));
    }
  
    public boolean setEnabled(boolean enable) {
-     checkMediaStreamTrackExists();
--    return MediaStreamTrackJni.get().setEnabled(nativeTrack, enable);
-+    return nativeSetEnabled(nativeTrack, enable);
+     return lifecycleLock.call(
+-        nativeTrack -> MediaStreamTrackJni.get().setEnabled(nativeTrack, enable));
++        nativeTrack -> nativeSetEnabled(nativeTrack, enable));
    }
  
    public State state() {
-     checkMediaStreamTrackExists();
--    return MediaStreamTrackJni.get().getState(nativeTrack);
-+    return nativeGetState(nativeTrack);
+-    return lifecycleLock.call(nativeTrack -> MediaStreamTrackJni.get().getState(nativeTrack));
++    return lifecycleLock.call(nativeTrack -> nativeGetState(nativeTrack));
    }
  
    public void dispose() {
-@@ -122,16 +121,9 @@ public class MediaStreamTrack {
-     }
+@@ -109,16 +108,9 @@ public class MediaStreamTrack {
+     return lifecycleLock.getNativePointer();
    }
  
 -  @NativeMethods
@@ -1118,7 +1115,7 @@ index 9f693288f0..86b6507691 100644
 +      long webrtcEnvRef, VideoEncoder fallback, VideoEncoder primary);
  }
 diff --git a/sdk/android/api/org/webrtc/VideoTrack.java b/sdk/android/api/org/webrtc/VideoTrack.java
-index e42f3889a1..512e46c26e 100644
+index 6d4cfa5cca..346db6087f 100644
 --- a/sdk/android/api/org/webrtc/VideoTrack.java
 +++ b/sdk/android/api/org/webrtc/VideoTrack.java
 @@ -11,7 +11,6 @@
@@ -1129,40 +1126,41 @@ index e42f3889a1..512e46c26e 100644
  
  /** Java version of VideoTrackInterface. */
  public class VideoTrack extends MediaStreamTrack {
-@@ -36,9 +35,9 @@ public class VideoTrack extends MediaStreamTrack {
-     // We allow calling addSink() with the same sink multiple times. This is similar to the C++
-     // VideoTrack::AddOrUpdateSink().
-     if (!sinks.containsKey(sink)) {
--      final long nativeSink = VideoTrackJni.get().wrapSink(sink);
-+      final long nativeSink = nativeWrapSink(sink);
-       sinks.put(sink, nativeSink);
--      VideoTrackJni.get().addSink(getNativeMediaStreamTrack(), nativeSink);
-+      nativeAddSink(getNativeMediaStreamTrack(), nativeSink);
-     }
-   }
- 
-@@ -50,16 +49,16 @@ public class VideoTrack extends MediaStreamTrack {
-   public void removeSink(VideoSink sink) {
-     final Long nativeSink = sinks.remove(sink);
-     if (nativeSink != null) {
--      VideoTrackJni.get().removeSink(getNativeMediaStreamTrack(), nativeSink);
--      VideoTrackJni.get().freeSink(nativeSink);
-+      nativeRemoveSink(getNativeMediaStreamTrack(), nativeSink);
-+      nativeFreeSink(nativeSink);
-     }
-   }
- 
-   @Override
-   public void dispose() {
-     for (long nativeSink : sinks.values()) {
--      VideoTrackJni.get().removeSink(getNativeMediaStreamTrack(), nativeSink);
--      VideoTrackJni.get().freeSink(nativeSink);
-+      nativeRemoveSink(getNativeMediaStreamTrack(), nativeSink);
-+      nativeFreeSink(nativeSink);
-     }
-     sinks.clear();
-     super.dispose();
-@@ -70,14 +69,8 @@ public class VideoTrack extends MediaStreamTrack {
+@@ -39,9 +38,9 @@ public class VideoTrack extends MediaStreamTrack {
+         nativeTrack -> {
+           synchronized (sinks) {
+             if (!sinks.containsKey(sink)) {
+-              final long nativeSink = VideoTrackJni.get().wrapSink(sink);
++              final long nativeSink = nativeWrapSink(sink);
+               sinks.put(sink, nativeSink);
+-              VideoTrackJni.get().addSink(nativeTrack, nativeSink);
++              nativeAddSink(nativeTrack, nativeSink);
+             }
+           }
+         });
+@@ -58,8 +57,8 @@ public class VideoTrack extends MediaStreamTrack {
+           synchronized (sinks) {
+             final Long nativeSink = sinks.remove(sink);
+             if (nativeSink != null) {
+-              VideoTrackJni.get().removeSink(nativeTrack, nativeSink);
+-              VideoTrackJni.get().freeSink(nativeSink);
++              nativeRemoveSink(nativeTrack, nativeSink);
++              nativeFreeSink(nativeSink);
+             }
+           }
+         });
+@@ -71,8 +70,8 @@ public class VideoTrack extends MediaStreamTrack {
+         nativeTrack -> {
+           synchronized (sinks) {
+             for (long nativeSink : sinks.values()) {
+-              VideoTrackJni.get().removeSink(nativeTrack, nativeSink);
+-              VideoTrackJni.get().freeSink(nativeSink);
++              nativeRemoveSink(nativeTrack, nativeSink);
++              nativeFreeSink(nativeSink);
+             }
+             sinks.clear();
+           }
+@@ -85,14 +84,8 @@ public class VideoTrack extends MediaStreamTrack {
      return getNativeMediaStreamTrack();
    }
  
