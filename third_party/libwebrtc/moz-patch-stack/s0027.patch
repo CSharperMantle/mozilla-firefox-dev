@@ -117,7 +117,7 @@ index f4076f467a..d14f761f49 100644
    # TODO(https://bugs.webrtc.org/14437):  Remove this section if general
    # Chromium fix resolves the problem.
 diff --git a/BUILD.gn b/BUILD.gn
-index 3d4a6ec9e4..eec8db39db 100644
+index 0ebb09302a..11222d536c 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
 @@ -39,7 +39,7 @@ if (is_android) {
@@ -470,7 +470,7 @@ index 033e61d273..5c8e4902a8 100644
  if (rtc_include_tests) {
    rtc_source_set("test_feedback_generator_interface") {
 diff --git a/call/BUILD.gn b/call/BUILD.gn
-index 6665b04b5c..aaa0b98896 100644
+index c1e7e71d3b..0e95dcef7b 100644
 --- a/call/BUILD.gn
 +++ b/call/BUILD.gn
 @@ -51,7 +51,7 @@ rtc_library("call_interfaces") {
@@ -694,7 +694,7 @@ index cb74a2710e..b1c02c5025 100644
      : content_hint(VideoTrackInterface::ContentHint::kNone) {}
  VideoOptions::~VideoOptions() = default;
 diff --git a/modules/audio_coding/BUILD.gn b/modules/audio_coding/BUILD.gn
-index cb4139c7d9..435bc5b0dd 100644
+index bd5c53eb9d..1f910eb0e8 100644
 --- a/modules/audio_coding/BUILD.gn
 +++ b/modules/audio_coding/BUILD.gn
 @@ -339,7 +339,7 @@ rtc_library("webrtc_opus_wrapper") {
@@ -1250,7 +1250,7 @@ index 560568c1a4..3c9baafe9e 100644
  rtc_library("call_config_utils") {
    testonly = true
 diff --git a/video/BUILD.gn b/video/BUILD.gn
-index 2a19a9b1b9..c8336395ac 100644
+index 77afc61e03..174a1db4d9 100644
 --- a/video/BUILD.gn
 +++ b/video/BUILD.gn
 @@ -16,7 +16,7 @@ rtc_library("video_stream_encoder_interface") {
