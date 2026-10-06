@@ -33,7 +33,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/98da8060c3ad5cf8d
  sdk/android/api/org/webrtc/Metrics.java       |  13 +-
  .../webrtc/SoftwareVideoDecoderFactory.java   |  23 +--
  .../webrtc/SoftwareVideoEncoderFactory.java   |  23 +--
- .../api/org/webrtc/TimestampAligner.java      |  20 +-
+ .../api/org/webrtc/TimestampAligner.java      |  19 +-
  .../api/org/webrtc/TurnCustomizer.java        |  12 +-
  .../api/org/webrtc/VideoDecoderFallback.java  |  10 +-
  .../api/org/webrtc/VideoEncoderFallback.java  |  10 +-
@@ -53,7 +53,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/98da8060c3ad5cf8d
  .../org/webrtc/audio/WebRtcAudioRecord.java   |  21 +--
  .../org/webrtc/audio/WebRtcAudioTrack.java    |  15 +-
  webrtc.gni                                    |  20 +-
- 42 files changed, 241 insertions(+), 721 deletions(-)
+ 42 files changed, 241 insertions(+), 720 deletions(-)
 
 diff --git a/examples/androidnativeapi/BUILD.gn b/examples/androidnativeapi/BUILD.gn
 index fd6a836223..28589325c3 100644
@@ -370,7 +370,7 @@ index c160dc49ba..2a79988470 100644
 +  static native long nativeCreateDecoder();
  }
 diff --git a/sdk/android/api/org/webrtc/DtmfSender.java b/sdk/android/api/org/webrtc/DtmfSender.java
-index a740edcc2a..c0ea30f244 100644
+index 071c7273da..c9260fbd21 100644
 --- a/sdk/android/api/org/webrtc/DtmfSender.java
 +++ b/sdk/android/api/org/webrtc/DtmfSender.java
 @@ -10,8 +10,6 @@
@@ -381,54 +381,52 @@ index a740edcc2a..c0ea30f244 100644
 -
  /** Java wrapper for a C++ DtmfSenderInterface. */
  public class DtmfSender {
-   private long nativeDtmfSender;
+   private final NativeLifecycleLock lifecycleLock;
 @@ -25,7 +23,7 @@ public class DtmfSender {
     */
    public boolean canInsertDtmf() {
-     checkDtmfSenderExists();
--    return DtmfSenderJni.get().canInsertDtmf(nativeDtmfSender);
-+    return nativeCanInsertDtmf(nativeDtmfSender);
+     return lifecycleLock.call(
+-        nativeDtmfSender -> DtmfSenderJni.get().canInsertDtmf(nativeDtmfSender));
++        nativeDtmfSender -> nativeCanInsertDtmf(nativeDtmfSender));
    }
  
    /**
-@@ -47,7 +45,7 @@ public class DtmfSender {
-    */
+@@ -47,14 +45,14 @@ public class DtmfSender {
    public boolean insertDtmf(String tones, int duration, int interToneGap) {
-     checkDtmfSenderExists();
--    return DtmfSenderJni.get().insertDtmf(nativeDtmfSender, tones, duration, interToneGap);
-+    return nativeInsertDtmf(nativeDtmfSender, tones, duration, interToneGap);
+     return lifecycleLock.call(
+         nativeDtmfSender ->
+-            DtmfSenderJni.get().insertDtmf(nativeDtmfSender, tones, duration, interToneGap));
++            nativeInsertDtmf(nativeDtmfSender, tones, duration, interToneGap));
    }
  
    /**
-@@ -55,7 +53,7 @@ public class DtmfSender {
+    * @return The tones remaining to be played out
     */
    public String tones() {
-     checkDtmfSenderExists();
--    return DtmfSenderJni.get().tones(nativeDtmfSender);
-+    return nativeTones(nativeDtmfSender);
+-    return lifecycleLock.call(nativeDtmfSender -> DtmfSenderJni.get().tones(nativeDtmfSender));
++    return lifecycleLock.call(nativeDtmfSender -> nativeTones(nativeDtmfSender));
    }
  
    /**
-@@ -64,7 +62,7 @@ public class DtmfSender {
+@@ -62,7 +60,7 @@ public class DtmfSender {
+    *     insertDtmf() method, or the default value of 100 ms if insertDtmf() was never called.
     */
    public int duration() {
-     checkDtmfSenderExists();
--    return DtmfSenderJni.get().duration(nativeDtmfSender);
-+    return nativeDuration(nativeDtmfSender);
+-    return lifecycleLock.call(nativeDtmfSender -> DtmfSenderJni.get().duration(nativeDtmfSender));
++    return lifecycleLock.call(nativeDtmfSender -> nativeDuration(nativeDtmfSender));
    }
  
    /**
-@@ -74,7 +72,7 @@ public class DtmfSender {
+@@ -72,23 +70,17 @@ public class DtmfSender {
     */
    public int interToneGap() {
-     checkDtmfSenderExists();
--    return DtmfSenderJni.get().interToneGap(nativeDtmfSender);
-+    return nativeInterToneGap(nativeDtmfSender);
+     return lifecycleLock.call(
+-        nativeDtmfSender -> DtmfSenderJni.get().interToneGap(nativeDtmfSender));
++        nativeDtmfSender -> nativeInterToneGap(nativeDtmfSender));
    }
  
    public void dispose() {
-@@ -89,16 +87,10 @@ public class DtmfSender {
-     }
+     lifecycleLock.dispose(JniCommon::nativeReleaseRef);
    }
  
 -  @NativeMethods
@@ -961,7 +959,7 @@ index 88a6b04f17..ad19b4c8c1 100644
 +  private static native List<VideoCodecInfo> nativeGetSupportedCodecs(long factory);
  }
 diff --git a/sdk/android/api/org/webrtc/TimestampAligner.java b/sdk/android/api/org/webrtc/TimestampAligner.java
-index a96fbeda74..a93f07c37f 100644
+index 565db59e70..4e54050113 100644
 --- a/sdk/android/api/org/webrtc/TimestampAligner.java
 +++ b/sdk/android/api/org/webrtc/TimestampAligner.java
 @@ -10,8 +10,6 @@
@@ -973,33 +971,29 @@ index a96fbeda74..a93f07c37f 100644
  /**
   * The TimestampAligner class helps translating camera timestamps into the same timescale as is
   * used by webrtc. Some cameras have built in timestamping which is more accurate than
-@@ -39,7 +37,7 @@ public class TimestampAligner {
-   }
- 
+@@ -41,7 +39,7 @@ public class TimestampAligner {
    public TimestampAligner(Environment webrtcEnv) {
--    nativeTimestampAligner = TimestampAlignerJni.get().createTimestampAligner(webrtcEnv.ref());
-+    nativeTimestampAligner = nativeCreateTimestampAligner(webrtcEnv.ref());
+     this.lifecycleLock =
+         new NativeLifecycleLock(
+-            "TimestampAligner", TimestampAlignerJni.get().createTimestampAligner(webrtcEnv.ref()));
++            "TimestampAligner", nativeCreateTimestampAligner(webrtcEnv.ref()));
    }
  
    /**
-@@ -49,13 +47,13 @@ public class TimestampAligner {
-    */
+@@ -52,22 +50,17 @@ public class TimestampAligner {
    public long translateTimestamp(long cameraTimeNs) {
-     checkNativeAlignerExists();
--    return TimestampAlignerJni.get().translateTimestamp(nativeTimestampAligner, cameraTimeNs);
-+    return nativeTranslateTimestamp(nativeTimestampAligner, cameraTimeNs);
+     return lifecycleLock.call(
+         nativeTimestampAligner ->
+-            TimestampAlignerJni.get().translateTimestamp(nativeTimestampAligner, cameraTimeNs));
++            nativeTranslateTimestamp(nativeTimestampAligner, cameraTimeNs));
    }
  
    /** Dispose native timestamp aligner. */
    public void dispose() {
-     checkNativeAlignerExists();
--    TimestampAlignerJni.get().releaseTimestampAligner(nativeTimestampAligner);
-+    nativeReleaseTimestampAligner(nativeTimestampAligner);
-     nativeTimestampAligner = 0;
-   }
- 
-@@ -65,13 +63,7 @@ public class TimestampAligner {
-     }
+     lifecycleLock.dispose(
+         nativeTimestampAligner ->
+-            TimestampAlignerJni.get().releaseTimestampAligner(nativeTimestampAligner));
++            nativeReleaseTimestampAligner(nativeTimestampAligner));
    }
  
 -  @NativeMethods
@@ -1014,7 +1008,6 @@ index a96fbeda74..a93f07c37f 100644
 +  private static native void nativeReleaseTimestampAligner(long timestampAligner);
 +  private static native long nativeTranslateTimestamp(long timestampAligner, long cameraTimeNs);
  }
--
 diff --git a/sdk/android/api/org/webrtc/TurnCustomizer.java b/sdk/android/api/org/webrtc/TurnCustomizer.java
 index 64c77406c8..41bedb7dcb 100644
 --- a/sdk/android/api/org/webrtc/TurnCustomizer.java
