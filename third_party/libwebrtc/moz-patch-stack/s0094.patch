@@ -292,7 +292,7 @@ index e80bf03db8..343c976db1 100644
  
  rtc_library("audio") {
 diff --git a/common_audio/BUILD.gn b/common_audio/BUILD.gn
-index 586f554110..91700b009c 100644
+index e95cf4bada..ba0fa292db 100644
 --- a/common_audio/BUILD.gn
 +++ b/common_audio/BUILD.gn
 @@ -276,7 +276,7 @@ if (rtc_build_with_neon) {
@@ -633,7 +633,7 @@ index 9682dae9fe..4aede9e8ba 100644
  
  rtc_library("aligned_malloc") {
 diff --git a/rtc_base/synchronization/BUILD.gn b/rtc_base/synchronization/BUILD.gn
-index c1d924db9a..f91206a08f 100644
+index 81dd6e7dee..800f74757f 100644
 --- a/rtc_base/synchronization/BUILD.gn
 +++ b/rtc_base/synchronization/BUILD.gn
 @@ -8,8 +8,8 @@
@@ -678,7 +678,7 @@ index 1a9be46904..3520196b3b 100644
      output_extension = "so"
  
 diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
-index f29de80a83..e513956cc7 100644
+index ac7adc4a26..0a95fbc105 100644
 --- a/sdk/BUILD.gn
 +++ b/sdk/BUILD.gn
 @@ -9,12 +9,12 @@
@@ -707,7 +707,7 @@ index f29de80a83..e513956cc7 100644
      }
    }
  
-@@ -1294,7 +1294,7 @@ if (is_ios || is_mac) {
+@@ -1293,7 +1293,7 @@ if (is_ios || is_mac) {
            }
  
            public_deps = [
