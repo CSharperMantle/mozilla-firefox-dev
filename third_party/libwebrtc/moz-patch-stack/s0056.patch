@@ -30,10 +30,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/ee566d1bfb654d36e
  12 files changed, 70 insertions(+), 8 deletions(-)
 
 diff --git a/api/video/frame_buffer.cc b/api/video/frame_buffer.cc
-index 0fcf54a76d..754ce00da1 100644
+index 8c6cca0558..95ec152f66 100644
 --- a/api/video/frame_buffer.cc
 +++ b/api/video/frame_buffer.cc
-@@ -151,14 +151,29 @@ void FrameBuffer::DropNextDecodableTemporalUnit() {
+@@ -148,14 +148,29 @@ void FrameBuffer::DropNextDecodableTemporalUnit() {
    }
  
    auto end_it = std::next(next_decodable_temporal_unit_->last_frame);
@@ -66,7 +66,7 @@ index 0fcf54a76d..754ce00da1 100644
  std::optional<int64_t> FrameBuffer::LastContinuousFrameId() const {
    return last_continuous_frame_id_;
  }
-@@ -182,6 +197,9 @@ int FrameBuffer::GetTotalNumberOfContinuousTemporalUnits() const {
+@@ -179,6 +194,9 @@ int FrameBuffer::GetTotalNumberOfContinuousTemporalUnits() const {
  int FrameBuffer::GetTotalNumberOfDroppedFrames() const {
    return num_dropped_frames_;
  }
@@ -76,7 +76,7 @@ index 0fcf54a76d..754ce00da1 100644
  
  size_t FrameBuffer::CurrentSize() const {
    return frames_.size();
-@@ -286,6 +304,7 @@ void FrameBuffer::FindNextAndLastDecodableTemporalUnit() {
+@@ -283,6 +301,7 @@ void FrameBuffer::FindNextAndLastDecodableTemporalUnit() {
  }
  
  void FrameBuffer::Clear() {
@@ -85,7 +85,7 @@ index 0fcf54a76d..754ce00da1 100644
    next_decodable_temporal_unit_.reset();
    decodable_temporal_units_info_.reset();
 diff --git a/api/video/frame_buffer.h b/api/video/frame_buffer.h
-index 87974ada5c..d8543e0ba2 100644
+index 4cb1d56149..cdc2a02b41 100644
 --- a/api/video/frame_buffer.h
 +++ b/api/video/frame_buffer.h
 @@ -73,6 +73,7 @@ class FrameBuffer {
@@ -103,9 +103,9 @@ index 87974ada5c..d8543e0ba2 100644
 +  void UpdateDroppedFramesAndDiscardedPackets(FrameIterator begin_it,
 +                                              FrameIterator end_it);
  
-   const bool legacy_frame_id_jump_behavior_;
    const size_t max_size_;
-@@ -106,6 +109,7 @@ class FrameBuffer {
+   FrameMap frames_;
+@@ -105,6 +108,7 @@ class FrameBuffer {
  
    int num_continuous_temporal_units_ = 0;
    int num_dropped_frames_ = 0;
