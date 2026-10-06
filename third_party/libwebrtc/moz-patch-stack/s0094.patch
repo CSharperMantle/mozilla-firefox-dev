@@ -482,10 +482,10 @@ index 943e843d53..90496efd4e 100644
      }
    }
 diff --git a/modules/audio_processing/agc2/BUILD.gn b/modules/audio_processing/agc2/BUILD.gn
-index a6e1353d6d..6a67bfdbf5 100644
+index d84c541b7b..74c572ed8f 100644
 --- a/modules/audio_processing/agc2/BUILD.gn
 +++ b/modules/audio_processing/agc2/BUILD.gn
-@@ -251,7 +251,7 @@ rtc_library("vad_wrapper") {
+@@ -252,7 +252,7 @@ rtc_library("vad_wrapper") {
  
    defines = []
    if (rtc_build_with_neon && current_cpu != "arm64") {
