@@ -496,7 +496,7 @@ index 40bfd812a4..46be3bcc47 100644
  #include "api/units/time_delta.h"
  #include "call/audio_sender.h"
 diff --git a/call/video_send_stream.h b/call/video_send_stream.h
-index 07a26350bf..7ce5ca4f00 100644
+index 58110d82e6..7cc07f9603 100644
 --- a/call/video_send_stream.h
 +++ b/call/video_send_stream.h
 @@ -24,7 +24,7 @@
