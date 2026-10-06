@@ -247,7 +247,7 @@ index 9b12fcdf59..b32274a9ab 100644
  
  if (rtc_include_tests) {
 diff --git a/api/video/BUILD.gn b/api/video/BUILD.gn
-index 10eed398ad..0ce63987f4 100644
+index df9f0d3ec0..94024bf375 100644
 --- a/api/video/BUILD.gn
 +++ b/api/video/BUILD.gn
 @@ -8,8 +8,8 @@
@@ -428,7 +428,7 @@ index 4ad82d0c29..0cb9cfb49f 100644
  
  group("logging") {
 diff --git a/media/BUILD.gn b/media/BUILD.gn
-index 54dd2e857b..ebda673da0 100644
+index cb5a98ebea..4a41e63caf 100644
 --- a/media/BUILD.gn
 +++ b/media/BUILD.gn
 @@ -6,7 +6,7 @@
@@ -588,7 +588,7 @@ index bc97abaeb0..b6e22833cc 100644
  import("../../webrtc.gni")
  
 diff --git a/pc/BUILD.gn b/pc/BUILD.gn
-index e449561f57..f6e19f6f4d 100644
+index 3393451c91..c833295e14 100644
 --- a/pc/BUILD.gn
 +++ b/pc/BUILD.gn
 @@ -29,8 +29,8 @@
@@ -678,7 +678,7 @@ index 1a9be46904..3520196b3b 100644
      output_extension = "so"
  
 diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
-index b35159f190..7993092921 100644
+index f29de80a83..e513956cc7 100644
 --- a/sdk/BUILD.gn
 +++ b/sdk/BUILD.gn
 @@ -9,12 +9,12 @@
@@ -707,7 +707,7 @@ index b35159f190..7993092921 100644
      }
    }
  
-@@ -1293,7 +1293,7 @@ if (is_ios || is_mac) {
+@@ -1294,7 +1294,7 @@ if (is_ios || is_mac) {
            }
  
            public_deps = [

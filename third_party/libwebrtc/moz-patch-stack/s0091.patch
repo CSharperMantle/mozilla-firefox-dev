@@ -61,7 +61,7 @@ index 83dc72ba53..dbcc162510 100644
        }
      }
 diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
-index 2d0a55247c..b35159f190 100644
+index bb9dc7941c..f29de80a83 100644
 --- a/sdk/BUILD.gn
 +++ b/sdk/BUILD.gn
 @@ -624,6 +624,20 @@ if (is_ios || is_mac) {
