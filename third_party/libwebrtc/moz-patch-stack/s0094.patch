@@ -127,7 +127,7 @@ index 0847018290..18da5301ca 100644
              "Generated during 'gn gen' by //BUILD.gn.",
              "",
 diff --git a/api/BUILD.gn b/api/BUILD.gn
-index d933dac2f0..eee296b117 100644
+index 2061d18520..6986b5d974 100644
 --- a/api/BUILD.gn
 +++ b/api/BUILD.gn
 @@ -8,8 +8,8 @@
@@ -247,7 +247,7 @@ index 9b12fcdf59..b32274a9ab 100644
  
  if (rtc_include_tests) {
 diff --git a/api/video/BUILD.gn b/api/video/BUILD.gn
-index 96520cf02f..8112a3d28d 100644
+index 10eed398ad..0ce63987f4 100644
 --- a/api/video/BUILD.gn
 +++ b/api/video/BUILD.gn
 @@ -8,8 +8,8 @@
