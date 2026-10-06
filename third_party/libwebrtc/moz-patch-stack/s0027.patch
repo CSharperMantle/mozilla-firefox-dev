@@ -470,10 +470,10 @@ index 033e61d273..5c8e4902a8 100644
  if (rtc_include_tests) {
    rtc_source_set("test_feedback_generator_interface") {
 diff --git a/call/BUILD.gn b/call/BUILD.gn
-index d13096783f..55b9fe300c 100644
+index 1d1e6c6eae..60f9601c96 100644
 --- a/call/BUILD.gn
 +++ b/call/BUILD.gn
-@@ -47,7 +47,7 @@ rtc_library("call_interfaces") {
+@@ -51,7 +51,7 @@ rtc_library("call_interfaces") {
      "../api:rtp_headers",
      "../api:rtp_packet_info",
      "../api:rtp_parameters",
@@ -541,7 +541,7 @@ index 88890be798..c9aefc297b 100644
  #include "rtc_base/memory/aligned_malloc.h"
  
 diff --git a/media/BUILD.gn b/media/BUILD.gn
-index 148cf74173..0003c701a4 100644
+index aa971bee4e..a4f7773cfa 100644
 --- a/media/BUILD.gn
 +++ b/media/BUILD.gn
 @@ -45,6 +45,9 @@ rtc_library("rtc_sdp_video_format_utils") {
@@ -660,7 +660,7 @@ index 148cf74173..0003c701a4 100644
  
  rtc_library("rtc_audio_video") {
 diff --git a/media/base/media_channel.h b/media/base/media_channel.h
-index ace8deaad3..2148403393 100644
+index ee717eb528..5da3104dc8 100644
 --- a/media/base/media_channel.h
 +++ b/media/base/media_channel.h
 @@ -71,9 +71,6 @@ namespace webrtc {
