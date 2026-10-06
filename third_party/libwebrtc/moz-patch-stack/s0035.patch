@@ -104,7 +104,7 @@ index 73c1a74575..1ed0d868df 100644
  }
  
 diff --git a/audio/channel_receive.h b/audio/channel_receive.h
-index 52a8114595..c054da3947 100644
+index f8572e0fe6..53c4f655ea 100644
 --- a/audio/channel_receive.h
 +++ b/audio/channel_receive.h
 @@ -39,6 +39,7 @@
@@ -115,7 +115,7 @@ index 52a8114595..c054da3947 100644
  #include "system_wrappers/include/ntp_time.h"
  
  namespace webrtc {
-@@ -180,6 +181,7 @@ std::unique_ptr<ChannelReceiveInterface> CreateChannelReceive(
+@@ -179,6 +180,7 @@ std::unique_ptr<ChannelReceiveInterface> CreateChannelReceive(
      const webrtc::CryptoOptions& crypto_options,
      scoped_refptr<FrameTransformerInterface> frame_transformer,
      absl::AnyInvocable<void(uint32_t ssrc) &&> on_first_packet,

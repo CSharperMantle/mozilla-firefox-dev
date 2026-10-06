@@ -18,10 +18,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/d92a578327f524ec3
  4 files changed, 24 insertions(+), 7 deletions(-)
 
 diff --git a/call/rtp_video_sender.cc b/call/rtp_video_sender.cc
-index b6228416b5..00b61735ba 100644
+index 8529361eaf..1324bde0d7 100644
 --- a/call/rtp_video_sender.cc
 +++ b/call/rtp_video_sender.cc
-@@ -527,6 +527,7 @@ void RtpVideoSender::SetModuleIsActive(bool sending,
+@@ -521,6 +521,7 @@ void RtpVideoSender::SetModuleIsActive(bool sending,
      return;
    }
  
