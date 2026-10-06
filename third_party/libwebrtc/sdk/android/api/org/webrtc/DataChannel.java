@@ -123,7 +123,7 @@ public class DataChannel {
 
   /** Unregister the (only) observer. */
   public void unregisterObserver() {
-    lifecycleLock.run(
+    lifecycleLock.runIfAlive(
         () -> {
           nativeUnregisterObserver(nativeObserver);
           nativeObserver = 0;
@@ -152,7 +152,7 @@ public class DataChannel {
 
   /** Close the channel. */
   public void close() {
-    lifecycleLock.run(() -> nativeClose());
+    lifecycleLock.runIfAlive(() -> nativeClose());
   }
 
   /** Send `data` to the remote peer; return success. */
@@ -173,11 +173,7 @@ public class DataChannel {
       return;
     }
     if (nativeObserver != 0) {
-      try {
-        unregisterObserver();
-      } catch (IllegalStateException e) {
-        // Ignored if already disposed.
-      }
+      unregisterObserver();
     }
     lifecycleLock.dispose(channel -> JniCommon.nativeReleaseRef(channel));
   }
