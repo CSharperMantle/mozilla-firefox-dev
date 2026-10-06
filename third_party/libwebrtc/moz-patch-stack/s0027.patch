@@ -117,7 +117,7 @@ index f4076f467a..d14f761f49 100644
    # TODO(https://bugs.webrtc.org/14437):  Remove this section if general
    # Chromium fix resolves the problem.
 diff --git a/BUILD.gn b/BUILD.gn
-index 9a200ffe2a..7b0f0c8788 100644
+index 9bf5b182a7..c4b1d9c9ba 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
 @@ -39,7 +39,7 @@ if (is_android) {
@@ -707,7 +707,7 @@ index cb4139c7d9..435bc5b0dd 100644
  }
  
 diff --git a/modules/audio_device/BUILD.gn b/modules/audio_device/BUILD.gn
-index ebed6dc060..cd86c1c211 100644
+index 12050386e3..b1933dcb25 100644
 --- a/modules/audio_device/BUILD.gn
 +++ b/modules/audio_device/BUILD.gn
 @@ -30,6 +30,7 @@ rtc_source_set("audio_device_default") {
@@ -786,7 +786,7 @@ index ebed6dc060..cd86c1c211 100644
 +}
  
  if (rtc_include_tests && !build_with_chromium) {
-   rtc_library("fine_audio_buffer_unittest") {
+   rtc_cc_test("fine_audio_buffer_unittest") {
 diff --git a/modules/audio_processing/aec3/BUILD.gn b/modules/audio_processing/aec3/BUILD.gn
 index a2363f5052..f5caa85710 100644
 --- a/modules/audio_processing/aec3/BUILD.gn
@@ -939,7 +939,7 @@ index d9c53b9d23..d2ddaa3b38 100644
  }
 +
 diff --git a/modules/sframe/BUILD.gn b/modules/sframe/BUILD.gn
-index beabe1f1e5..f2d6d9d315 100644
+index 70577d1e5f..5ce1469a77 100644
 --- a/modules/sframe/BUILD.gn
 +++ b/modules/sframe/BUILD.gn
 @@ -9,6 +9,7 @@
