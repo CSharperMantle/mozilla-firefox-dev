@@ -67,7 +67,6 @@ UNIFIED_SOURCES += [
     "/third_party/libwebrtc/common_audio/signal_processing/spl_inl.c",
     "/third_party/libwebrtc/common_audio/signal_processing/spl_sqrt.c",
     "/third_party/libwebrtc/common_audio/signal_processing/splitting_filter.c",
-    "/third_party/libwebrtc/common_audio/signal_processing/sqrt_of_one_minus_x_squared.c",
     "/third_party/libwebrtc/common_audio/signal_processing/vector_operations.c",
     "/third_party/libwebrtc/common_audio/signal_processing/vector_scaling_operations.c",
     "/third_party/libwebrtc/common_audio/vad/vad_filterbank.c",
