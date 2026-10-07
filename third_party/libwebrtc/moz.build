@@ -160,6 +160,7 @@ DIRS += [
     "/third_party/libwebrtc/call/rtp_interfaces_gn",
     "/third_party/libwebrtc/call/rtp_receiver_gn",
     "/third_party/libwebrtc/call/rtp_sender_gn",
+    "/third_party/libwebrtc/call/sframe_options_gn",
     "/third_party/libwebrtc/call/version_gn",
     "/third_party/libwebrtc/call/video_receive_stream_api_gn",
     "/third_party/libwebrtc/call/video_send_stream_api_gn",
