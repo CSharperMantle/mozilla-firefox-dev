@@ -74,7 +74,8 @@ export class UrlbarChildController {
    */
   #listeners = new Set();
 
-  #userSelectionBehavior = /** @type {"arrow"|"tab"|"none"} */ ("none");
+  /** @type {"arrow"|"tab"|"none"} */
+  #userSelectionBehavior = "none";
 
   /**
    * The id of the query the listeners are still hearing about. Notifications

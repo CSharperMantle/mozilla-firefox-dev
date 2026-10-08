@@ -1277,7 +1277,8 @@ export class UrlbarView {
   #overflowObserver;
   /** @type {string} */
   #previousTabToSearchEngine = null;
-  #queryContext = /** @type {UrlbarQueryContext} */ (null);
+  /** @type {UrlbarQueryContext} */
+  #queryContext = null;
   #queryUpdatedResults = false;
   #queryWasCancelled = false;
   /** @type {?number} */
