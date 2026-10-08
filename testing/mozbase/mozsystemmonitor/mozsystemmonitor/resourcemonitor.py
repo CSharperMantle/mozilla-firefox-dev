@@ -517,7 +517,7 @@ class SystemResourceMonitor:
     def _format_percent(value):
         return str(round(value, 1)) + "%"
 
-    def __init__(self, poll_interval=1.0, metadata={}):
+    def __init__(self, poll_interval=1.0, metadata=None):
         """Instantiate a system resource monitor instance.
 
         The instance is configured with a poll interval. This is the interval
@@ -594,6 +594,8 @@ class SystemResourceMonitor:
         self._drain_timer = None
         self._pipe_lock = threading.Lock()
 
+        if metadata is None:
+            metadata = {}
         self.metadata = metadata
         # "hg:<host>/<repo>:" prefix and revision parsed once from the profile
         # metadata's sourceURL, used to wrap repo-relative frame paths into
