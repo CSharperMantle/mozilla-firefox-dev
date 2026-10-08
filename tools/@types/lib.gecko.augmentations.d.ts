@@ -18,6 +18,8 @@ declare global {
 
   class MozXULElement extends XULElement implements MozElementBase {
     static implementCustomInterface(cls: MozElementBase, ifaces: nsIID[]): void;
+    static readonly fragment: DocumentFragment;
+    initializeAttributeInheritance(): void;
   }
   class MozHTMLElement extends HTMLElement implements MozElementBase {
     static implementCustomInterface(cls: MozElementBase, ifaces: nsIID[]): void;
@@ -50,6 +52,7 @@ declare global {
     readonly selected: boolean;
     linkedPanel: string;
     label: string;
+    on_mousedown(event: MouseEvent): void;
   }
 
   type MozBrowser =
