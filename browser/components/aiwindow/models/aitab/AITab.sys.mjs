@@ -28,6 +28,9 @@ ChromeUtils.defineESModuleGetters(lazy, {
   loadPrompt:
     "moz-src:///browser/components/aiwindow/models/PromptLoader.sys.mjs",
   MODEL_FEATURES: "moz-src:///browser/components/aiwindow/models/Utils.sys.mjs",
+  FEATURE_MAJOR_VERSIONS:
+    "moz-src:///browser/components/aiwindow/models/Utils.sys.mjs",
+  parseVersion: "moz-src:///browser/components/aiwindow/models/Utils.sys.mjs",
   renderPrompt: "moz-src:///browser/components/aiwindow/models/Utils.sys.mjs",
   openAIEngine:
     "moz-src:///browser/components/aiwindow/models/openAIEngine.sys.mjs",
@@ -75,7 +78,13 @@ XPCOMUtils.defineLazyPreferenceGetter(
 // produces a validated surface only.
 //
 // component_schema.json is an A2UI-compatible *catalog*: a single JSON-Schema
-// object with a `components` map (name -> property schema), shared `$defs`.
+// object with a `components` map (name -> property schema), shared `$defs`,
+// and a `version` ("{major}.{minor}") paired with the aitab Remote Settings
+// major (FEATURE_MAJOR_VERSIONS.aitab): the prompts published at that major
+// describe this catalog. A catalog change that older prompts cannot describe
+// (a new component, a new property on a component that forbids unknown ones)
+// bumps the catalog major, FEATURE_MAJOR_VERSIONS.aitab, and the packaged
+// dump's aitab records together, so two releases can be served side by side.
 const COMPONENT_SCHEMA_URL =
   "chrome://browser/content/aiwindow/aitab/component_schema.json";
 // The `component` type every surface's root must use.
@@ -151,6 +160,8 @@ const HISTORY_LIMIT_ERROR = "No more modifications are supported";
  * type, all sharing the document's `$defs`.
  *
  * @typedef {object} A2UICatalog
+ * @property {string} [version] - "{major}.{minor}"; the major is paired with
+ *   FEATURE_MAJOR_VERSIONS.aitab. Required on the packaged catalog.
  * @property {Record<string, A2UISchema>} components - Component type name to its property schema.
  * @property {Record<string, A2UISchema>} [$defs] - Definitions the component schemas `$ref`.
  * @property {string} [catalogId] - Identifier of the catalog.
@@ -339,9 +350,40 @@ export class AITab {
    * @returns {Promise<{env: ValidationEnv}>}
    */
   static async loadAssets() {
-    const catalog =
-      lazy.overrideCatalog ?? (await AITab.#loadPackagedCatalog());
+    const override = lazy.overrideCatalog;
+    const catalog = override ?? (await AITab.#loadPackagedCatalog());
+    // The packaged catalog must declare its version; a dev override may omit
+    // it, but when it declares one it is held to the same pairing rule.
+    AITab.#checkCatalogVersion(catalog, { versionRequired: !override });
     return { env: AITab.#makeEnv(catalog) };
+  }
+
+  /**
+   * Enforce the catalog/prompt pairing: the catalog's major must equal the
+   * aitab major this build reads prompts for, or the prompt and the validator
+   * would disagree on which components exist.
+   *
+   * @param {A2UICatalog} catalog
+   * @param {object} options
+   * @param {boolean} options.versionRequired - Reject a catalog with no `version`.
+   * @throws {Error} with `clientReason` "catalogVersionMismatch".
+   */
+  static #checkCatalogVersion(catalog, { versionRequired }) {
+    const expected = lazy.FEATURE_MAJOR_VERSIONS[lazy.MODEL_FEATURES.AITAB];
+    if (catalog?.version == null && !versionRequired) {
+      lazy.console.warn(
+        `aitab catalog override has no version; assuming major ${expected}`
+      );
+      return;
+    }
+    const parsed = lazy.parseVersion(catalog?.version);
+    if (!parsed || parsed.major !== expected) {
+      const err = new Error(
+        `aitab catalog version ${JSON.stringify(catalog?.version)} does not match this build's aitab major ${expected}`
+      );
+      err.clientReason = "catalogVersionMismatch";
+      throw err;
+    }
   }
 
   /**
