@@ -19518,6 +19518,14 @@
   value: true
   mirror: always
 
+# Keep the lockstore profile KEK tied to the primary password: migrate it when
+# the primary password changes, and prompt for the primary password at startup
+# to unlock it.
+- name: security.lockstore.unlock.enabled
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
 # INTERNAL -- DO NOT ENABLE. Master switch for SQLite database encryption
 # via obfsvfs; enabling without the rest of the key-management stack will
 # corrupt profiles by reopening existing unencrypted databases expecting

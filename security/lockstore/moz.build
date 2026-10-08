@@ -19,8 +19,13 @@ EXPORTS += [
     "LockstoreService.h",
 ]
 
+EXPORTS.mozilla.security.lockstore += [
+    "ProfileKek.h",
+]
+
 UNIFIED_SOURCES += [
     "LockstoreService.cpp",
+    "ProfileKek.cpp",
 ]
 
 FINAL_LIBRARY = "xul"
