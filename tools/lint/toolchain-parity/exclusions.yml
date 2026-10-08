@@ -12,7 +12,6 @@
 # both), over adding an exclusion here.
 toolchain:
     - 7zz
-    - fix-stacks
     - gn
     - grcov
     - jj
