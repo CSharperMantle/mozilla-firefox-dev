@@ -28,6 +28,10 @@ UNIFIED_SOURCES += [
     "ProfileKek.cpp",
 ]
 
+if CONFIG["MOZ_WIDGET_TOOLKIT"] == "cocoa":
+    # For MacApplicationDelegate.h.
+    LOCAL_INCLUDES += ["/toolkit/xre"]
+
 FINAL_LIBRARY = "xul"
 
 if CONFIG["COMPILE_ENVIRONMENT"]:

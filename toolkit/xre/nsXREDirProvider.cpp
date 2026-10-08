@@ -646,8 +646,14 @@ nsXREDirProvider::DoStartup() {
 #ifdef MOZ_BACKGROUNDTASKS
     isBackgroundTask = mozilla::BackgroundTasks::IsBackgroundTaskMode();
 #endif
-    if (XRE_IsParentProcess() && !isBackgroundTask) {
-      mozilla::security::lockstore::WatchPrimaryPasswordLinkPref();
+    // Ahead of profile-do-change, whose observers start opening profile
+    // databases that cannot be read until the profile KEK is unlocked.
+    if (XRE_IsParentProcess() && !isBackgroundTask &&
+        !mozilla::security::lockstore::SyncProfileKekAtStartup()) {
+      if (appStartup) {
+        appStartup->Quit(nsIAppStartup::eForceQuit, 0);
+      }
+      return NS_OK;
     }
 
     static const char16_t kStartup[] = {'s', 't', 'a', 'r',
