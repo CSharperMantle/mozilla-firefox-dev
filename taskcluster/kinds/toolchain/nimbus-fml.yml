@@ -63,6 +63,7 @@ linux64-aarch64-nimbus-fml:
         toolchain:
             - linux64-clang-toolchain
             - linux64-rust-toolchain
+            - sysroot-aarch64-linux-gnu
 
 macosx64-nimbus-fml:
     treeherder:

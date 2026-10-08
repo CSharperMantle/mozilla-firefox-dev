@@ -52,6 +52,7 @@ linux64-aarch64-embedded-uniffi-bindgen:
         toolchain:
             - linux64-clang-toolchain
             - linux64-rust-toolchain
+            - sysroot-aarch64-linux-gnu
 
 macosx64-embedded-uniffi-bindgen:
     treeherder:
