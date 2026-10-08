@@ -13,7 +13,6 @@ preprocessed_intervention_files = [
     "bug1718366-smugmug.com-fix_image_flickering.css",
     "bug1724868-news.yahoo.co.jp-1.js",
     "bug1724868-news.yahoo.co.jp.js",
-    "bug1729435-milkbarstore.com-fix_cart_quantities.css",
     "bug1741234-patient.alphalabs.ca-unhide_continue_button.css",
     "bug1769762-tiktok.com_broken_comments.js",
     "bug1770962-coldwellbankerhomes.com-fix_stretched_property_images.css",
