@@ -13,7 +13,6 @@
 toolchain:
     - 7zz
     - gn
-    - jj
     - nasm
     - pkgconf
     - upx
