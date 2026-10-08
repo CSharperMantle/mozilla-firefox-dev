@@ -14,7 +14,6 @@ toolchain:
     - 7zz
     - gn
     - jj
-    - minidump-stackwalk
     - nasm
     - nimbus-fml
     - pkgconf
