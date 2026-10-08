@@ -230,6 +230,10 @@ export class AITabTable extends MozLitElement {
     return html`
       <link
         rel="stylesheet"
+        href="chrome://browser/content/aiwindow/components/aitab-base.css"
+      />
+      <link
+        rel="stylesheet"
         href="chrome://browser/content/aiwindow/components/aitab-table.css"
       />
       <section class="aitab-table">

@@ -65,6 +65,31 @@ export class AITabPage extends MozLitElement {
   }
 
   /**
+   * Installs the heading font from bytes the parent sent with the page. A
+   * failure leaves headings on the fallback fonts.
+   *
+   * @param {?ArrayBuffer} buffer
+   */
+  async #installHeadingFont(buffer) {
+    if (!buffer) {
+      return;
+    }
+    try {
+      // The name comes from aitab-base.css, so the CSS and the face match.
+      const family = getComputedStyle(document.documentElement)
+        .getPropertyValue("--aitab-heading-font-family")
+        .trim();
+      const face = new FontFace(family, buffer, {
+        weight: "600",
+      });
+      await face.load();
+      document.fonts.add(face);
+    } catch (error) {
+      console.error("Failed to load the AI Tab heading font:", error);
+    }
+  }
+
+  /**
    * Unique name of the generated page to render, taken from the page URL. It
    * is an opaque key for the parent process to look up, never a path.
    *
@@ -85,6 +110,7 @@ export class AITabPage extends MozLitElement {
       throw new Error(response?.error ?? "No response from the parent process");
     }
 
+    await this.#installHeadingFont(response.font);
     this.page = response.page ?? null;
     this.status = this.page ? "ready" : "unavailable";
   }

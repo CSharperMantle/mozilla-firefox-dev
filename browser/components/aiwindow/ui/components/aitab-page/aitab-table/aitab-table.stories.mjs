@@ -5,10 +5,12 @@
 import { html } from "chrome://global/content/vendor/lit.all.mjs";
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://browser/content/aiwindow/components/aitab-table.mjs";
+import { withHeadingFont } from "../aitab-story-font.mjs";
 
 export default {
   title: "Domain-specific UI Widgets/AI Window/AITab Table",
   component: "aitab-table",
+  decorators: [withHeadingFont],
   argTypes: {
     heading: { control: "text" },
     description: { control: "text" },

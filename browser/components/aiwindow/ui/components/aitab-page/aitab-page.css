@@ -3,11 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 :host {
-  /* The type scale in aitab-base.css sizes against this rather than the
-     viewport, which is wider than the page whenever the chat pane is open.
-     container-type has no effect on an inline box, hence display. */
   display: block;
-  container: aitab-page / inline-size;
 }
 
 .aitab-sheet {
@@ -22,6 +18,9 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-large);
+  /* stylelint-disable-next-line stylelint-plugin-mozilla/use-design-tokens */
+  max-width: 1170px;
+  margin: 0 auto;
 }
 
 .aitab-footer-text {

@@ -365,7 +365,7 @@ add_task(async function test_generateAITab_hydrates_link_favicons() {
     );
     Assert.equal(
       header.references.items[0].favicon,
-      FAVICON_URL,
+      `page-icon:${GEN_URL}`,
       "a literal SourceLink item gets its stored favicon URL, replacing the model's"
     );
     Assert.ok(
@@ -374,7 +374,7 @@ add_task(async function test_generateAITab_hydrates_link_favicons() {
     );
     Assert.equal(
       result.surface.dataModel.sources[0].favicon,
-      FAVICON_URL,
+      `page-icon:${GEN_URL}`,
       "an absolutely-bound SourceLink item gets its stored favicon URL"
     );
     Assert.ok(
@@ -455,7 +455,7 @@ add_task(async function test_generateAITab_hydrates_favicon_for_denied_url() {
     );
     Assert.equal(
       links.items[0].favicon,
-      FAVICON_URL,
+      `page-icon:${DENIED_URL}`,
       "the visited page's stored favicon hydrates despite the content refusal"
     );
   } finally {

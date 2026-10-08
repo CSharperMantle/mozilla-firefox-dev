@@ -66,7 +66,7 @@ export class AITabHighlights extends MozLitElement {
     return html`<li class="aitab-highlight">
       <div class="aitab-highlight-statement">
         ${item.eyebrow
-          ? html`<p class="aitab-eyebrow">${item.eyebrow}</p>`
+          ? html`<span class="aitab-eyebrow">${item.eyebrow}</span>`
           : nothing}
         ${item.title
           ? html`<p class="aitab-highlight-title aitab-heading-3">
@@ -83,7 +83,7 @@ export class AITabHighlights extends MozLitElement {
     </li>`;
   }
 
-  #renderList() {
+  #renderHighlights() {
     const items = (this.items ?? []).filter(Boolean);
     if (!items.length) {
       return nothing;
@@ -108,11 +108,11 @@ export class AITabHighlights extends MozLitElement {
       />
       <section class="aitab-highlights">
         ${this.title
-          ? html`<h2 id="title" class="aitab-highlights-title aitab-heading-3">
+          ? html`<h2 id="title" class="aitab-highlights-title">
               ${this.title}
             </h2>`
           : nothing}
-        ${this.#renderList()}
+        ${this.#renderHighlights()}
       </section>
     `;
   }

@@ -19,7 +19,7 @@
   container-type: inline-size;
 
   @media not (forced-colors) {
-    --background-color-box: light-dark(var(--color-violet-desaturated-0, var(--color-violet-0)), var(--color-violet-desaturated-90, var(--color-violet-90)));
+    --background-color-box: light-dark(var(--color-violet-desaturated-0, var(--color-violet-0)), color-mix(in srgb, var(--color-violet-30) 12%, transparent));
 
     background-color: var(--background-color-box);
   }

@@ -5,10 +5,12 @@
 import { html } from "chrome://global/content/vendor/lit.all.mjs";
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://browser/content/aiwindow/components/aitab-highlights.mjs";
+import { withHeadingFont } from "../aitab-story-font.mjs";
 
 export default {
   title: "Domain-specific UI Widgets/AI Window/AI Tab Highlights",
   component: "aitab-highlights",
+  decorators: [withHeadingFont],
   argTypes: {
     title: { control: "text" },
     items: { control: "object" },

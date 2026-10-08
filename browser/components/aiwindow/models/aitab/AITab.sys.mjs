@@ -1224,8 +1224,9 @@ export class AITab {
   }
 
   /**
-   * Look up the URL of a page's stored favicon in Places. Never rejects;
-   * returns "" when no favicon is stored for the page or the lookup fails.
+   * The page-icon: URL for a page whose favicon Places has stored. Never
+   * rejects; returns "" when no favicon is stored for the page or the lookup
+   * fails.
    *
    * @param {string} url
    * @returns {Promise<string>}
@@ -1235,7 +1236,7 @@ export class AITab {
       const favicon = await lazy.PlacesUtils.favicons.getFaviconForPage(
         Services.io.newURI(url)
       );
-      return favicon?.uri?.spec ?? "";
+      return favicon ? `page-icon:${url}` : "";
     } catch (e) {
       lazy.console.debug("getFaviconURL failed", url, e);
       return "";
