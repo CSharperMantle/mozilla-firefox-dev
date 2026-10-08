@@ -16,7 +16,6 @@ toolchain:
     - jj
     - nasm
     - pkgconf
-    - treeherder-cli
     - upx
     - uv
     - webspec-index
