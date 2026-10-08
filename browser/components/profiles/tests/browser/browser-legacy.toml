@@ -9,9 +9,6 @@ run-if = [
 ]
 
 ["browser_appmenu.js"]
-skip-if = [
-  "os == 'mac' && os_version == '10.15' && arch == 'x86_64' && opt", # Bug 1996375
-]
 
 ["browser_appmenu_menuitem_updates.js"]
 head = "../unit/head.js head.js"

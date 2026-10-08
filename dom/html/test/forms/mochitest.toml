@@ -118,9 +118,6 @@ support-files = ["file_login_fields.html"]
 run-if = [
   "os != 'android'", # Not run on Firefox for Android where the spin buttons are hidden:
 ]
-skip-if = [
-  "os == 'mac' && os_version == '10.15' && arch == 'x86_64' && debug", # Bug 1484442
-]
 
 ["test_input_number_placeholder_shown.html"]
 
@@ -225,14 +222,12 @@ support-files = ["save_restore_custom_elements_sample.html"]
 
 ["test_select_change_event.html"]
 skip-if = [
-  "os == 'mac' && os_version == '10.15' && arch == 'x86_64'",
   "os == 'mac' && os_version == '14.70' && arch == 'x86_64'", # Bug 1929441
   "os == 'mac' && os_version == '15.30' && arch == 'aarch64'", # Bug 2019466
 ]
 
 ["test_select_input_change_event.html"]
 skip-if = [
-  "os == 'mac' && os_version == '10.15' && arch == 'x86_64'",
   "os == 'mac' && os_version == '14.70' && arch == 'x86_64'", # Bug 1929441
   "os == 'mac' && os_version == '15.30' && arch == 'aarch64'", # Bug 2023967
 ]
