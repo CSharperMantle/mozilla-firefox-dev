@@ -1859,13 +1859,6 @@ option(
 )
 
 
-# No-op to enable depending on --enable-linker from default_elfhack in
-# toolkit/moz.configure.
-@depends("--enable-linker", when=is_linker_option_enabled)
-def enable_linker(linker):
-    return linker
-
-
 @template
 def select_linker_tmpl(host_or_target):
     if host_or_target is target:
@@ -3561,15 +3554,6 @@ def libfuzzer_flags(value, tsan, enable_js_fuzzilli):
     return namespace(
         no_link_flag_supported=no_link_flag_supported,
         use_flags=use_flags,
-    )
-
-
-@depends(libfuzzer_flags, when=enable_libfuzzer)
-def sancov(libfuzzer_flags):
-    return any(
-        flag.startswith(head)
-        for head in ("-fsanitize-coverage", "-fsanitize=fuzzer")
-        for flag in libfuzzer_flags.use_flags
     )
 
 
