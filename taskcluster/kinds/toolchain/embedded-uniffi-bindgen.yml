@@ -50,7 +50,7 @@ linux64-aarch64-embedded-uniffi-bindgen:
         build_platform: linux64-aarch64-embedded-uniffi-bindgen
     fetches:
         toolchain:
-            - linux64-rust-static
+            - linux64-rust-toolchain
 
 macosx64-embedded-uniffi-bindgen:
     treeherder:
