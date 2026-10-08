@@ -10,7 +10,6 @@
     "content/tab.mjs",
     "content/tabgroup.mjs",
     "content/tabs.mjs",
-    "content/tabsplitview.mjs",
     "SmartTabGrouping.sys.mjs",
     "TabsList.sys.mjs"
   ],
