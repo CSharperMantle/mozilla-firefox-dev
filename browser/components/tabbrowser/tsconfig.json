@@ -1,5 +1,10 @@
 {
-  "include": ["*.sys.mjs", "content/*.mjs", "types/*.ts"],
+  "include": [
+    "*.sys.mjs",
+    "content/*.mjs",
+    "types/*.ts",
+    "../../../tools/@types/browser-window.d.ts"
+  ],
   "exclude": [
     "content/tab-hover-preview.mjs",
     "content/tab.mjs",
