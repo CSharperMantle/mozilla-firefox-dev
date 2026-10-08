@@ -13,7 +13,29 @@ namespace freestanding {
 NativeNtBlockSet::NativeNtBlockSetEntry* NativeNtBlockSet::NewEntry(
     const UNICODE_STRING& aName, uint64_t aVersion,
     NativeNtBlockSet::NativeNtBlockSetEntry* aNextEntry) {
-  return RtlNew<NativeNtBlockSetEntry>(aName, aVersion, aNextEntry);
+  HANDLE processHeap = nt::RtlGetProcessHeap();
+  if (!processHeap) {
+    return nullptr;
+  }
+
+  // aName may point into memory we don't own (e.g. the SharedSection view,
+  // which can be unmapped later), so copy it into the entry's allocation.
+  void* ptr = ::RtlAllocateHeap(processHeap, 0,
+                                sizeof(NativeNtBlockSetEntry) + aName.Length);
+  if (!ptr) {
+    return nullptr;
+  }
+
+  auto* nameCopy = reinterpret_cast<PWCH>(static_cast<char*>(ptr) +
+                                          sizeof(NativeNtBlockSetEntry));
+  memcpy(nameCopy, aName.Buffer, aName.Length);
+
+  UNICODE_STRING ownedName;
+  ownedName.Buffer = nameCopy;
+  ownedName.Length = aName.Length;
+  ownedName.MaximumLength = aName.Length;
+
+  return new (ptr) NativeNtBlockSetEntry(ownedName, aVersion, aNextEntry);
 }
 
 void NativeNtBlockSet::Add(const UNICODE_STRING& aName, uint64_t aVersion) {
