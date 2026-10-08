@@ -15,7 +15,6 @@ toolchain:
     - gn
     - jj
     - nasm
-    - nimbus-fml
     - pkgconf
     - samply
     - sccache
