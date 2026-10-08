@@ -16,6 +16,5 @@ toolchain:
     - nasm
     - pkgconf
     - upx
-    - uv
     - winchecksec
 fetch: []
