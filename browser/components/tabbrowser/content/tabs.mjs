@@ -1370,8 +1370,6 @@ export class MozTabbrowserTabs extends MozElements.TabsBase {
   _handleTabSelect(aInstant) {
     let selectedTab = this.selectedItem;
     this.#ensureTabIsVisible(selectedTab, aInstant);
-
-    selectedTab._notselectedsinceload = false;
   }
 
   /**
