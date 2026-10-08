@@ -192,11 +192,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
   - ✅
   - ❌
   - ❌
-* - **browsertime-benchmark-safari-assorted-dom**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 :::
 
 
@@ -565,11 +560,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
   - ✅
   - ❌
   - ❌
-* - **browsertime-benchmark-safari-jetstream3**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 :::
 
 
@@ -924,11 +914,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
 * - **browsertime-benchmark-firefox-jetstream3**
   - ✅
   - ✅
-  - ❌
-  - ❌
-* - **browsertime-benchmark-safari-jetstream3**
-  - ❌
-  - ❌
   - ❌
   - ❌
 :::
@@ -1732,11 +1717,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
   - ✅
   - ❌
   - ❌
-* - **browsertime-benchmark-safari-motionmark-1-3**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 :::
 
 
@@ -2077,11 +2057,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
 * - **browsertime-benchmark-firefox-motionmark-1-3**
   - ✅
   - ✅
-  - ❌
-  - ❌
-* - **browsertime-benchmark-safari-motionmark-1-3**
-  - ❌
-  - ❌
   - ❌
   - ❌
 :::
@@ -2440,11 +2415,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
   - ✅
   - ❌
   - ❌
-* - **browsertime-benchmark-safari-motionmark-htmlsuite-1-3**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 :::
 
 
@@ -2785,11 +2755,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
 * - **browsertime-benchmark-firefox-motionmark-htmlsuite-1-3**
   - ✅
   - ✅
-  - ❌
-  - ❌
-* - **browsertime-benchmark-safari-motionmark-htmlsuite-1-3**
-  - ❌
-  - ❌
   - ❌
   - ❌
 :::
@@ -3620,11 +3585,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
   - ❌
   - ❌
   - ❌
-* - **browsertime-benchmark-safari-speedometer2**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 :::
 
 
@@ -4039,11 +3999,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
   - ❌
   - ❌
 * - **browsertime-benchmark-firefox-speedometer2**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-benchmark-safari-speedometer2**
   - ❌
   - ❌
   - ❌
@@ -6139,11 +6094,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
   - ✅
   - ❌
   - ❌
-* - **browsertime-benchmark-safari-stylebench**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 :::
 
 
@@ -7174,11 +7124,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
   - ❌
 * - **browsertime-benchmark-wasm-firefox-wasm-godot**
   - ✅
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-benchmark-wasm-safari-wasm-godot**
-  - ❌
   - ❌
   - ❌
   - ❌
@@ -8423,11 +8368,6 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
 * - **browsertime-benchmark-firefox-webaudio**
   - ✅
   - ✅
-  - ❌
-  - ❌
-* - **browsertime-benchmark-safari-webaudio**
-  - ❌
-  - ❌
   - ❌
   - ❌
 :::
@@ -25741,11 +25681,6 @@ Browsertime tests that use a custom pageload test script. These use the pageload
   - ✅
   - ❌
   - ❌
-* - **browsertime-upload-safari-upload**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 :::
 
 
@@ -25951,11 +25886,6 @@ Browsertime tests that use a custom pageload test script. These use the pageload
 * - **browsertime-upload-firefox-upload-h3**
   - ✅
   - ✅
-  - ❌
-  - ❌
-* - **browsertime-upload-safari-upload-h3**
-  - ❌
-  - ❌
   - ❌
   - ❌
 :::
@@ -26165,11 +26095,6 @@ Browsertime tests that use a custom pageload test script. These use the pageload
 * - **browsertime-webcodecs-firefox-ve-av1-q**
   - ✅
   - ✅
-  - ❌
-  - ❌
-* - **browsertime-webcodecs-safari-ve-av1-q**
-  - ❌
-  - ❌
   - ❌
   - ❌
 :::
@@ -26388,11 +26313,6 @@ Browsertime tests that use a custom pageload test script. These use the pageload
   - ✅
   - ❌
   - ❌
-* - **browsertime-webcodecs-safari-ve-av1-q-cam**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 :::
 
 
@@ -26607,11 +26527,6 @@ Browsertime tests that use a custom pageload test script. These use the pageload
   - ✅
   - ❌
   - ❌
-* - **browsertime-webcodecs-safari-ve-av1-q-i420**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 :::
 
 
@@ -26824,11 +26739,6 @@ Browsertime tests that use a custom pageload test script. These use the pageload
 * - **browsertime-webcodecs-firefox-ve-av1-rt**
   - ✅
   - ✅
-  - ❌
-  - ❌
-* - **browsertime-webcodecs-safari-ve-av1-rt**
-  - ❌
-  - ❌
   - ❌
   - ❌
 :::
@@ -27047,11 +26957,6 @@ Browsertime tests that use a custom pageload test script. These use the pageload
   - ✅
   - ❌
   - ❌
-* - **browsertime-webcodecs-safari-ve-av1-rt-cam**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 :::
 
 
@@ -27266,11 +27171,6 @@ Browsertime tests that use a custom pageload test script. These use the pageload
   - ✅
   - ❌
   - ❌
-* - **browsertime-webcodecs-safari-ve-av1-rt-i420**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 :::
 
 
@@ -27419,11 +27319,6 @@ Browsertime tests that use a custom pageload test script. These use the pageload
   - ✅
   - ❌
   - ❌
-* - **browsertime-webcodecs-safari-ve-h264-q**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 :::
 
 
@@ -27564,11 +27459,6 @@ Browsertime tests that use a custom pageload test script. These use the pageload
   - ✅
   - ❌
   - ❌
-* - **browsertime-webcodecs-safari-ve-h264-q-cam**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 :::
 
 
@@ -27705,11 +27595,6 @@ Browsertime tests that use a custom pageload test script. These use the pageload
 * - **browsertime-webcodecs-firefox-ve-h264-q-i420**
   - ✅
   - ✅
-  - ❌
-  - ❌
-* - **browsertime-webcodecs-safari-ve-h264-q-i420**
-  - ❌
-  - ❌
   - ❌
   - ❌
 :::
@@ -27853,11 +27738,6 @@ Browsertime tests that use a custom pageload test script. These use the pageload
 * - **browsertime-webcodecs-firefox-ve-h264-q-sd**
   - ✅
   - ✅
-  - ❌
-  - ❌
-* - **browsertime-webcodecs-safari-ve-h264-q-sd**
-  - ❌
-  - ❌
   - ❌
   - ❌
 :::
@@ -28015,11 +27895,6 @@ Browsertime tests that use a custom pageload test script. These use the pageload
   - ✅
   - ❌
   - ❌
-* - **browsertime-webcodecs-safari-ve-h264-q-sd-cam**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 :::
 
 
@@ -28168,11 +28043,6 @@ Browsertime tests that use a custom pageload test script. These use the pageload
   - ✅
   - ❌
   - ❌
-* - **browsertime-webcodecs-safari-ve-h264-rt**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 :::
 
 
@@ -28313,11 +28183,6 @@ Browsertime tests that use a custom pageload test script. These use the pageload
   - ✅
   - ❌
   - ❌
-* - **browsertime-webcodecs-safari-ve-h264-rt-cam**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 :::
 
 
@@ -28454,11 +28319,6 @@ Browsertime tests that use a custom pageload test script. These use the pageload
 * - **browsertime-webcodecs-firefox-ve-h264-rt-i420**
   - ✅
   - ✅
-  - ❌
-  - ❌
-* - **browsertime-webcodecs-safari-ve-h264-rt-i420**
-  - ❌
-  - ❌
   - ❌
   - ❌
 :::
@@ -28602,11 +28462,6 @@ Browsertime tests that use a custom pageload test script. These use the pageload
 * - **browsertime-webcodecs-firefox-ve-h264-rt-sd**
   - ✅
   - ✅
-  - ❌
-  - ❌
-* - **browsertime-webcodecs-safari-ve-h264-rt-sd**
-  - ❌
-  - ❌
   - ❌
   - ❌
 :::
@@ -28762,11 +28617,6 @@ Browsertime tests that use a custom pageload test script. These use the pageload
 * - **browsertime-webcodecs-firefox-ve-h264-rt-sd-cam**
   - ✅
   - ✅
-  - ❌
-  - ❌
-* - **browsertime-webcodecs-safari-ve-h264-rt-sd-cam**
-  - ❌
-  - ❌
   - ❌
   - ❌
 :::
@@ -28981,11 +28831,6 @@ Browsertime tests that use a custom pageload test script. These use the pageload
 * - **browsertime-webcodecs-firefox-ve-vp8-q**
   - ✅
   - ✅
-  - ❌
-  - ❌
-* - **browsertime-webcodecs-safari-ve-vp8-q**
-  - ❌
-  - ❌
   - ❌
   - ❌
 :::
@@ -29204,11 +29049,6 @@ Browsertime tests that use a custom pageload test script. These use the pageload
   - ✅
   - ❌
   - ❌
-* - **browsertime-webcodecs-safari-ve-vp8-q-cam**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 :::
 
 
@@ -29423,11 +29263,6 @@ Browsertime tests that use a custom pageload test script. These use the pageload
   - ✅
   - ❌
   - ❌
-* - **browsertime-webcodecs-safari-ve-vp8-q-i420**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 :::
 
 
@@ -29640,11 +29475,6 @@ Browsertime tests that use a custom pageload test script. These use the pageload
 * - **browsertime-webcodecs-firefox-ve-vp8-rt**
   - ✅
   - ✅
-  - ❌
-  - ❌
-* - **browsertime-webcodecs-safari-ve-vp8-rt**
-  - ❌
-  - ❌
   - ❌
   - ❌
 :::
@@ -29863,11 +29693,6 @@ Browsertime tests that use a custom pageload test script. These use the pageload
   - ✅
   - ❌
   - ❌
-* - **browsertime-webcodecs-safari-ve-vp8-rt-cam**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 :::
 
 
@@ -30082,11 +29907,6 @@ Browsertime tests that use a custom pageload test script. These use the pageload
   - ✅
   - ❌
   - ❌
-* - **browsertime-webcodecs-safari-ve-vp8-rt-i420**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 :::
 
 
@@ -30299,11 +30119,6 @@ Browsertime tests that use a custom pageload test script. These use the pageload
 * - **browsertime-webcodecs-firefox-ve-vp9-q**
   - ✅
   - ✅
-  - ❌
-  - ❌
-* - **browsertime-webcodecs-safari-ve-vp9-q**
-  - ❌
-  - ❌
   - ❌
   - ❌
 :::
@@ -30522,11 +30337,6 @@ Browsertime tests that use a custom pageload test script. These use the pageload
   - ✅
   - ❌
   - ❌
-* - **browsertime-webcodecs-safari-ve-vp9-q-cam**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 :::
 
 
@@ -30741,11 +30551,6 @@ Browsertime tests that use a custom pageload test script. These use the pageload
   - ✅
   - ❌
   - ❌
-* - **browsertime-webcodecs-safari-ve-vp9-q-i420**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 :::
 
 
@@ -30958,11 +30763,6 @@ Browsertime tests that use a custom pageload test script. These use the pageload
 * - **browsertime-webcodecs-firefox-ve-vp9-rt**
   - ✅
   - ✅
-  - ❌
-  - ❌
-* - **browsertime-webcodecs-safari-ve-vp9-rt**
-  - ❌
-  - ❌
   - ❌
   - ❌
 :::
@@ -31181,11 +30981,6 @@ Browsertime tests that use a custom pageload test script. These use the pageload
   - ✅
   - ❌
   - ❌
-* - **browsertime-webcodecs-safari-ve-vp9-rt-cam**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 :::
 
 
@@ -31398,11 +31193,6 @@ Browsertime tests that use a custom pageload test script. These use the pageload
 * - **browsertime-webcodecs-firefox-ve-vp9-rt-i420**
   - ✅
   - ✅
-  - ❌
-  - ❌
-* - **browsertime-webcodecs-safari-ve-vp9-rt-i420**
-  - ❌
-  - ❌
   - ❌
   - ❌
 :::
@@ -32007,11 +31797,6 @@ Browsertime tests that use a custom pageload test script. These use the pageload
 * - **browsertime-video-playback-latency-firefox-vpl-h264**
   - ✅
   - ✅
-  - ❌
-  - ❌
-* - **browsertime-video-playback-latency-safari-vpl-h264**
-  - ❌
-  - ❌
   - ❌
   - ❌
 :::
@@ -32881,11 +32666,6 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - ❌
   - ❌
   - ❌
-* - **browsertime-tp6-live-safari-amazon**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 * - **browsertime-tp6-profiling-firefox-amazon**
   - ✅
   - ❌
@@ -33280,11 +33060,6 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - ❌
   - ❌
 * - **browsertime-tp6-live-firefox-bing-search**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-safari-bing-search**
   - ❌
   - ❌
   - ❌
@@ -34414,11 +34189,6 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - ❌
   - ❌
   - ❌
-* - **browsertime-tp6-live-safari-ebay**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 :::
 
 
@@ -35501,11 +35271,6 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - ❌
   - ❌
   - ❌
-* - **browsertime-tp6-live-safari-fandom**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 :::
 
 
@@ -35846,11 +35611,6 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - ❌
   - ❌
   - ❌
-* - **browsertime-tp6-live-safari-google-docs**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 :::
 
 
@@ -36147,11 +35907,6 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - ❌
   - ❌
   - ❌
-* - **browsertime-tp6-live-safari-google-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 :::
 
 
@@ -36444,11 +36199,6 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - ❌
   - ❌
 * - **browsertime-tp6-live-firefox-google-search**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-safari-google-search**
   - ❌
   - ❌
   - ❌
@@ -36771,11 +36521,6 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - ❌
   - ❌
 * - **browsertime-tp6-live-firefox-google-slides**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-safari-google-slides**
   - ❌
   - ❌
   - ❌
@@ -37119,11 +36864,6 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - ❌
   - ❌
   - ❌
-* - **browsertime-tp6-live-safari-imdb**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 :::
 
 
@@ -37408,11 +37148,6 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - ❌
   - ❌
 * - **browsertime-tp6-live-firefox-imgur**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-safari-imgur**
   - ❌
   - ❌
   - ❌
@@ -38073,11 +37808,6 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - ❌
   - ❌
   - ❌
-* - **browsertime-tp6-live-safari-linkedin**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 :::
 
 
@@ -38371,11 +38101,6 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - ❌
   - ❌
 * - **browsertime-tp6-live-firefox-microsoft**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-safari-microsoft**
   - ❌
   - ❌
   - ❌
@@ -39706,11 +39431,6 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - ❌
   - ❌
   - ❌
-* - **browsertime-tp6-live-safari-paypal**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 :::
 
 
@@ -40008,11 +39728,6 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - ❌
   - ❌
   - ❌
-* - **browsertime-tp6-live-safari-pinterest**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 :::
 
 
@@ -40306,11 +40021,6 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - ❌
   - ❌
 * - **browsertime-tp6-live-firefox-reddit**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-safari-reddit**
   - ❌
   - ❌
   - ❌
@@ -41018,11 +40728,6 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - ❌
   - ❌
 * - **browsertime-tp6-live-firefox-tumblr**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-safari-tumblr**
   - ❌
   - ❌
   - ❌
@@ -42149,11 +41854,6 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - ❌
   - ❌
   - ❌
-* - **browsertime-tp6-live-safari-wikipedia**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 :::
 
 
@@ -42517,11 +42217,6 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - ❌
   - ❌
   - ❌
-* - **browsertime-tp6-live-safari-yahoo-mail**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
 :::
 
 
@@ -42857,11 +42552,6 @@ Tests for page-load performance. The links direct to the actual websites that ar
   - ❌
   - ❌
 * - **browsertime-tp6-live-firefox-youtube**
-  - ❌
-  - ❌
-  - ❌
-  - ❌
-* - **browsertime-tp6-live-safari-youtube**
   - ❌
   - ❌
   - ❌
