@@ -4,6 +4,7 @@
 
 import os
 import unittest
+from collections import Counter
 
 import mozpack.path as mozpath
 from buildconfig import topobjdir, topsrcdir
@@ -87,6 +88,24 @@ class Lint(unittest.TestCase, metaclass=LintMeta):
         ]
         if unreferenced:
             self.fail("\n".join(unreferenced))
+
+    def test_unreferenced_depends(self):
+        references = Counter()
+        for project in PROJECTS:
+            sandbox = self.lint(project)
+            references.update(sandbox.defined_depends.values())
+            references.subtract(sandbox.unreferenced_depends())
+        messages = [
+            f"`{name}` ({mozpath.relpath(path, topsrcdir)}:{line}) returns a value "
+            "that nothing reads. Remove the `return` value, and the function "
+            "too if it does nothing else."
+            for name, path, line in sorted(
+                (location for location, count in references.items() if count == 0),
+                key=lambda location: location[1:],
+            )
+        ]
+        if messages:
+            self.fail("\n".join(messages))
 
 
 if __name__ == "__main__":
