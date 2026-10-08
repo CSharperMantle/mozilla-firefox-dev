@@ -405,6 +405,16 @@ ip-protection-site-rule-duplicate-error = This site already has a rule.
 # Shown at the top of the dialog when the rule could not be saved.
 ip-protection-site-rule-save-error =
   .message = Error creating rule. Please try again.
+# Variables:
+#   $website (string) - The website the rule applies to, e.g. https://example.com
+ip-protection-delete-site-rule-message = Delete rule for { $website }?
+ip-protection-delete-site-rule-cancel =
+  .label = Cancel
+ip-protection-delete-site-rule-confirm =
+  .label = Delete
+ip-protection-delete-all-site-rules-message = Delete all website rules?
+ip-protection-delete-all-site-rules-confirm =
+  .label = Delete all rules
 
 ## IP Protection Bandwidth
 
