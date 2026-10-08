@@ -4,15 +4,19 @@
 
 import { parseConsoleScript } from "./utils/ast";
 import mapOriginalExpression from "./mapOriginalExpression";
+import mapExpressionBindings from "./mapBindings";
 import mapTopLevelAwait from "./mapAwaitExpression";
 
 export default function mapExpression(
   expression,
   mappings,
+  bindings,
+  shouldMapBindings = true,
   shouldMapAwait = true
 ) {
   const mapped = {
     await: false,
+    bindings: false,
     originalExpression: false,
   };
 
@@ -22,6 +26,12 @@ export default function mapExpression(
       const beforeOriginalExpression = expression;
       expression = mapOriginalExpression(expression, ast, mappings);
       mapped.originalExpression = beforeOriginalExpression !== expression;
+    }
+
+    if (shouldMapBindings && ast) {
+      const beforeBindings = expression;
+      expression = mapExpressionBindings(expression, ast, bindings);
+      mapped.bindings = beforeBindings !== expression;
     }
 
     if (shouldMapAwait) {

@@ -303,10 +303,14 @@ class WebConsole extends EventEmitter {
     }
 
     if (expression.includes("await ")) {
+      const shouldMapBindings = false;
+      const shouldMapAwait = true;
       const res = this.parserWorker.mapExpression(
         expression,
         null,
-        /* shouldMapAwait */ true
+        null,
+        shouldMapBindings,
+        shouldMapAwait
       );
       return res;
     }

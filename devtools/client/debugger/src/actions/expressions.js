@@ -7,6 +7,8 @@ import {
   getExpressions,
   getSelectedSource,
   getSelectedScopeMappings,
+  getSelectedFrameBindings,
+  getIsPaused,
   getSelectedFrame,
   getCurrentThread,
   isMapScopesEnabled,
@@ -181,15 +183,11 @@ function evaluateExpression(expression) {
 /**
  * Gets information about original variable names from the source map
  * and replaces all possible generated names.
- *
- * Mapping is only applied to rewrite source-map variable names or to
- * wrap a top-level `await`. All other expressions reach the engine
- * unchanged, so declarations such as `let x = 1` are evaluated with
- * their normal lexical-scoping semantics.
  */
 export function getMappedExpression(expression, thread, thunkArgs) {
   const { getState, parserWorker } = thunkArgs;
   const mappings = getSelectedScopeMappings(getState(), thread);
+  const bindings = getSelectedFrameBindings(getState(), thread);
 
   // We bail early if we do not need to map the expression. This is important
   // because mapping an expression can be slow if the parserWorker
@@ -197,14 +195,17 @@ export function getMappedExpression(expression, thread, thunkArgs) {
   //
   // 1. there are no mappings - we do not need to map original expressions
   // 2. does not contain `await` - we do not need to map top level awaits
+  // 3. does not contain `=` - we do not need to map assignments
   const shouldMapScopes = isMapScopesEnabled(getState()) && mappings;
-  if (!shouldMapScopes && !expression.match(/await/)) {
+  if (!shouldMapScopes && !expression.match(/(await|=)/)) {
     return null;
   }
 
   return parserWorker.mapExpression(
     expression,
     mappings,
+    bindings || [],
+    features.mapExpressionBindings && getIsPaused(getState(), thread),
     features.mapAwaitExpression
   );
 }

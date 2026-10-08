@@ -55,6 +55,7 @@ if (isNode()) {
   pref("devtools.debugger.features.wasm", true);
   pref("devtools.debugger.features.code-folding", false);
   pref("devtools.debugger.features.autocomplete-expressions", false);
+  pref("devtools.debugger.features.map-expression-bindings", true);
   pref("devtools.debugger.features.map-await-expression", true);
   pref("devtools.debugger.features.log-points", true);
   pref("devtools.debugger.features.inline-preview", true);
@@ -142,6 +143,7 @@ export const features = new PrefsHelper("devtools.debugger.features", {
   outline: ["Bool", "outline"],
   codeFolding: ["Bool", "code-folding"],
   autocompleteExpression: ["Bool", "autocomplete-expressions"],
+  mapExpressionBindings: ["Bool", "map-expression-bindings"],
   mapAwaitExpression: ["Bool", "map-await-expression"],
   logPoints: ["Bool", "log-points"],
   inlinePreview: ["Bool", "inline-preview"],
