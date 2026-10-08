@@ -16,7 +16,6 @@ toolchain:
     - jj
     - nasm
     - pkgconf
-    - stmo-cli
     - treeherder-cli
     - upx
     - uv
