@@ -16,6 +16,7 @@ import subprocess
 import sys
 import sysconfig
 import tempfile
+import textwrap
 import warnings
 from contextlib import contextmanager
 from pathlib import Path
@@ -23,6 +24,7 @@ from typing import Callable, Optional
 
 from mozfile import json
 from packaging.specifiers import SpecifierSet
+from packaging.utils import canonicalize_name
 
 from mach.filelock import FileLock, Timeout
 from mach.requirements import (
@@ -1030,7 +1032,7 @@ class PythonVirtualenv:
 
         return dirs
 
-    def pip_install_with_constraints(self, pip_args):
+    def pip_install_with_constraints(self, pip_args, excludes=()):
         """Create a pip constraints file or existing packages
 
         When pip installing an incompatible package, pip will follow through with
@@ -1044,7 +1046,11 @@ class PythonVirtualenv:
         Note: pip_args is expected to contain either the requested package or
               requirements file.
         """
-        existing_packages = self._resolve_installed_packages()
+        existing_packages = {
+            name: version
+            for name, version in self._resolve_installed_packages().items()
+            if name not in excludes
+        }
 
         if existing_packages:
             with tempfile.TemporaryDirectory() as tempdir:
@@ -1149,7 +1155,7 @@ class RequirementsValidationResult:
     def from_packages(cls, packages, requirements):
         result = cls()
         for pkg in requirements.pypi_requirements:
-            installed_version = packages.get(pkg.requirement.name)
+            installed_version = packages.get(canonicalize_name(pkg.requirement.name))
             if not installed_version or not pkg.requirement.specifier.contains(
                 installed_version
             ):
@@ -1158,7 +1164,7 @@ class RequirementsValidationResult:
                 result.provides_any_package = True
 
         for pkg in requirements.pypi_optional_requirements:
-            installed_version = packages.get(pkg.requirement.name)
+            installed_version = packages.get(canonicalize_name(pkg.requirement.name))
             if installed_version and not pkg.requirement.specifier.contains(
                 installed_version
             ):
@@ -1315,19 +1321,30 @@ def resolve_requirements(topsrcdir, site_name):
 
 def _resolve_installed_packages(python_executable):
     result = subprocess.run(
-        pip_command(
-            python_executable=python_executable,
-            subcommand="list",
-            args=["--format", "json"],
-            non_uv_args=["--disable-pip-version-check"],
-        ),
+        [
+            python_executable,
+            "-c",
+            textwrap.dedent(
+                """
+                import importlib.metadata, json
+                print(json.dumps([
+                    [d.metadata["Name"], d.version]
+                    for d in importlib.metadata.distributions()
+                    if d.metadata["Name"]
+                ]))
+                """
+            ),
+        ],
         text=True,
         capture_output=True,
         check=True,
     )
 
-    installed_packages = json.loads(result.stdout)
-    return {package["name"]: package["version"] for package in installed_packages}
+    packages = {}
+    for name, version in json.loads(result.stdout):
+        # Keep the first copy found on sys.path, since that is the one Python imports.
+        packages.setdefault(canonicalize_name(name), version)
+    return packages
 
 
 def _ensure_python_exe(python_exe_root: Path):
@@ -1550,7 +1567,13 @@ def _create_venv_with_pthfile(
             requirements_list = [
                 str(req.requirement) for req in requirements.pypi_requirements
             ]
-            target_venv.pip_install(requirements_list)
+            target_venv.pip_install_with_constraints(
+                requirements_list,
+                excludes={
+                    canonicalize_name(req.requirement.name)
+                    for req in requirements.pypi_requirements
+                },
+            )
         target_venv.install_optional_packages(requirements.pypi_optional_requirements)
 
     metadata.write(is_finalized=True)
