@@ -3019,6 +3019,13 @@ NS_IMETHODIMP EditorBase::NotifySelectionChanged(Document* aDocument,
     return NS_ERROR_INVALID_ARG;
   }
 
+  if (IsDispatchingInputEvent()) {
+    mEditActionData
+        ->SetSelectionCreatedByDoubleclickOfEditActionDispatchingInputEvent(
+            aSelection->GetFrameSelection() &&
+            aSelection->GetFrameSelection()->IsDoubleClickSelection());
+  }
+
   if (mTextInputListener) {
     RefPtr<TextInputListener> textInputListener = mTextInputListener;
     textInputListener->OnSelectionChange(*aSelection, aReason);

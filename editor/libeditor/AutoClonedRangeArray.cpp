@@ -16,6 +16,7 @@
 #include "mozilla/IntegerRange.h"             // for IntegerRange
 #include "mozilla/OwningNonNull.h"            // for OwningNonNull
 #include "mozilla/PresShell.h"                // for PresShell
+#include "mozilla/StaticPrefs_editor.h"       // for StaticPrefs::editor_*
 #include "mozilla/dom/CharacterDataBuffer.h"  // for CharacterDataBuffer
 #include "mozilla/dom/Document.h"             // for dom::Document
 #include "mozilla/dom/EditContext.h"          // for dom::EditContext
@@ -1644,6 +1645,50 @@ AutoClonedSelectionRangeArray::ExtendAnchorFocusRangeFor(
   MOZ_ASSERT(found);
   mAnchorFocusRange.swap(extendedRange);
   return directionAndAmountResult;
+}
+
+void AutoClonedSelectionRangeArray::
+    MaybeExtendAnchorFocusRangeToDeleteAdjacentWhiteSpace(
+        const EditorBase& aEditorBase) {
+  if (!StaticPrefs::
+          editor_word_select_delete_space_after_doubleclick_selection() ||
+      !aEditorBase.IsSelectionCreatedByDoubleclick()) {
+    return;
+  }
+  if (!mAnchorFocusRange || !mAnchorFocusRange->IsPositioned() ||
+      mAnchorFocusRange->Collapsed()) {
+    return;
+  }
+  MOZ_ASSERT(mRanges.Length() == 1);
+  MOZ_ASSERT(mRanges[0].get() == mAnchorFocusRange.get());
+
+  const auto IsCharWhiteSpace = [](const EditorRawDOMPoint& aPoint) {
+    return aPoint.IsInTextNode() && !aPoint.IsEndOfContainer() &&
+           aPoint.IsCharASCIISpaceOrNBSP();
+  };
+
+  const EditorRawDOMPoint startPoint(mAnchorFocusRange->StartRef());
+  const EditorRawDOMPoint endPoint(mAnchorFocusRange->EndRef());
+  if (IsCharWhiteSpace(startPoint) ||
+      (endPoint.IsInTextNode() && !endPoint.IsStartOfContainer() &&
+       IsCharWhiteSpace(endPoint.PreviousPoint()))) {
+    return;
+  }
+
+  if (startPoint.IsInTextNode() && !startPoint.IsStartOfContainer() &&
+      IsCharWhiteSpace(startPoint.PreviousPoint())) {
+    IgnoredErrorResult error;
+    mAnchorFocusRange->SetStart(startPoint.PreviousPoint().ToRawRangeBoundary(),
+                                error);
+    NS_WARNING_ASSERTION(!error.Failed(), "Range::SetStart() failed");
+    return;
+  }
+
+  if (IsCharWhiteSpace(endPoint)) {
+    IgnoredErrorResult error;
+    mAnchorFocusRange->SetEnd(endPoint.NextPoint().ToRawRangeBoundary(), error);
+    NS_WARNING_ASSERTION(!error.Failed(), "Range::SetEnd() failed");
+  }
 }
 
 }  // namespace mozilla
