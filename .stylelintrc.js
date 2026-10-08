@@ -32,6 +32,7 @@ module.exports = {
     "stylelint-use-logical",
   ],
   ignoreFiles,
+  reportUnscopedDisables: true,
   rules: {
     /* Disabled because of `-moz-element(#foo)` which gets misparsed. */
     "color-no-invalid-hex": null,

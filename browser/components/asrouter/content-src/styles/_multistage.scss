@@ -32,8 +32,6 @@ html {
 // Below variables are used via config JSON in AboutWelcomeDefaults
 // and referenced below inside dummy class to pass test browser_parsable_css
 .dummy {
-  /* No need to check for stylelint violations */
-  /* stylelint-disable-next-line */
   background: var(--mr-welcome-background-color) var(--mr-welcome-background-gradient) var(--mr-secondary-position) var(--mr-screen-background-color) var(--mr-smart-window-background-gradient);
 }
 
@@ -2994,7 +2992,6 @@ html {
           }
 
           &.centered {
-            /* stylelint-disable-next-line */
             border-radius: 8px 8px 0 0;
             background-color: var(--button-background-color-primary);
             color: var(--button-text-color-primary);
@@ -3011,7 +3008,6 @@ html {
             }
 
             &.backup {
-              /* stylelint-disable-next-line */
               border-radius: 10px 10px 0 0;
               background-color: var(--picker-backup-flair-background);
               color: var(--picker-backup-flair-color);

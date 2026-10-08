@@ -25,7 +25,7 @@
 
     /* TODO: Bug 2033070 - remove these media queries after Nova launch */
     @media not -moz-pref("browser.nova.enabled") {
-      /* stylelint-disable-next-line -- using linear gradient for text effect */
+      /* using linear gradient for text effect */
       --header-bg-image: light-dark(linear-gradient(91deg, #7630c0 22.04%, #5c66ee 78.7%), linear-gradient(65deg, #9165ff 18.85%, #d8c9ff 78.79%));
       --card-bg: light-dark(var(--color-white-alpha-50), var(--color-gray-80));
       --card-bg-hover: var(--background-color-box);
@@ -137,7 +137,7 @@
 #mainContentHeader {
   background-image: var(--header-bg-image);
   background-clip: text;
-  /* stylelint-disable-next-line -- transparent needed for gradient text effect */
+  /* transparent needed for gradient text effect */
   color: var(--header-text-color);
 
   .screen.AI_WINDOW_INTRO & {
@@ -357,7 +357,7 @@
 .screen.AI_WINDOW_CHOOSE_MODEL {
   .tiles-single-select-container {
     align-items: stretch;
-    /* stylelint-disable-next-line -- 550px per Figma */
+    /* stylelint-disable-next-line stylelint-plugin-mozilla/use-design-tokens -- 550px per Figma */
     max-width: 550px;
 
     > div {
