@@ -68,20 +68,6 @@ macosx64-aarch64-embedded-uniffi-bindgen:
             - linux64-rust-macos
             - macosx64-sdk-toolchain
 
-win32-embedded-uniffi-bindgen:
-    treeherder:
-        symbol: TW32(eub)
-        platform: win32/opt
-    run:
-        arguments: ['i686-pc-windows-msvc']
-    attributes:
-        build_platform: win32-embedded-uniffi-bindgen
-    fetches:
-        toolchain:
-            - linux64-clang-toolchain
-            - linux64-rust-windows
-            - vs-toolchain
-
 win64-aarch64-embedded-uniffi-bindgen:
     treeherder:
         symbol: TWA64(eub)
