@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use crate::browser::{Browser, BrowserStatus, LocalBrowser, RemoteBrowser};
+use crate::browser::{
+    Browser, BrowserStatus, LocalBrowser, RemoteBrowser, DEFAULT_SHUTDOWN_TIMEOUT,
+};
 use crate::build;
 use crate::capabilities::{FirefoxCapabilities, FirefoxOptions, ProfileType};
 use crate::command::{
@@ -122,6 +124,31 @@ pub(crate) struct MarionetteHandler {
     settings: MarionetteSettings,
 }
 
+fn deserialize_to_duration_ms<'de, D>(deserializer: D) -> Result<time::Duration, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    u64::deserialize(deserializer).map(time::Duration::from_millis)
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+#[serde(default)]
+struct MarionetteConfigurationCapabilities {
+    #[serde(
+        rename = "moz:shutdownTimeout",
+        deserialize_with = "deserialize_to_duration_ms"
+    )]
+    shutdown_timeout: time::Duration,
+}
+
+impl Default for MarionetteConfigurationCapabilities {
+    fn default() -> Self {
+        Self {
+            shutdown_timeout: DEFAULT_SHUTDOWN_TIMEOUT,
+        }
+    }
+}
+
 impl MarionetteHandler {
     pub(crate) fn new(settings: MarionetteSettings) -> MarionetteHandler {
         MarionetteHandler {
@@ -227,10 +254,10 @@ impl MarionetteHandler {
         MarionetteConnection::new(marionette_host, browser, session)
     }
 
-    fn close_connection(&mut self, wait_for_shutdown: bool) {
+    fn close_connection(&mut self, kind: SessionTeardownKind) {
         if let Ok(connection) = self.connection.get_mut()
             && let Some(conn) = connection.take()
-            && let Err(e) = conn.close(wait_for_shutdown)
+            && let Err(e) = conn.close(kind)
         {
             error!("Failed to close browser connection: {}", e)
         }
@@ -299,17 +326,13 @@ impl WebDriverHandler<GeckoExtensionRoute> for MarionetteHandler {
     }
 
     fn teardown_session(&mut self, kind: SessionTeardownKind) {
-        let wait_for_shutdown = match kind {
-            SessionTeardownKind::Deleted => true,
-            SessionTeardownKind::NotDeleted => false,
-        };
-        self.close_connection(wait_for_shutdown);
+        self.close_connection(kind);
     }
 }
 
 impl Drop for MarionetteHandler {
     fn drop(&mut self) {
-        self.close_connection(false);
+        self.close_connection(SessionTeardownKind::NotDeleted);
     }
 }
 
@@ -317,6 +340,9 @@ struct MarionetteSession {
     session_id: String,
     capabilities: Map<String, Value>,
     command_id: MessageId,
+
+    /// How long to wait for the browser process to shutdown before it gets force-killed.
+    shutdown_timeout: time::Duration,
 }
 
 impl MarionetteSession {
@@ -326,28 +352,16 @@ impl MarionetteSession {
             session_id: initital_id,
             capabilities,
             command_id: 0,
+            shutdown_timeout: DEFAULT_SHUTDOWN_TIMEOUT,
         }
     }
 
-    fn update(
-        &mut self,
-        msg: &WebDriverMessage<GeckoExtensionRoute>,
-        resp: &MarionetteResponse,
-    ) -> WebDriverResult<()> {
-        if let NewSession(_) = msg.command {
-            let session_id = try_opt!(
-                try_opt!(
-                    resp.result.get("sessionId"),
-                    ErrorStatus::SessionNotCreated,
-                    "Unable to get session id"
-                )
-                .as_str(),
-                ErrorStatus::SessionNotCreated,
-                "Unable to convert session id to string"
-            );
-            self.session_id = session_id.to_string();
-        };
-        Ok(())
+    fn update_for_new_session(&mut self, new_session_resp: &NewSessionResponse) -> () {
+        self.session_id = new_session_resp.session_id.clone();
+        let capabilities =
+            MarionetteConfigurationCapabilities::deserialize(&new_session_resp.capabilities)
+                .unwrap_or_default();
+        self.shutdown_timeout = capabilities.shutdown_timeout;
     }
 
     /// Converts a Marionette JSON response into a `WebElement`.
@@ -428,8 +442,6 @@ impl MarionetteSession {
         if let Some(error) = resp.error {
             return Err(error.into());
         }
-
-        self.update(msg, &resp)?;
 
         Ok(match msg.command {
             // Everything that doesn't have a response value
@@ -766,10 +778,12 @@ impl MarionetteSession {
 
                 capabilities.insert("moz:geckodriverVersion".into(), build::build_info().into());
 
-                WebDriverResponse::NewSession(NewSessionResponse::new(
-                    session_id.to_string(),
-                    Value::Object(capabilities),
-                ))
+                let new_session_resp =
+                    NewSessionResponse::new(session_id.to_string(), Value::Object(capabilities));
+
+                self.update_for_new_session(&new_session_resp);
+
+                WebDriverResponse::NewSession(new_session_resp)
             }
             DeleteSession => WebDriverResponse::DeleteSession,
             Extension(ref extension) => match extension {
@@ -1237,7 +1251,7 @@ impl MarionetteConnection {
         let stream = match MarionetteConnection::connect(&host, &mut browser) {
             Ok(stream) => stream,
             Err(e) => {
-                if let Err(e) = browser.close(true) {
+                if let Err(e) = browser.close(Some(DEFAULT_SHUTDOWN_TIMEOUT)) {
                     error!("Failed to stop browser: {:?}", e);
                 }
                 return Err(e);
@@ -1354,9 +1368,16 @@ impl MarionetteConnection {
         Ok(data)
     }
 
-    fn close(self, wait_for_shutdown: bool) -> WebDriverResult<()> {
+    /// Close the connection, and the browser along with it. Only a session
+    /// that was deleted by the client gets the browser process the chance to
+    /// shut down on its own; otherwise it is force-killed right away.
+    fn close(self, kind: SessionTeardownKind) -> WebDriverResult<()> {
+        let shutdown_timeout = match kind {
+            SessionTeardownKind::Deleted => Some(self.session.shutdown_timeout),
+            SessionTeardownKind::NotDeleted => None,
+        };
         self.stream.shutdown(Shutdown::Both)?;
-        self.browser.close(wait_for_shutdown)?;
+        self.browser.close(shutdown_timeout)?;
         Ok(())
     }
 
@@ -1735,5 +1756,55 @@ impl ToMarionette<MarionetteWindowRect> for WindowRectParameters {
 impl ToMarionette<MarionetteGlobalPrivacyControlParameters> for GlobalPrivacyControlParameters {
     fn to_marionette(&self) -> WebDriverResult<MarionetteGlobalPrivacyControlParameters> {
         Ok(MarionetteGlobalPrivacyControlParameters { gpc: self.gpc })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::browser::DEFAULT_SHUTDOWN_TIMEOUT;
+
+    use super::MarionetteConfigurationCapabilities;
+    use serde::Deserialize;
+    use serde_json::json;
+    use std::time;
+
+    #[test]
+    fn marionette_configuration_capabilities_read() {
+        assert_eq!(
+            MarionetteConfigurationCapabilities::deserialize(&json!(
+                {"moz:shutdownTimeout": 73000}
+            ))
+            .unwrap()
+            .shutdown_timeout,
+            time::Duration::from_secs(73)
+        );
+
+        assert_eq!(
+            MarionetteConfigurationCapabilities::deserialize(&json!(
+                {"moz:shutdownTimeout": 0}
+            ))
+            .unwrap()
+            .shutdown_timeout,
+            time::Duration::ZERO
+        );
+    }
+
+    #[test]
+    fn marionette_configuration_capabilities_invalid() {
+        for capabilities in [
+            json!({}),
+            json!({"capabilities": {}}),
+            json!({"capabilities": {"moz:shutdownTimeout": null}}),
+            json!({"capabilities": {"moz:shutdownTimeout": "73000"}}),
+            json!({"capabilities": {"moz:shutdownTimeout": 1500.5}}),
+            json!({"capabilities": {"moz:shutdownTimeout": -1}}),
+        ] {
+            assert_eq!(
+                MarionetteConfigurationCapabilities::deserialize(&capabilities)
+                    .unwrap()
+                    .shutdown_timeout,
+                DEFAULT_SHUTDOWN_TIMEOUT
+            );
+        }
     }
 }
