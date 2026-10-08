@@ -2151,11 +2151,7 @@ static void TruncateDoubleModUint32(MacroAssembler& masm,
     masm.jump(&done);
 
     masm.bind(&truncateABICall);
-    LiveRegisterSet save = liveVolatileRegs;
-    save.takeUnchecked(floatReg);
-    // Bug 1451976
-    save.takeUnchecked(floatReg.asSingle());
-    masm.PushRegsInMask(save);
+    masm.PushRegsInMask(liveVolatileRegs);
 
     using Fn = int32_t (*)(double);
     masm.setupUnalignedABICall(result);
@@ -2166,7 +2162,7 @@ static void TruncateDoubleModUint32(MacroAssembler& masm,
 
     LiveRegisterSet ignore;
     ignore.add(result);
-    masm.PopRegsInMaskIgnore(save, ignore);
+    masm.PopRegsInMaskIgnore(liveVolatileRegs, ignore);
 
     masm.bind(&done);
   }
@@ -11707,7 +11703,6 @@ bool CacheIRCompiler::emitDateNow(NumberOperandId resultId) {
   AutoScratchFloatRegister scratchFloat(this);
 
   LiveRegisterSet volatileRegs = liveVolatileRegs();
-  volatileRegs.takeUnchecked(scratchFloat);
   masm.PushRegsInMask(volatileRegs);
 
   using Fn = double (*)(JSContext* cx);
