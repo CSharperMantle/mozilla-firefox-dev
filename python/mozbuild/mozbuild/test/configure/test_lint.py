@@ -12,7 +12,7 @@ import mozpack.path as mozpath
 from mozunit import MockedOpen, main
 
 from mozbuild.configure import ConfigureError
-from mozbuild.configure.lint import LintSandbox
+from mozbuild.configure.lint import LintSandbox, find_unreferenced_configs
 
 test_data_path = mozpath.abspath(mozpath.dirname(__file__))
 test_data_path = mozpath.join(test_data_path, "data")
@@ -45,6 +45,7 @@ class TestLint(unittest.TestCase):
         sandbox = LintSandbox(env, ["configure"] + options)
 
         sandbox.run(mozpath.join(test_data_path, "moz.configure"))
+        return sandbox
 
     def moz_configure(self, source):
         return MockedOpen({
@@ -578,6 +579,70 @@ class TestLint(unittest.TestCase):
                 self.lint_test()
 
         self.assertEqual(str(e.exception), "builtin 'list' doesn't need to be imported")
+
+    def test_set_configs(self):
+        with self.moz_configure(
+            """
+            @template
+            def foo_config(name):
+                set_config(name, True)
+
+            foo_config("FOO")
+            set_config("BAR", True)
+        """
+        ):
+            sandbox = self.lint_test()
+
+        self.assertEqual(
+            sandbox.set_configs,
+            {"BAR": (mozpath.join(test_data_path, "moz.configure"), 7)},
+        )
+
+    def test_find_unreferenced_configs(self):
+        with MockedOpen({
+            mozpath.join(test_data_path, "moz.build"): 'CONFIG["IN_MOZ_BUILD"]',
+            mozpath.join(test_data_path, "rules.mk"): "$(IN_MAKE)",
+            mozpath.join(test_data_path, "components.conf"): (
+                'buildconfig.substs["IN_COMPONENTS"]'
+            ),
+            mozpath.join(test_data_path, "script"): "IN_SCRIPT",
+            mozpath.join(test_data_path, "foo.cpp"): "IN_CPP",
+            mozpath.join(test_data_path, "moz.configure"): "IN_CONFIGURE",
+            mozpath.join(test_data_path, "bar.py"): "IN_PYTHON_SUFFIX",
+            mozpath.join(test_data_path, "baz.py"): "  # IN_COMMENT",
+            mozpath.join(test_data_path, "config.h.in"): (
+                "#ifdef IN_DEFINE\n#define FOO @IN_SUBST@\n"
+            ),
+        }):
+            self.assertEqual(
+                find_unreferenced_configs(
+                    (
+                        "IN_MOZ_BUILD",
+                        "IN_MAKE",
+                        "IN_COMPONENTS",
+                        "IN_SCRIPT",
+                        "IN_CPP",
+                        "IN_CONFIGURE",
+                        "IN_PYTHON",
+                        "IN_COMMENT",
+                        "IN_DEFINE",
+                        "IN_SUBST",
+                    ),
+                    test_data_path,
+                    [
+                        "moz.build",
+                        "rules.mk",
+                        "components.conf",
+                        "script",
+                        "foo.cpp",
+                        "moz.configure",
+                        "bar.py",
+                        "baz.py",
+                        "config.h.in",
+                    ],
+                ),
+                ["IN_COMMENT", "IN_CONFIGURE", "IN_CPP", "IN_DEFINE", "IN_PYTHON"],
+            )
 
 
 if __name__ == "__main__":
