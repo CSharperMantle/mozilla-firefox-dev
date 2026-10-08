@@ -12,6 +12,10 @@ from .symbolication import get_extracted_symbols, symbolicate_profile_file
 
 LOG = get_proxy_logger("profiler")
 
+# profiler-edit reads the whole profile into one JavaScript string, which V8
+# limits to 2^29 - 24 characters.
+MAX_SYMBOLICATABLE_PROFILE_SIZE = 2**29 - 24
+
 
 def _gzip_file(in_path, out_path):
     with open(in_path, "rb") as f_in, gzip.open(out_path, "wb") as f_out:
@@ -57,9 +61,23 @@ def symbolicate_profile_json(profile_path, symbol_dir=None):
     # from being picked up as an artifact or by the glob below.
     out_path = final_path.with_name(f".{final_path.name}.sym.json.gz")
 
-    LOG.info(f"Symbolicating {profile_path.name} ({stat.st_size} bytes)...")
     try:
-        if symbolicate_profile_file(profile_path, out_path, symbol_dir):
+        # Do a best-effort check before the symbolicate_profile_file call to catch
+        # too-big profiles. We hit this code both for compressed and for uncompressed
+        # profiles, and this check won't catch compressed profiles that uncompress
+        # to a too-large size, but that's fine - we'll just run profiler-edit and
+        # handle failure normally.
+        if stat.st_size > MAX_SYMBOLICATABLE_PROFILE_SIZE:
+            LOG.warning(
+                f"Not symbolicating {profile_path.name}: its {stat.st_size} bytes "
+                "are too large for profiler-edit."
+            )
+            symbolicated = False
+        else:
+            LOG.info(f"Symbolicating {profile_path.name} ({stat.st_size} bytes)...")
+            symbolicated = symbolicate_profile_file(profile_path, out_path, symbol_dir)
+
+        if symbolicated:
             sym_size = out_path.stat().st_size
             os.replace(out_path, final_path)
             LOG.info(
