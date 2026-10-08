@@ -1154,8 +1154,10 @@ class TrustPanel {
   #toggleTrackingProtection() {
     if (this.#trackingProtectionEnabled) {
       ContentBlockingAllowList.add(window.gBrowser.selectedBrowser);
+      Glean.securityUiProtectionspopup.clickEtpToggleOff.record();
     } else {
       ContentBlockingAllowList.remove(window.gBrowser.selectedBrowser);
+      Glean.securityUiProtectionspopup.clickEtpToggleOn.record();
     }
 
     PanelMultiView.hidePopup(this.#popup);
