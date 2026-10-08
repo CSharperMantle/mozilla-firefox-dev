@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::browser::{
-    Browser, BrowserStatus, LocalBrowser, RemoteBrowser, DEFAULT_SHUTDOWN_TIMEOUT,
+    Browser, BrowserStatus, DEFAULT_SHUTDOWN_TIMEOUT, LocalBrowser, RemoteBrowser,
 };
 use crate::build;
 use crate::capabilities::{FirefoxCapabilities, FirefoxOptions, ProfileType};
@@ -21,13 +21,13 @@ use marionette_rs::webdriver::{
     AddonInstallParameters as MarionetteAddonInstallParameters,
     AuthenticatorIdParameters as MarionetteAuthenticatorIdParameters,
     AuthenticatorParameters as MarionetteAuthenticatorParameters,
+    AuthenticatorProtocol as MarionetteAuthenticatorProtocol,
     AuthenticatorTransport as MarionetteAuthenticatorTransport,
     Command as MarionetteWebDriverCommand,
     CredentialIdParameters as MarionetteCredentialIdParameters,
-    CredentialParameters as MarionetteCredentialParameters,
+    CredentialParameters as MarionetteCredentialParameters, Credentials as MarionetteCredentials,
     GeckoContext as MarionetteGeckoContext,
     GlobalPrivacyControlParameters as MarionetteGlobalPrivacyControlParameters,
-    Credentials as MarionetteCredentials,
     Keys as MarionetteKeys, Locator as MarionetteLocator, NewWindow as MarionetteNewWindow,
     PrintMargins as MarionettePrintMargins, PrintOrientation as MarionettePrintOrientation,
     PrintPage as MarionettePrintPage, PrintPageRange as MarionettePrintPageRange,
@@ -36,7 +36,6 @@ use marionette_rs::webdriver::{
     SetPermissionParameters as MarionetteSetPermissionParameters,
     SetPermissionState as MarionetteSetPermissionState,
     UserVerificationParameters as MarionetteUserVerificationParameters,
-    AuthenticatorProtocol as MarionetteAuthenticatorProtocol,
     WindowRect as MarionetteWindowRect,
 };
 use mozdevice::AndroidStorageInput;
@@ -71,17 +70,17 @@ use webdriver::command::WebDriverCommand::{
     WebAuthnRemoveVirtualAuthenticator, WebAuthnSetUserVerified,
 };
 use webdriver::command::{
-    ActionsParameters, AddCookieParameters, AuthenticatorParameters, AuthenticatorTransport,
-    GetNamedCookieParameters, GlobalPrivacyControlParameters, JavascriptCommandParameters,
-    LocatorParameters, NewSessionParameters, NewWindowParameters, PrintMargins, PrintOrientation,
-    PrintPage, PrintPageRange, PrintParameters, SendKeysParameters, SetPermissionDescriptor,
-    SetPermissionParameters, SetPermissionState, SwitchToFrameParameters, SwitchToWindowParameters,
-    TimeoutsParameters, AuthenticatorProtocol, WindowRectParameters,
+    ActionsParameters, AddCookieParameters, AuthenticatorParameters, AuthenticatorProtocol,
+    AuthenticatorTransport, GetNamedCookieParameters, GlobalPrivacyControlParameters,
+    JavascriptCommandParameters, LocatorParameters, NewSessionParameters, NewWindowParameters,
+    PrintMargins, PrintOrientation, PrintPage, PrintPageRange, PrintParameters, SendKeysParameters,
+    SetPermissionDescriptor, SetPermissionParameters, SetPermissionState, SwitchToFrameParameters,
+    SwitchToWindowParameters, TimeoutsParameters, WindowRectParameters,
 };
 use webdriver::command::{WebDriverCommand, WebDriverMessage};
 use webdriver::common::{
-    Cookie, Credentials, Date, ELEMENT_KEY, FRAME_KEY,
-    FrameId, LocatorStrategy, SHADOW_KEY, ShadowRoot, WebElement, WINDOW_KEY,
+    Cookie, Credentials, Date, ELEMENT_KEY, FRAME_KEY, FrameId, LocatorStrategy, SHADOW_KEY,
+    ShadowRoot, WINDOW_KEY, WebElement,
 };
 use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
 use webdriver::response::{
@@ -1284,7 +1283,10 @@ impl MarionetteConnection {
                 };
                 return Err(WebDriverError::new(
                     ErrorStatus::UnknownError,
-                    format!("Process (pid={}) unexpectedly closed with {}", pid, code_info),
+                    format!(
+                        "Process (pid={}) unexpectedly closed with {}",
+                        pid, code_info
+                    ),
                 ));
             }
 
