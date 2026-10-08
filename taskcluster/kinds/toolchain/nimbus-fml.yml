@@ -61,6 +61,7 @@ linux64-aarch64-nimbus-fml:
         build_platform: linux64-aarch64-nimbus-fml
     fetches:
         toolchain:
+            - linux64-clang-toolchain
             - linux64-rust-toolchain
 
 macosx64-nimbus-fml:

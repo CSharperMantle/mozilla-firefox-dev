@@ -41,6 +41,7 @@ linux64-aarch64-mozcheck:
         build_platform: linux64-aarch64-mozcheck
     fetches:
         toolchain:
+            - linux64-clang-toolchain
             - linux64-rust-toolchain
 
 macosx64-mozcheck:
