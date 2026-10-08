@@ -13,6 +13,10 @@ if CONFIG["OS_TARGET"] in ("Android", "Linux") and CONFIG["TARGET_CPU"] in (
         "LulTestInfrastructure.cpp",
     ]
 
+    SOURCE_HEADERS += [
+        "LulTestInfrastructure.h",
+    ]
+
 LOCAL_INCLUDES += [
     "/netwerk/base",
     "/netwerk/protocol/http",
