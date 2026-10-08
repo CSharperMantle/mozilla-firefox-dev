@@ -489,8 +489,6 @@ export async function runOncePerModification(
   policyValue,
   callback
 ) {
-  // Stringify the value so that it matches what we'd get from getStringPref.
-  policyValue = policyValue + "";
   if (isRunOnceModificationApplied(actionName, policyValue)) {
     lazy.log.debug(
       `Not running action ${actionName} again because the policy's value is unchanged`
@@ -516,7 +514,7 @@ export async function runOncePerModification(
  */
 export function setRunOnceModificationApplied(actionName, policyValue) {
   let prefName = `browser.policies.runOncePerModification.${actionName}`;
-  Services.prefs.setStringPref(prefName, policyValue + "");
+  Services.prefs.setStringPref(prefName, policyValue);
 }
 
 /**
@@ -537,7 +535,7 @@ export function setRunOnceModificationApplied(actionName, policyValue) {
  */
 export function isRunOnceModificationApplied(actionName, policyValue) {
   let prefName = `browser.policies.runOncePerModification.${actionName}`;
-  return Services.prefs.getStringPref(prefName, undefined) === policyValue + "";
+  return Services.prefs.getStringPref(prefName, undefined) === policyValue;
 }
 
 /**
