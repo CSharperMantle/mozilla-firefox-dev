@@ -47,6 +47,7 @@ header_skiplist:
   - netwerk/socket/neqo_glue/NeqoHttp3Conn.h
   - parser/html/nsHtml5UTF16BufferHSupplement.h
   - parser/htmlaccel/htmlaccel.h
+  - security/sandbox/linux/SandboxProfilerParent.h
   - storage/Variant_inl.h
   - storage/variantToSQLiteT_impl.h
   - tools/profiler/public/ProfilerMarkersDetail.h
