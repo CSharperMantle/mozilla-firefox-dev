@@ -4700,6 +4700,8 @@ mozilla::ipc::IPCResult ContentChild::RecvReactivateDocuments(
   }
   RefPtr browsingContext = aContext.get();
   MOZ_DIAGNOSTIC_ASSERT(browsingContext->IsTopContent());
+  MOZ_DIAGNOSTIC_ASSERT(browsingContext->IsInProcess() ||
+                        !aPreviousEntryForActivation);
 
   browsingContext->ReactivateDocuments(aReactivatedEntry, aNewSHEs,
                                        aPreviousEntryForActivation);

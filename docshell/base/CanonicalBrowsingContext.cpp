@@ -2977,12 +2977,14 @@ void CanonicalBrowsingContext::ReactivateDocuments(
     Group()->EachParent([&](ContentParent* aContentParent) {
       nsTArray<SessionHistoryInfo> newSHIs;
       Maybe<SessionHistoryInfo> reactivatedEntry;
+      Maybe<PreviousSessionHistoryInfo> previousEntry;
       if (GetContentParent() == aContentParent && Navigation::IsAPIEnabled()) {
         newSHIs.AppendElements(std::move(topNewSHIs));
         reactivatedEntry.emplace(mActiveEntry->Info());
+        previousEntry = previousEntryForActivation;
       }
-      (void)aContentParent->SendReactivateDocuments(
-          this, reactivatedEntry, newSHIs, previousEntryForActivation);
+      (void)aContentParent->SendReactivateDocuments(this, reactivatedEntry,
+                                                    newSHIs, previousEntry);
     });
 
     UpdateCurrentTopByBrowserId(this);
