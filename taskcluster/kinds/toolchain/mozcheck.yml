@@ -36,7 +36,7 @@ linux64-aarch64-mozcheck:
         symbol: TLA64(mozcheck)
         platform: linux64-aarch64/opt
     run:
-        arguments: ['aarch64-unknown-linux-musl']
+        arguments: ['aarch64-unknown-linux-gnu']
     attributes:
         build_platform: linux64-aarch64-mozcheck
     fetches:
