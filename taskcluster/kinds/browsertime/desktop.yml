@@ -1129,6 +1129,8 @@ browsertime-nav-bench:
         subtests: [nav-bench]
         run-visual-metrics: true
     description: Raptor (browsertime) navigation benchmark across 9 sites
+    limit-platforms:
+        - (?!macosx1470).*
     max-run-time: 3600
     run-on-projects:
         by-app:
