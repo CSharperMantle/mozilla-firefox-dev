@@ -70,3 +70,14 @@ win64-webspec-index:
             - linux64-clang-toolchain
             - linux64-rust-windows-toolchain
             - vs-toolchain
+
+win64-aarch64-webspec-index:
+    treeherder:
+        symbol: TWA64(webspec-index)
+    run:
+        arguments: ['aarch64-pc-windows-msvc']
+    fetches:
+        toolchain:
+            - linux64-clang-toolchain
+            - linux64-rust-windows-toolchain
+            - vs-toolchain

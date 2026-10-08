@@ -18,6 +18,5 @@ toolchain:
     - pkgconf
     - upx
     - uv
-    - webspec-index
     - winchecksec
 fetch: []
