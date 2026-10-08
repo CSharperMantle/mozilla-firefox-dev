@@ -377,8 +377,13 @@ ip-protection-exclusions-desc = Use VPN for all websites except ones on this lis
 
 ip-protection-site-rule-window =
   .title = Set rule
+ip-protection-edit-site-rule-window =
+  .title = Edit rule
 ip-protection-site-rule-dialog =
   .buttonlabelaccept = Set
+  .buttonaccesskeyaccept = S
+ip-protection-edit-site-rule-dialog =
+  .buttonlabelaccept = Save
   .buttonaccesskeyaccept = S
 # VPN status refers to a state of 'always on' or 'always off' applied to a site
 ip-protection-site-rule-intro = Enter a site, then select its VPN status.

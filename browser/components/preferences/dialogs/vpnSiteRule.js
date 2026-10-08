@@ -11,6 +11,17 @@ const RULE_BY_STATUS = {
   off: IPPPrincipalRules.EXCLUDED,
 };
 
+/**
+ * The principal whose rule is being edited, or null when creating a new rule.
+ *
+ * @type {?nsIPrincipal}
+ */
+const gEditedPrincipal = window.arguments?.[0]?.origin
+  ? Services.scriptSecurityManager.createContentPrincipalFromOrigin(
+      window.arguments[0].origin
+    )
+  : null;
+
 let gForm;
 let gWebsiteInput;
 let gWebsiteError;
@@ -140,7 +151,32 @@ window.addEventListener("DOMContentLoaded", async () => {
   gStatusSelect = document.getElementById("vpnSiteRuleStatus");
   gSaveError = document.getElementById("vpnSiteRuleSaveError");
 
-  let acceptButton = document.querySelector("dialog").getButton("accept");
+  let dialog = document.querySelector("dialog");
+  let acceptButton = dialog.getButton("accept");
+
+  if (gEditedPrincipal) {
+    document.l10n.setAttributes(
+      document.documentElement,
+      "ip-protection-edit-site-rule-window"
+    );
+    document.l10n.setAttributes(dialog, "ip-protection-edit-site-rule-dialog");
+    // The dialog only copies its button labels onto the buttons when it is
+    // first connected, so the edit label has to be applied by hand.
+    document.mozSubdialogReady = document.l10n
+      .translateElements([dialog])
+      .then(() => {
+        acceptButton.label = dialog.getAttribute("buttonlabelaccept");
+        acceptButton.accessKey = dialog.getAttribute("buttonaccesskeyaccept");
+      });
+    document.getElementById("vpnSiteRuleIntro").hidden = true;
+    gWebsiteInput.value = gEditedPrincipal.origin;
+    gStatusSelect.value =
+      IPPPermissionRules.getRule(gEditedPrincipal) == IPPPrincipalRules.EXCLUDED
+        ? "off"
+        : "on";
+    acceptButton.disabled = false;
+  }
+
   gWebsiteInput.addEventListener("input", () => {
     acceptButton.disabled = !gWebsiteInput.value.trim();
     setWebsiteError(null);
@@ -157,7 +193,10 @@ window.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
-    if (IPPPermissionRules.getRule(principal) != IPPPrincipalRules.DEFAULT) {
+    if (
+      !gEditedPrincipal &&
+      IPPPermissionRules.getRule(principal) != IPPPrincipalRules.DEFAULT
+    ) {
       event.preventDefault();
       setWebsiteError("ip-protection-site-rule-duplicate-error");
       gWebsiteInput.focus();
@@ -169,6 +208,10 @@ window.addEventListener("DOMContentLoaded", async () => {
         principal,
         RULE_BY_STATUS[gStatusSelect.value]
       );
+
+      if (gEditedPrincipal && !gEditedPrincipal.equals(principal)) {
+        IPPPermissionRules.setRule(gEditedPrincipal, IPPPrincipalRules.DEFAULT);
+      }
     } catch (e) {
       event.preventDefault();
       setSaveError(true);

@@ -2293,6 +2293,23 @@ function getIPPSiteRules() {
     .sort((a, b) => ippSiteRuleCollator.compare(a.origin, b.origin));
 }
 
+/**
+ * Open the dialog for setting a website's VPN rule.
+ *
+ * @param {{ origin: string }} [params]
+ *  The origin of the existing rule to edit. Omit to create a new rule.
+ */
+function openIPPSiteRuleDialog(params) {
+  let dialog = gSubDialog.open(
+    "chrome://browser/content/preferences/dialogs/vpnSiteRule.xhtml",
+    { features: "resizable=no" },
+    params
+  );
+  // The frame around a sub-dialog belongs to this document, so its
+  // corners can only be rounded from here.
+  dialog?._box.classList.add("vpnSiteRuleDialogBox");
+}
+
 Preferences.addSetting({
   id: "ipProtectionSiteRulesList",
   deps: [
@@ -2314,18 +2331,11 @@ Preferences.addSetting({
     let dataset = /** @type {HTMLElement} */ (e.target).dataset;
     let website = dataset.origin ?? "";
     switch (dataset.action) {
-      case "add": {
-        let dialog = gSubDialog.open(
-          "chrome://browser/content/preferences/dialogs/vpnSiteRule.xhtml",
-          { features: "resizable=no" }
-        );
-        // The frame around a sub-dialog belongs to this document, so its
-        // corners can only be rounded from here.
-        dialog?._box.classList.add("vpnSiteRuleDialogBox");
+      case "add":
+        openIPPSiteRuleDialog();
         break;
-      }
       case "edit":
-        // TODO: Open the dialog prefilled with this website's rule - Bug 2074574
+        openIPPSiteRuleDialog({ origin: website });
         break;
       case "delete":
         // TODO: Confirm before deleting - Bug 2074578
