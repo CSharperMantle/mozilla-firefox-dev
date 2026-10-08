@@ -495,7 +495,7 @@ const CONFIG_PANES = Object.freeze({
   },
   vpnSiteRules: {
     parent: "privacy",
-    l10nId: "ip-protection-site-rules-header-1",
+    l10nId: "ip-protection-site-rules-header",
     groupIds: ["vpnSiteRules"],
     replaces: "privacy",
   },
