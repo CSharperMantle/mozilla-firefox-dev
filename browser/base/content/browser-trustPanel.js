@@ -104,6 +104,9 @@ const ETP_DISABLED_ASSETS = {
   innerDescription: "trustpanel-description-disabled",
 };
 
+// Indexed by the HTTPS-Only menulist values, see #getHttpsOnlyPermission.
+const HTTPS_ONLY_SETTINGS = ["on", "off", "off-temporarily"];
+
 const SMARTBLOCK_EMBED_INFO = [
   {
     matchPatterns: ["https://itisatracker.org/*"],
@@ -887,6 +890,7 @@ class TrustPanel {
   }
 
   async #showSecurityPopup() {
+    Glean.trustpanel.securityInfoPageInfoOpened.record();
     await this.#hidePopup();
     window.BrowserCommands.pageInfo(null, "securityTab");
   }
@@ -900,6 +904,7 @@ class TrustPanel {
       this.#uri.port > 0 ? this.#uri.port : 443,
       gBrowser.contentPrincipal.originAttributes
     );
+    Glean.trustpanel.securityInfoCertExceptionRemoved.record();
     BrowserCommands.reloadSkipCache();
     PanelMultiView.hidePopup(this.#popup);
   }
@@ -953,6 +958,9 @@ class TrustPanel {
     document
       .getElementById("trustpanel-popup-multiView")
       .showSubView("trustpanel-securityInformationView", event.target);
+    Glean.trustpanel.securityInfoOpened.record({
+      connection: this.#connectionState(),
+    });
   }
 
   #openBlockerSubview(event) {
@@ -1741,6 +1749,10 @@ class TrustPanel {
         SitePermissions.SCOPE_SESSION
       );
     }
+
+    Glean.trustpanel.securityInfoHttpsOnlyChanged.record({
+      setting: HTTPS_ONLY_SETTINGS[newValue],
+    });
 
     // If we're on the error-page, we have to redirect the user
     // from HTTPS to HTTP. Otherwise we can just reload the page.
