@@ -148,6 +148,8 @@ support-files = [
 
 ["browser_net_cache_details.js"]
 
+["browser_net_cache_details_revalidated.js"]
+
 ["browser_net_cache_svg_size.js"]
 
 ["browser_net_cached-status.js"]
