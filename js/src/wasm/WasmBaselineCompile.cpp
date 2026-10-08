@@ -6197,24 +6197,42 @@ bool BaseCompiler::emitSetOrTeeLocal(uint32_t slot) {
   bceLocalIsUpdated(slot);
   switch (locals_[slot].kind()) {
     case ValType::I32: {
-      RegI32 rv = popI32();
-      syncLocal(slot);
-      fr.storeLocalI32(rv, localFromSlot(slot, MIRType::Int32));
-      if (isSetLocal) {
-        freeI32(rv);
+      int32_t c;
+      if (popConst(&c)) {
+        syncLocal(slot);
+        fr.storeLocalI32(Imm32(c), localFromSlot(slot, MIRType::Int32));
+        if (!isSetLocal) {
+          pushI32(c);
+        }
       } else {
-        pushI32(rv);
+        RegI32 rv = popI32();
+        syncLocal(slot);
+        fr.storeLocalI32(rv, localFromSlot(slot, MIRType::Int32));
+        if (isSetLocal) {
+          freeI32(rv);
+        } else {
+          pushI32(rv);
+        }
       }
       break;
     }
     case ValType::I64: {
-      RegI64 rv = popI64();
-      syncLocal(slot);
-      fr.storeLocalI64(rv, localFromSlot(slot, MIRType::Int64));
-      if (isSetLocal) {
-        freeI64(rv);
+      int64_t c;
+      if (popConst(&c)) {
+        syncLocal(slot);
+        fr.storeLocalI64(Imm64(c), localFromSlot(slot, MIRType::Int64));
+        if (!isSetLocal) {
+          pushI64(c);
+        }
       } else {
-        pushI64(rv);
+        RegI64 rv = popI64();
+        syncLocal(slot);
+        fr.storeLocalI64(rv, localFromSlot(slot, MIRType::Int64));
+        if (isSetLocal) {
+          freeI64(rv);
+        } else {
+          pushI64(rv);
+        }
       }
       break;
     }
