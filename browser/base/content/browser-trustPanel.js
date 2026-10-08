@@ -104,6 +104,16 @@ const ETP_DISABLED_ASSETS = {
   innerDescription: "trustpanel-description-disabled",
 };
 
+// Map from blocker name to the Glean metric for the
+// click on the blocker in the trust panel.
+const BLOCKER_CLICK_METRICS = {
+  "tracking-content": "clickTrackers",
+  "social-tracking": "clickSocial",
+  "tracking-cookies": "clickCookies",
+  fingerprinter: "clickFingerprinters",
+  cryptominer: "clickCryptominers",
+};
+
 // Indexed by the HTTPS-Only menulist values, see #getHttpsOnlyPermission.
 const HTTPS_ONLY_SETTINGS = ["on", "off", "off-temporarily"];
 
@@ -973,6 +983,7 @@ class TrustPanel {
     document
       .getElementById("trustpanel-popup-multiView")
       .showSubView("trustpanel-blockerView", event.target);
+    Glean.trustpanel.trackerListOpened.record();
   }
 
   async #openBlockerDetailsSubview(event, blocker, blocking) {
@@ -1016,6 +1027,11 @@ class TrustPanel {
     document
       .getElementById("trustpanel-popup-multiView")
       .showSubView("trustpanel-blockerDetailsView", event.target);
+    // Not every blocker necessarily has a protections panel event to mirror.
+    const metric = BLOCKER_CLICK_METRICS[blocker.l10nKeys.general];
+    if (metric) {
+      Glean.securityUiProtectionspopup[metric].record();
+    }
   }
 
   async #showClearCookiesSubview(event) {
