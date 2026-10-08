@@ -16,7 +16,6 @@ toolchain:
     - jj
     - nasm
     - pkgconf
-    - searchfox-cli
     - socorro-cli
     - stmo-cli
     - treeherder-cli
