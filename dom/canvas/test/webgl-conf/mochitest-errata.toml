@@ -66,7 +66,6 @@ skip-if = [
 # Windows failure: ANGLE bug: FAIL #extension GL_OVR_multiview must be forbidden.
 #   Because we have to enable multiview1 to get ANGLE to emit gl_ViewID_OVR.
 fail-if = [
-  "os == 'win' && os_version == '11.26100'",
   "os == 'win' && os_version == '11.26200'",
 ]
 skip-if = [
@@ -177,7 +176,6 @@ fail-if = [
 ["generated/test_2_conformance2__glsl3__switch-case.html"]
 # https://bugzilla.mozilla.org/show_bug.cgi?id=1725442
 fail-if = [
-  "os == 'win' && os_version == '11.26100'",
   "os == 'win' && os_version == '11.26200'",
 ]
 
@@ -185,7 +183,6 @@ fail-if = [
 # should be: 3,3,3,3
 # should be: 13,13,13,13
 fail-if = [
-  "os == 'win' && os_version == '11.26100'",
   "os == 'win' && os_version == '11.26200'",
 ]
 
@@ -194,7 +191,6 @@ fail-if = [
 
 ["generated/test_2_conformance2__glsl3__tricky-loop-conditions.html"]
 fail-if = [
-  "os == 'win' && os_version == '11.26100'",
   "os == 'win' && os_version == '11.26200'",
 ]
 
@@ -312,7 +308,6 @@ skip-if = [
 # https://bugzilla.mozilla.org/show_bug.cgi?id=1725283
 # E.g. framebuffer layer 0 should be drawn green
 fail-if = [
-  "os == 'win' && os_version == '11.26100'",
   "os == 'win' && os_version == '11.26200'",
 ]
 
@@ -320,7 +315,6 @@ fail-if = [
 # framebuffer layer 0 should be green
 # framebuffer layer 1 should be green
 fail-if = [
-  "os == 'win' && os_version == '11.26100'",
   "os == 'win' && os_version == '11.26200'",
 ]
 
@@ -967,7 +961,6 @@ skip-if = [
   "os == 'linux' && os_version == '22.04' && arch == 'x86_64' && display == 'wayland'",
   "os == 'linux' && os_version == '24.04' && arch == 'x86_64' && display == 'x11'",
   "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && debug && nightly_build",
-  "os == 'win' && os_version == '11.26100'",
   "os == 'win' && os_version == '11.26200'",
 ]
 
@@ -1000,7 +993,6 @@ skip-if = [
 
 ["generated/test_2_conformance2__textures__misc__tex-3d-mipmap-levels-intel-bug.html"]
 fail-if = [
-  "os == 'win' && os_version == '11.26100'",
   "os == 'win' && os_version == '11.26200'",
 ]
 
@@ -1023,7 +1015,6 @@ fail-if = [
 skip-if = [
   "os == 'android' && os_version == '14' && arch == 'aarch64'", # Bug 1687073
   "os == 'mac' && os_version == '10.15' && arch == 'x86_64'",
-  "os == 'win' && os_version == '11.26100'",
   "os == 'win' && os_version == '11.26200'",
 ]
 
@@ -1031,7 +1022,6 @@ skip-if = [
 skip-if = [
   "os == 'android' && os_version == '14' && arch == 'aarch64'",
   "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && debug && nightly_build",
-  "os == 'win' && os_version == '11.26100'",
   "os == 'win' && os_version == '11.26200'",
 ]
 
@@ -1040,7 +1030,6 @@ fail-if = [
   "os == 'mac' && os_version == '10.15' && arch == 'x86_64'",
   "os == 'mac' && os_version == '14.70' && arch == 'x86_64'",
   "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && !nightly_build",
-  "os == 'win' && os_version == '11.26100'",
   "os == 'win' && os_version == '11.26200'",
 ]
 
@@ -1446,17 +1435,13 @@ skip-if = [
 # https://bugzilla.mozilla.org/show_bug.cgi?id=1725286
 # E.g. gl.checkFramebufferStatus(gl.FRAMEBUFFER) should be 36053. Was 0
 fail-if = [
-  "os == 'win' && os_version == '11.26100' && arch == 'x86_64' && asan",
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64' && asan",
-  "os == 'win' && os_version == '11.26100' && arch == 'x86_64' && ccov",
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64' && ccov",
-  "os == 'win' && os_version == '11.26100' && arch == 'x86_64' && opt",
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64' && opt",
 ]
 skip-if = [
   "os == 'android' && os_version == '14' && arch == 'aarch64' && debug",
   "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && debug && nightly_build",
-  "os == 'win' && os_version == '11.26100' && debug",
   "os == 'win' && os_version == '11.26200' && debug",
 ]
 

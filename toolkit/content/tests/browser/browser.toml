@@ -54,8 +54,6 @@ skip-if = [
   "os == 'mac' && os_version == '10.15' && arch == 'x86_64' && debug", # Bug 1775543
   "os == 'win' && arch == 'x86'", # Bug 1775543
   "os == 'win' && arch == 'x86_64' && opt", # Bug 1775543
-  "os == 'win' && os_version == '11.26100' && arch == 'x86_64' && asan",
-  "os == 'win' && os_version == '11.26100' && arch == 'x86_64' && debug",
   "os == 'win' && os_version == '11.26100' && arch == 'x86_64' && opt && msix", # Bug 2020923
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64' && asan",
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64' && debug",
@@ -156,9 +154,7 @@ tags = "audiochannel"
 ["browser_findbar_hidden_beforematch.js"]
 skip-if = [
   "os == 'mac' && os_version == '10.15' && arch == 'x86_64' && debug", # Bug 1995211
-  "os == 'win' && os_version == '11.26100' && arch == 'x86' && debug", # Bug 1995211
   "os == 'win' && os_version == '11.26200' && arch == 'x86' && debug", # Bug 1995211
-  "os == 'win' && os_version == '11.26100' && arch == 'x86_64' && debug", # Bug 1995211
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64' && debug", # Bug 1995211
 ]
 

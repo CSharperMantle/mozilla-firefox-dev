@@ -143,7 +143,6 @@ run-if = [
 
 ["browser_stop_streams_on_indicator_close.js"]
 skip-if = [
-  "os == 'win' && os_version == '11.26100' && ccov", # Bug 1775943
   "os == 'win' && os_version == '11.26200' && ccov", # Bug 1775943
 ]
 

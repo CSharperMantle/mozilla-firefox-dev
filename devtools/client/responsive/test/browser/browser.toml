@@ -257,9 +257,6 @@ skip-if = [
 ["browser_viewport_zoom_toggle.js"]
 
 ["browser_window_close.js"]
-skip-if = [
-  "os == 'win' && os_version == '11.26100' && arch == 'x86_64' && asan", # Bug 2016837
-]
 
 ["browser_window_sizing.js"]
 

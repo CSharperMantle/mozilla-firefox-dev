@@ -307,7 +307,6 @@ tags = "os_integration"
 ["browser_should_restore_tab.js"]
 skip-if = [
   "os == 'linux' && os_version == '24.04' && arch == 'x86_64' && display == 'x11' && debug && socketprocess_networking", # Bug 1848488
-  "os == 'win' && os_version == '11.26100' && arch == 'x86' && debug && verify-standalone",
   "os == 'win' && os_version == '11.26200' && arch == 'x86' && debug && verify-standalone",
 ]
 
