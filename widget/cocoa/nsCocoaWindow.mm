@@ -7220,6 +7220,17 @@ void nsCocoaWindow::DispatchSizeModeEvent() {
   }
 }
 
+// MOZ_WINDOW_OCCLUSION set to anything but "1" disables occlusion tracking, as
+// it does on Windows. Test harnesses set it because they run several browser
+// windows on one screen, and an occluded window's documents become hidden.
+static bool IsOcclusionTrackingDisabledByEnv() {
+  static const bool sDisabled = [] {
+    const char* env = getenv("MOZ_WINDOW_OCCLUSION");
+    return env && *env != '1';
+  }();
+  return sDisabled;
+}
+
 void nsCocoaWindow::DispatchOcclusionEvent() {
   if (!mWindow) {
     return;
@@ -7251,7 +7262,7 @@ void nsCocoaWindow::DispatchOcclusionEvent() {
 
   // Our new occlusion state is true if the window is not visible.
   bool newOcclusionState =
-      !keyOrMainNonFullscreen &&
+      !IsOcclusionTrackingDisabledByEnv() && !keyOrMainNonFullscreen &&
       !(mHasStartedNativeFullscreen ||
         ([mWindow occlusionState] & NSWindowOcclusionStateVisible));
 
