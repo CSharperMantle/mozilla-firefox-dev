@@ -5,6 +5,7 @@
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 from unittest import mock
 
@@ -13,12 +14,14 @@ from buildconfig import topsrcdir
 from mozunit import main
 from packaging.requirements import Requirement
 
+import mach.site
 from mach.requirements import (
     MachEnvRequirements,
     PypiSpecifier,
     RequirementsTxtSpecifier,
 )
 from mach.site import (
+    METADATA_FILENAME,
     PIP_NETWORK_INSTALL_RESTRICTED_VIRTUALENVS,
     ExternalPythonSite,
     MozSiteMetadata,
@@ -26,6 +29,7 @@ from mach.site import (
     RequirementsValidationResult,
     SitePackagesSource,
     _create_venv_with_pthfile,
+    _is_venv_up_to_date,
     _resolve_installed_packages,
     resolve_requirements,
 )
@@ -226,6 +230,59 @@ def test_pip_install_with_constraints_excludes(tmp_path):
         venv.pip_install_with_constraints(["psutil==5.9.4"], excludes={"psutil"})
 
     assert constraints == ["platformdirs==4.3.8"]
+
+
+def create_venv_for_up_to_date_check(tmp_path):
+    venv = PythonVirtualenv(str(tmp_path / "venv"))
+    metadata = MozSiteMetadata(
+        sys.hexversion,
+        "test",
+        SitePackagesSource.VENV,
+        ExternalPythonSite(sys.executable),
+        venv.prefix,
+    )
+    requirements = MachEnvRequirements()
+    _create_venv_with_pthfile(venv, [], False, requirements, metadata)
+    return venv, requirements, metadata
+
+
+def test_venv_out_of_date_when_site_changes(tmp_path):
+    venv, requirements, metadata = create_venv_for_up_to_date_check(tmp_path)
+    os.utime(os.path.join(venv.prefix, METADATA_FILENAME), (0, 0))
+
+    result = _is_venv_up_to_date(venv, [], requirements, metadata, topsrcdir)
+
+    assert not result.is_up_to_date
+    assert (
+        result.reason
+        == f'"{mach.site.__file__}" has changed since the virtualenv was created'
+    )
+
+
+def test_venv_out_of_date_when_uv_lock_changes(tmp_path):
+    venv, requirements, metadata = create_venv_for_up_to_date_check(tmp_path)
+    uv_lock = tmp_path / "src" / "third_party" / "python" / "uv.lock"
+    uv_lock.parent.mkdir(parents=True)
+    uv_lock.touch()
+    future = time.time() + 60
+    os.utime(uv_lock, (future, future))
+
+    result = _is_venv_up_to_date(
+        venv, [], requirements, metadata, str(tmp_path / "src")
+    )
+
+    assert not result.is_up_to_date
+    assert result.reason == f'"{uv_lock}" has changed since the virtualenv was created'
+
+
+def test_venv_up_to_date_without_uv_lock(tmp_path):
+    venv, requirements, metadata = create_venv_for_up_to_date_check(tmp_path)
+
+    result = _is_venv_up_to_date(
+        venv, [], requirements, metadata, str(tmp_path / "src")
+    )
+
+    assert result.is_up_to_date
 
 
 if __name__ == "__main__":

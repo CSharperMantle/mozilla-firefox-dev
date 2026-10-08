@@ -397,6 +397,7 @@ class MachSiteManager:
                 self._pthfile_lines(environment),
                 self._requirements,
                 self._metadata,
+                self._topsrcdir,
             )
 
     def ensure(self, *, force=False):
@@ -941,6 +942,7 @@ class CommandSiteManager:
             pthfile_lines,
             self._requirements,
             self._metadata,
+            self._topsrcdir,
         )
 
 
@@ -1584,6 +1586,7 @@ def _is_venv_up_to_date(
     expected_pthfile_lines,
     requirements,
     expected_metadata,
+    topsrcdir,
 ):
     if not os.path.exists(target_venv.prefix):
         return SiteUpToDateResult(False, f'"{target_venv.prefix}" does not exist')
@@ -1597,7 +1600,15 @@ def _is_venv_up_to_date(
 
     # Modifications to any of the requirements manifest files mean the virtualenv should be rebuilt:
     metadata_mtime = os.path.getmtime(metadata_file)
-    for dep_file in requirements.requirements_paths:
+    dep_files = [
+        *requirements.requirements_paths,
+        __file__,
+        os.path.join(os.path.dirname(__file__), "requirements.py"),
+    ]
+    uv_lock = os.path.join(topsrcdir, "third_party", "python", "uv.lock")
+    if os.path.exists(uv_lock):
+        dep_files.append(uv_lock)
+    for dep_file in dep_files:
         if os.path.getmtime(dep_file) > metadata_mtime:
             return SiteUpToDateResult(
                 False, f'"{dep_file}" has changed since the virtualenv was created'
