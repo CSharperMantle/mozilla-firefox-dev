@@ -329,7 +329,7 @@ class TrustPanel {
         .addEventListener("click", () => this.#showSecurityPopup());
       document
         .getElementById("trustpanel-clear-cookie-cancel")
-        .addEventListener("click", () => this.#hidePopup());
+        .addEventListener("click", () => this.#cancelClearSiteData());
       document
         .getElementById("trustpanel-clear-cookie-clear")
         .addEventListener("click", () => this.#clearSiteData());
@@ -1019,6 +1019,7 @@ class TrustPanel {
     document
       .getElementById("trustpanel-popup-multiView")
       .showSubView("trustpanel-clearcookiesView", event.target);
+    Glean.trustpanel.clearCookiesOpened.record();
   }
 
   async #addButtons(section, blockers, blocking) {
@@ -1148,6 +1149,12 @@ class TrustPanel {
   #clearSiteData() {
     let baseDomain = SiteDataManager.getBaseDomainFromHost(this.#uri.host);
     SiteDataManager.remove(baseDomain);
+    Glean.trustpanel.clearCookiesConfirmed.record();
+    this.#hidePopup();
+  }
+
+  #cancelClearSiteData() {
+    Glean.trustpanel.clearCookiesCancelled.record();
     this.#hidePopup();
   }
 
