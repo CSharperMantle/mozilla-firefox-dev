@@ -2314,9 +2314,18 @@ Preferences.addSetting({
     let dataset = /** @type {HTMLElement} */ (e.target).dataset;
     let website = dataset.origin ?? "";
     switch (dataset.action) {
-      case "add":
+      case "add": {
+        let dialog = gSubDialog.open(
+          "chrome://browser/content/preferences/dialogs/vpnSiteRule.xhtml",
+          { features: "resizable=no" }
+        );
+        // The frame around a sub-dialog belongs to this document, so its
+        // corners can only be rounded from here.
+        dialog?._box.classList.add("vpnSiteRuleDialogBox");
+        break;
+      }
       case "edit":
-        // TODO: Open the create/edit rule dialog - Bug 2074574
+        // TODO: Open the dialog prefilled with this website's rule - Bug 2074574
         break;
       case "delete":
         // TODO: Confirm before deleting - Bug 2074578
