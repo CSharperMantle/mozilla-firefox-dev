@@ -2492,18 +2492,6 @@ set_config(
     when=depends(target.cpu)(lambda cpu: cpu.startswith("ppc")),
 )
 
-set_config(
-    "PPC_VSX_FLAGS",
-    ["-mvsx"],
-    when=depends(target.cpu)(lambda cpu: cpu.startswith("ppc")),
-)
-
-set_config(
-    "PPC_VSX3_FLAGS",
-    ["-mvsx", "-mcpu=power9"],
-    when=depends(target.cpu)(lambda cpu: cpu.startswith("ppc")),
-)
-
 # TARGET_XPCOM_ABI
 # ==============================================================
 
@@ -2653,7 +2641,6 @@ def msan_flags(c_compiler, compilation_flags, linker_flags):
 
 
 set_define("MOZ_MSAN", True, when=msan)
-set_config("MOZ_MSAN", True, when=msan)
 
 # TSAN
 # ==============================================================
