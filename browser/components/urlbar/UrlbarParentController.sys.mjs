@@ -817,13 +817,17 @@ export class UrlbarParentController {
    *   The target browser's id. Only used if `where == current` and the call
    *   isn't coming from a content process. If it's not specified and
    *   `where == current`, the currently selected tab is used.
+   * @param {boolean} [tracksBounce]
+   *   Whether the caller tracks a bounce for this load. Any other load ends a
+   *   bounce tracked in the tab it navigates.
    */
   openSERP(
     engineId,
     searchTerms,
     where,
     inBackground = false,
-    browserId = null
+    browserId = null,
+    tracksBounce = false
   ) {
     let searchEngine = lazy.SearchService.getEngineById(engineId);
 
@@ -834,6 +838,7 @@ export class UrlbarParentController {
 
     this.browserWindow.openTrustedLinkIn(url, where, {
       inBackground,
+      initiatedByURLBar: tracksBounce,
       postData,
       targetBrowser:
         where == "current" ? this.resolveTargetBrowser(browserId) : null,
@@ -2103,7 +2108,6 @@ export class TelemetryEvent {
         "Telemetry extra_key `location` is required for smartbar"
       );
     }
-    searchMode = searchMode ?? engagementData.searchMode;
 
     // Distinguish user typed search strings from persisted search terms. The
     // "refined" check compares against the previous session's search words, so
@@ -2529,7 +2533,20 @@ export class TelemetryEvent {
       this._startEventInfo,
       this.#engagementData.visibleResults
     );
-    let sap = snapshot && this.#searchSourceToSap(snapshot.searchSource);
+    // There is no snapshot when the engagement has no event to classify, or
+    // when its interaction has already been recorded, as when a navigation
+    // picks the heuristic result the parent resolved for it after recording
+    // the engagement.
+    if (!snapshot) {
+      return;
+    }
+    let sap = this.#searchSourceToSap(snapshot.searchSource);
+    // There is no sap when the window is closing.
+    if (!sap) {
+      return;
+    }
+    // The input has left the search mode by the time the bounce triggers.
+    snapshot.searchMode ??= this.#engagementData.searchMode;
     await this.#startTrackingBounce(browserId, viewTime =>
       this.#recordBounce(snapshot, viewTime, sap)
     );
@@ -2585,19 +2602,15 @@ export class TelemetryEvent {
    * Records a bounce telemetry event from a bounce snapshot, the direct path's
    * recording half.
    *
-   * @param {?object} snapshot
+   * @param {object} snapshot
    *   The bounce snapshot from `UrlbarTelemetryUtils.collectBounceSnapshot()`.
    * @param {number} viewTime
    *   The time spent on the tab before navigating away, in milliseconds.
-   * @param {?string} sap
-   *   The sap resolved when the engagement happened, or null when it couldn't
-   *   be. A bounce never resolves its own, so it goes unrecorded then.
+   * @param {string} sap
+   *   The sap resolved when the engagement happened. A bounce never resolves
+   *   its own.
    */
   #recordBounce(snapshot, viewTime, sap) {
-    if (!snapshot || !sap) {
-      return;
-    }
-
     this.#recordSearchEngagementTelemetry("bounce", snapshot.startEventInfo, {
       engagementSap: sap,
       action: snapshot.action,

@@ -1412,6 +1412,23 @@ ${
   }
 
   /**
+   * Records an engagement that loads a page, and tracks that page as a
+   * potential bounce. Bounce tracking keys on the tab the engagement happened
+   * in: the chrome window's selected tab, or the tab hosting an input that has
+   * no chrome window, which the parent resolves. The bounce is tracked first
+   * because recording the engagement ends the interaction it describes.
+   *
+   * @param {?Event} event The triggering event.
+   * @param {object} details The engagement details, as for `record()`.
+   */
+  #recordEngagementAndTrackBounce(event, details) {
+    this.controller.engagementEvent
+      .startTrackingBounceEvent(this.#selectedBrowserId, event, details)
+      .catch(e => logger().error(e));
+    this.controller.engagementEvent.record(event, details);
+  }
+
+  /**
    * Records the engagement and a search against an engine, adds it to form
    * history, and opens its SERP through the parent controller, which builds the
    * submission URL and annotates the load as a search visit. Shared by the
@@ -1436,7 +1453,7 @@ ${
     where,
     { event, element, selType, typedValue, result, inBackground }
   ) {
-    this.controller.engagementEvent.record(event, {
+    this.#recordEngagementAndTrackBounce(event, {
       element,
       selType,
       searchString: typedValue,
@@ -1459,7 +1476,8 @@ ${
       searchString,
       where,
       inBackground,
-      this.#selectedBrowserId
+      this.#selectedBrowserId,
+      true
     );
   }
 
@@ -1607,7 +1625,7 @@ ${
     url = this._maybeCanonizeURL(event, url) || url.trim();
 
     let selectedResult = result || this.view.selectedResult;
-    this.controller.engagementEvent.record(event, {
+    this.#recordEngagementAndTrackBounce(event, {
       element,
       selType,
       searchString: typedValue,
@@ -2297,21 +2315,7 @@ ${
       }
     }
 
-    // Bounce tracking keys on the tab the engagement happened in: the chrome
-    // window's selected tab, or the tab hosting an input that has no chrome
-    // window, which the parent resolves.
-    this.controller.engagementEvent
-      .startTrackingBounceEvent(this.#selectedBrowserId, event, {
-        result,
-        element,
-        searchString: this._lastSearchString,
-        selType: this.view.telemetryTypeFromElement(result, element),
-        searchSource: this.getSearchSource(event),
-        windowMode: this.windowMode,
-      })
-      .catch(e => logger().error(e));
-
-    this.controller.engagementEvent.record(event, {
+    this.#recordEngagementAndTrackBounce(event, {
       result,
       element,
       searchString: this._lastSearchString,
