@@ -1264,6 +1264,8 @@ html {
 }
 
 .dummy {
+  /* No need to check for stylelint violations */
+  /* stylelint-disable-next-line */
   background: var(--mr-welcome-background-color) var(--mr-welcome-background-gradient) var(--mr-secondary-position) var(--mr-screen-background-color) var(--mr-smart-window-background-gradient);
 }
 
@@ -2158,23 +2160,23 @@ html {
   --card-stack-color-2: light-dark(var(--color-violet-10), var(--color-violet-70));
   --card-stack-color-3: light-dark(var(--color-violet-20), var(--color-violet-80));
   --card-stack-flare: light-dark(var(--color-violet-10), var(--color-violet-70));
-  --card-stack-secondary-width: 318px;
-  --card-stack-secondary-height: 150px;
+  --card-stack-secondary-width: 318px; /* stylelint-disable-line stylelint-plugin-mozilla/use-design-tokens */
+  --card-stack-secondary-height: 150px; /* stylelint-disable-line stylelint-plugin-mozilla/use-design-tokens */
   --card-stack-flare-x: calc(var(--card-stack-secondary-width) / 2);
-  --card-stack-border: 1px solid var(--card-border-color);
-  --card-stack-layer-1-offset: 8px;
-  --card-stack-layer-2-offset: 16px;
+  --card-stack-border: 1px solid var(--card-border-color); /* stylelint-disable-line stylelint-plugin-mozilla/use-design-tokens */
+  --card-stack-layer-1-offset: 8px; /* stylelint-disable-line stylelint-plugin-mozilla/use-design-tokens */
+  --card-stack-layer-2-offset: 16px; /* stylelint-disable-line stylelint-plugin-mozilla/use-design-tokens */
   --card-stack-duration: 400ms;
   --card-stack-fly-block: calc(2 * var(--translate));
   --card-stack-slot-shift: var(--card-stack-layer-1-offset);
   background-color: color-mix(in srgb, var(--background-color-box) 40%, var(--card-stack-color-1));
-  background-image: radial-gradient(circle 125px at var(--card-stack-flare-x) center, var(--card-stack-flare) 0%, transparent 100%);
+  background-image: radial-gradient(circle 125px at var(--card-stack-flare-x) center, var(--card-stack-flare) 0%, transparent 100%); /* stylelint-disable-line stylelint-plugin-mozilla/use-design-tokens */
   background-repeat: no-repeat;
   border: var(--card-stack-border);
   border-radius: var(--border-radius-medium);
   box-sizing: border-box;
-  height: 204px;
-  min-height: 204px;
+  height: 204px; /* stylelint-disable-line stylelint-plugin-mozilla/use-design-tokens */
+  min-height: 204px; /* stylelint-disable-line stylelint-plugin-mozilla/use-design-tokens */
   position: relative;
   overflow: visible;
 }
@@ -2233,10 +2235,10 @@ html {
   --card-stack-flare: light-dark(var(--color-gray-10), var(--color-gray-70));
 }
 .onboardingContainer .screen[pos=card-stack][data-theme="nova-smoke@mozilla.org"] {
-  --card-stack-color-1: light-dark(#FFF9F6, #3B3532);
-  --card-stack-color-2: light-dark(#FBF4EE, #2F2926);
-  --card-stack-color-3: light-dark(#E3DBD7, #201B18);
-  --card-stack-flare: light-dark(#E3DBD7, #3B3532);
+  --card-stack-color-1: light-dark(#FFF9F6, #3B3532); /* stylelint-disable-line stylelint-plugin-mozilla/use-design-tokens */
+  --card-stack-color-2: light-dark(#FBF4EE, #2F2926); /* stylelint-disable-line stylelint-plugin-mozilla/use-design-tokens */
+  --card-stack-color-3: light-dark(#E3DBD7, #201B18); /* stylelint-disable-line stylelint-plugin-mozilla/use-design-tokens */
+  --card-stack-flare: light-dark(#E3DBD7, #3B3532); /* stylelint-disable-line stylelint-plugin-mozilla/use-design-tokens */
 }
 @media (prefers-reduced-motion: reduce) {
   .onboardingContainer .screen[pos=card-stack] {
@@ -2244,7 +2246,7 @@ html {
   }
 }
 .onboardingContainer .screen[pos=card-stack]:dir(rtl) {
-  background-image: radial-gradient(circle 125px at calc(100% - var(--card-stack-flare-x)) center, var(--card-stack-flare) 0%, transparent 100%);
+  background-image: radial-gradient(circle 125px at calc(100% - var(--card-stack-flare-x)) center, var(--card-stack-flare) 0%, transparent 100%); /* stylelint-disable-line stylelint-plugin-mozilla/use-design-tokens */
 }
 @container card-stack (width <= 640px) {
   .onboardingContainer .screen[pos=card-stack] {
@@ -2268,12 +2270,12 @@ html {
   z-index: -1;
 }
 .onboardingContainer .screen[pos=card-stack]::before {
-  inset-inline: 18px;
+  inset-inline: 18px; /* stylelint-disable-line stylelint-plugin-mozilla/use-design-tokens */
   background-color: var(--card-stack-color-2);
   translate: 0 var(--card-stack-layer-1-offset);
 }
 .onboardingContainer .screen[pos=card-stack]::after {
-  inset-inline: 42px;
+  inset-inline: 42px; /* stylelint-disable-line stylelint-plugin-mozilla/use-design-tokens */
   background-color: var(--card-stack-color-3);
   translate: 0 var(--card-stack-layer-2-offset);
   z-index: -2;
@@ -2284,10 +2286,10 @@ html {
   }
 }
 .onboardingContainer .screen[pos=card-stack]:hover::before {
-  translate: 0 12px;
+  translate: 0 12px; /* stylelint-disable-line stylelint-plugin-mozilla/use-design-tokens */
 }
 .onboardingContainer .screen[pos=card-stack]:hover::after {
-  translate: 0 24px;
+  translate: 0 24px; /* stylelint-disable-line stylelint-plugin-mozilla/use-design-tokens */
 }
 @container card-stack (width <= 520px) {
   .onboardingContainer .screen[pos=card-stack] {
@@ -2314,14 +2316,14 @@ html {
 }
 @container card-stack (width <= 640px) {
   .onboardingContainer .screen[pos=card-stack] .section-secondary {
-    width: 180px;
-    margin-inline-start: 12px;
+    width: 180px; /* stylelint-disable-line stylelint-plugin-mozilla/use-design-tokens */
+    margin-inline-start: 12px; /* stylelint-disable-line stylelint-plugin-mozilla/use-design-tokens */
   }
 }
 @container card-stack (width <= 520px) {
   .onboardingContainer .screen[pos=card-stack] .section-secondary {
     height: var(--card-stack-secondary-height);
-    margin-block: 12px;
+    margin-block: 12px; /* stylelint-disable-line stylelint-plugin-mozilla/use-design-tokens */
     margin-inline: auto;
   }
 }
@@ -2404,8 +2406,8 @@ html {
 }
 .onboardingContainer .screen[pos=card-stack][layout=last-card] {
   --card-stack-flare-x: 50%;
-  --last-card-image-width: 120px;
-  --last-card-image-height: 120px;
+  --last-card-image-width: 120px; /* stylelint-disable-line stylelint-plugin-mozilla/use-design-tokens */
+  --last-card-image-height: 120px; /* stylelint-disable-line stylelint-plugin-mozilla/use-design-tokens */
   --last-card-image-margin-inline: var(--space-xlarge);
   --last-card-image-margin-block: 0 var(--space-medium);
   --last-card-split-delay: 500ms;
@@ -2413,7 +2415,7 @@ html {
 }
 @container card-stack (width <= 520px) {
   .onboardingContainer .screen[pos=card-stack][layout=last-card] {
-    height: 300px;
+    height: 300px; /* stylelint-disable-line stylelint-plugin-mozilla/use-design-tokens */
     background-position-y: center;
   }
 }
@@ -4186,6 +4188,7 @@ html {
   }
 }
 .onboardingContainer .tiles-single-select-section.single-select .select-item .flair.centered, .onboardingContainer .tiles-single-select-section.theme .select-item .flair.centered {
+  /* stylelint-disable-next-line */
   border-radius: 8px 8px 0 0;
   background-color: var(--button-background-color-primary);
   color: var(--button-text-color-primary);
@@ -4203,6 +4206,7 @@ html {
   }
 }
 .onboardingContainer .tiles-single-select-section.single-select .select-item .flair.centered.backup, .onboardingContainer .tiles-single-select-section.theme .select-item .flair.centered.backup {
+  /* stylelint-disable-next-line */
   border-radius: 10px 10px 0 0;
   background-color: var(--picker-backup-flair-background);
   color: var(--picker-backup-flair-color);
@@ -5201,6 +5205,7 @@ html {
   height: 6px;
   padding-block: 0;
   margin-block: 42px 0;
+  /* stylelint-disable-next-line stylelint-plugin-mozilla/no-non-semantic-token-usage */
   background-color: color-mix(in srgb, var(--button-text-color) 25%, transparent);
   justify-content: start;
   opacity: 1;

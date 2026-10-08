@@ -13,14 +13,11 @@ export const createTokensTableFormat = (
   isSemanticTable = false
 ) => {
   let resolvedTokens = dictionary.allTokens
-    // Exclude override tokens from stylelint token tables.
+    // Exclude override tokens from stylelint/storybook token tables.
     .filter(
       token =>
-        (isSemanticTable && token.override) ||
-        (!token.override &&
-          !OVERRIDE_IDENTIFIERS.some(({ id }) =>
-            token.name.includes(`-${id}-`)
-          ))
+        !token.override &&
+        !OVERRIDE_IDENTIFIERS.some(({ id }) => token.name.includes(`-${id}-`))
     )
     .map(token => {
       let tokenVal = resolveReferences(token.original, dictionary.tokens);

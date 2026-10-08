@@ -359,6 +359,7 @@
 .nova-enabled
 .content-full-width.side-by-side-content-lead.side-by-side-active.side-by-side-five {
   @include at-band-fits-pair(4) {
+    // stylelint-disable-next-line stylelint-plugin-mozilla/use-design-tokens
     grid-template-columns: --col-span(16) --col-span(4);
   }
 }
@@ -366,6 +367,7 @@
 .nova-enabled
 .content-full-width.side-by-side-widgets-lead.side-by-side-active.side-by-side-five {
   @include at-band-fits-pair(4) {
+    // stylelint-disable-next-line stylelint-plugin-mozilla/use-design-tokens
     grid-template-columns: --col-span(4) --col-span(16);
   }
 }

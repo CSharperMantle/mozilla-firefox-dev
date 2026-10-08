@@ -135,6 +135,7 @@ ai-chat-grid {
   }
 }
 
+/* stylelint-disable-next-line media-query-no-invalid */
 @media -moz-pref("browser.nova.enabled") {
   .message-assistant {
     a {

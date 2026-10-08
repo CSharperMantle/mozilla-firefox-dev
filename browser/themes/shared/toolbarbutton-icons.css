@@ -539,7 +539,9 @@
   &[monitor-attention] > .toolbarbutton-badge-stack > .toolbarbutton-badge {
     display: block;
     box-shadow: none;
+    /* stylelint-disable-next-line stylelint-plugin-mozilla/use-design-tokens */
     margin-top: -7px !important;
+    /* stylelint-disable-next-line stylelint-plugin-mozilla/use-design-tokens */
     margin-inline-end: -6px !important;
     min-width: var(--icon-size-xsmall);
     min-height: var(--icon-size-xsmall);

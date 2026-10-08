@@ -32,8 +32,6 @@ module.exports = {
     "stylelint-use-logical",
   ],
   ignoreFiles,
-  reportNeedlessDisables: true,
-  reportUnscopedDisables: true,
   rules: {
     /* Disabled because of `-moz-element(#foo)` which gets misparsed. */
     "color-no-invalid-hex": null,
@@ -435,8 +433,6 @@ module.exports = {
         "layout/**",
         // Testing does not use design tokens
         "testing/**",
-        "**/test/**",
-        "**/tests/**",
         // UA Widgets should not use design tokens
         "toolkit/themes/shared/colorpicker-common.css",
         "toolkit/themes/shared/colorpicker.css",

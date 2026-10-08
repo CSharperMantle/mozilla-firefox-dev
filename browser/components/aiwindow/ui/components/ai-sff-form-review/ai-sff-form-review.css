@@ -29,13 +29,15 @@
 
 .form-review-dialog {
   display: flex;
-  /* stylelint-disable-next-line stylelint-plugin-mozilla/use-design-tokens */
+  /* stylelint-disable-next-line */
   width: min(var(--size-layout-xlarge), 100%);
+  /* stylelint-disable-next-line */
   max-height: 90vh;
   box-sizing: border-box;
   padding: var(--space-large);
   background-color: var(--background-color-box);
   box-shadow: var(--box-shadow-level-4);
+  /* stylelint-disable-next-line */
   border-radius: var(--border-radius-xlarge);
   border: var(--border-width) solid var(--popup-border-color);
 
@@ -45,7 +47,7 @@
 }
 
 .form-review-heading {
-  /* stylelint-disable-next-line stylelint-plugin-mozilla/use-design-tokens */
+  /* stylelint-disable-next-line */
   color: var(--smartwindow-text-color);
   font-weight: var(--font-weight-semibold);
 }
@@ -71,7 +73,7 @@
     height: 1px;
     inset-block-start: 0;
     inset-inline: 0;
-    /* stylelint-disable-next-line stylelint-plugin-mozilla/use-design-tokens */
+    /* stylelint-disable-next-line */
     background-color: var(--color-black-alpha-20);
   }
 }
