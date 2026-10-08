@@ -8,7 +8,6 @@ import os
 from collections import defaultdict
 
 import mozpack.path as mozpath
-from mozshellutil import quote as shell_quote
 
 from mozbuild.backend.common import CommonBackend
 from mozbuild.frontend.data import (
@@ -137,7 +136,7 @@ class CompileDBBackend(CommonBackend):
                 c.extend(per_source_flags)
             db.append({
                 "directory": directory,
-                "command": shell_quote(*c),
+                "arguments": c,
                 "file": mozpath.join(directory, filename),
             })
 
