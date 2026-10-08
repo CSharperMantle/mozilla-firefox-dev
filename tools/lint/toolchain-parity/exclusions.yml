@@ -12,7 +12,6 @@
 # both), over adding an exclusion here.
 toolchain:
     - 7zz
-    - embedded-uniffi-bindgen
     - fix-stacks
     - gn
     - grcov
