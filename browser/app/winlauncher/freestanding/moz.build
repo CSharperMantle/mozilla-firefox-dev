@@ -53,3 +53,13 @@ DisableStlWrapping()
 
 with Files("**"):
     BUG_COMPONENT = ("Firefox", "Launcher Process")
+
+SOURCE_HEADERS += [
+    "CheckForCaller.h",
+    "DllBlocklist.h",
+    "Freestanding.h",
+    "LoaderPrivateAPI.h",
+    "ModuleLoadFrame.h",
+    "SafeThreadLocal.h",
+    "SharedSection.h",
+]
