@@ -264,7 +264,6 @@ moz-button.history-menu-button {
     margin-inline: var(--space-small);
     /* stylelint-disable-next-line stylelint-plugin-mozilla/use-design-tokens */
     max-width: calc(100% - 2 * var(--space-small));
-    /* stylelint-disable-next-line stylelint-plugin-mozilla/use-design-tokens */
     border-radius: var(--panel-menuitem-border-radius);
   }
 }
@@ -274,7 +273,6 @@ moz-button.history-menu-button {
   .history-menu {
     --panel-list-border-radius: var(--border-radius-large);
     --panel-list-box-shadow: var(--box-shadow-level-3);
-    /* stylelint-disable-next-line stylelint-plugin-mozilla/use-design-tokens */
     --panel-item-button-border-radius: var(--smartwindow-panel-item-border-radius);
 
     @media not (forced-colors) {
@@ -286,7 +284,6 @@ moz-button.history-menu-button {
   }
 
   .history-menu panel-item::part(button) {
-    /* stylelint-disable-next-line stylelint-plugin-mozilla/use-design-tokens */
     border-radius: var(--panel-item-button-border-radius);
     margin-inline: var(--space-small);
     /* stylelint-disable-next-line stylelint-plugin-mozilla/use-design-tokens */

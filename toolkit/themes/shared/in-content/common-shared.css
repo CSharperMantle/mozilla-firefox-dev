@@ -628,9 +628,6 @@ html|*#categories > html|*.category:dir(rtl) {
     /* The transition causes issues with the text getting a background while
      * transitioning and it looks weird. */
     transition: none;
-    /* We need a true transparent but in HCM this would compute to an actual color,
-     * so select the page's background color instead: */
-    /* stylelint-disable-next-line stylelint-plugin-mozilla/use-design-tokens */
     border-color: var(--background-color-canvas);
   }
 
@@ -920,9 +917,6 @@ input[type="text"][warning]:enabled:not(:focus) {
 
 @media (forced-colors) {
   .sidebar-footer-link {
-    /* We need a true transparent but in HCM this would compute to an actual color,
-     * so select the page's background color instead: */
-    /* stylelint-disable-next-line stylelint-plugin-mozilla/use-design-tokens */
     border-color: var(--background-color-canvas);
   }
 }
