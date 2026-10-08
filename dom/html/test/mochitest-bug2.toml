@@ -302,7 +302,6 @@ fail-if = [
 ["test_bug615833.html"]
 skip-if = [
   "os == 'android'",
-  "os == 'mac' && os_version == '14.70' && arch == 'x86_64'", # Bug 1929434
   "os == 'mac' && os_version == '15.30' && arch == 'aarch64'", # Bug 2019466
 ]
 

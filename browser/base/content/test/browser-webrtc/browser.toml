@@ -72,7 +72,6 @@ https_first_disabled = true
 skip-if = [
   "os == 'linux' && os_version == '22.04' && arch == 'x86_64' && display == 'wayland' && opt", # Bug 1440900
   "os == 'linux' && os_version == '24.04' && arch == 'x86_64' && display == 'x11' && opt", # Bug 1440900
-  "os == 'mac' && os_version == '14.70' && arch == 'x86_64'", # Bug 1869787
   "os == 'mac' && os_version == '15.30' && arch == 'aarch64'", # Bug 1707735
   "os == 'win' && opt", # Bug 1440900
 ]
@@ -146,6 +145,3 @@ skip-if = [
 ["browser_tab_switch_warning.js"]
 
 ["browser_webrtc_hooks.js"]
-skip-if = [
-  "os == 'mac' && os_version == '14.70' && arch == 'x86_64'", # Bug 1869787
-]

@@ -277,7 +277,6 @@ tags = "vertical-tabs"
 ["browser_multiselect_tabs_unload_telemetry.js"]
 skip-if = [
   "os == 'linux' && os_version == '24.04' && arch == 'x86_64' && display == 'x11'", # Bug 1935293
-  "os == 'mac' && os_version == '14.70' && arch == 'x86_64' && opt", # Bug 1929417
 ]
 tags = "vertical-tabs"
 
@@ -327,7 +326,6 @@ https_first_disabled = true
 support-files = ["file_observe_height_changes.html"]
 tags = "vertical-tabs"
 skip-if = [
-  "os == 'mac' && os_version == '14.70' && arch == 'x86_64'", # Bug 1929417
   "os == 'mac' && os_version == '15.30' && arch == 'aarch64'", # Bug 1872477
   "vertical_tab", # Bug 1936170
 ]
@@ -411,7 +409,6 @@ tags = "vertical-tabs"
 ["browser_reload_deleted_file.js"]
 tags = "vertical-tabs"
 skip-if = [
-  "os == 'mac' && os_version == '14.70' && arch == 'x86_64' && vertical_tab", # Bug 1936168
   "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && vertical_tab", # Bug 1936168
 ]
 

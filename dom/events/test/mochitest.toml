@@ -419,7 +419,6 @@ tags = "os_integration"
 ["test_click_hold_context_menus.html"]
 tags = "os_integration"
 skip-if = [
-  "os == 'mac' && os_version == '14.70' && arch == 'x86_64'", # Bug 1929440
   "os == 'mac' && os_version == '15.30' && arch == 'aarch64'", # Bug 2019405
 ]
 
@@ -449,7 +448,6 @@ tags = "os_integration"
 skip-if = [
   "os == 'mac' && os_version == '15.30' && arch == 'aarch64'", # Bug 2034604
   "os == 'android'", # Bug 2017993
-  "os == 'mac' && os_version == '14.70' && arch == 'x86_64'", # Bug 2017993
   "os == 'mac' && os_version == '15.30' && arch == 'aarch64'", # Bug 2017993
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64'", # Bug 2017993
   "os == 'win' && os_version == '10.2009' && arch == 'x86_64'", # Bug 2017993
@@ -520,7 +518,6 @@ skip-if = [
   "os == 'win' && os_version == '10.2009' && arch == 'x86_64'", # Bug 1802904
   "os == 'android' && os_version == '14' && arch == 'x86_64' && opt", # Bug 1802904
   "os == 'android' && os_version == '14' && arch == 'x86_64' && ccov", # Bug 1802904
-  "os == 'mac' && os_version == '14.70' && arch == 'x86_64' && opt", # Bug 1802904
 ]
 
 ["test_draggableprop.html"]
@@ -622,9 +619,6 @@ skip-if = [
 ]
 
 ["test_mouse_events_after_touchend.html"]
-skip-if = [
-  "os == 'mac' && os_version == '14.70' && arch == 'x86_64'", # Bug 1929440
-]
 
 ["test_mouse_over_at_removing_down_target.html"]
 

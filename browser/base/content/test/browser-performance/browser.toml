@@ -76,9 +76,6 @@ skip-if = [
 ["browser_tabdetach.js"]
 
 ["browser_tabopen.js"]
-skip-if = [
-  "os == 'mac' && os_version == '14.70' && arch == 'x86_64' && opt", # Bug 1870476
-]
 
 ["browser_tabopen_squeeze.js"]
 

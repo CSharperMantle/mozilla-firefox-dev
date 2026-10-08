@@ -33,9 +33,6 @@ support-files = [
 ["browser_grids_grid-list-on-iframe-reloaded.js"]
 
 ["browser_grids_grid-list-on-mutation-element-added.js"]
-skip-if = [
-  "os == 'mac' && os_version == '14.70' && arch == 'x86_64'", # Bug 1557326
-]
 
 ["browser_grids_grid-list-on-mutation-element-removed.js"]
 
