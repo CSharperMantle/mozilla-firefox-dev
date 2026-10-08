@@ -9,8 +9,7 @@
     "content/tab-hover-preview.mjs",
     "content/tab.mjs",
     "content/tabs.mjs",
-    "SmartTabGrouping.sys.mjs",
-    "TabsList.sys.mjs"
+    "SmartTabGrouping.sys.mjs"
   ],
   "extends": "../../../tools/@types/tsconfig.json",
   "compilerOptions": {
