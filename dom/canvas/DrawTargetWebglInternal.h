@@ -161,7 +161,7 @@ class TextureHandle : public RefCounted<TextureHandle>,
 
   virtual void Cleanup(SharedContextWebgl& aContext) {}
 
-  virtual ~TextureHandle() {}
+  virtual ~TextureHandle() = default;
 
   bool IsValid() const { return mValid; }
   void Invalidate() { mValid = false; }
