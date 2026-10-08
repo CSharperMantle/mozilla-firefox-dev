@@ -13,7 +13,6 @@
 toolchain:
     - 7zz
     - gn
-    - grcov
     - jj
     - minidump-stackwalk
     - nasm
