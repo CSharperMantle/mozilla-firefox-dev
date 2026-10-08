@@ -1913,6 +1913,10 @@ nsresult EditorBase::CutAsAction(nsIPrincipal* aPrincipal) {
     }
   }
 
+  editActionData.SetSelectionCreatedByDoubleclick(
+      SelectionRef().GetFrameSelection() &&
+      SelectionRef().GetFrameSelection()->IsDoubleClickSelection());
+
   // Dispatch "beforeinput" event after dispatching "cut" event.
   nsresult rv = editActionData.MaybeDispatchBeforeInputEvent();
   if (NS_FAILED(rv)) {
