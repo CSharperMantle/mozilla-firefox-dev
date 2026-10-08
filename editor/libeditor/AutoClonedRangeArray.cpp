@@ -1699,7 +1699,9 @@ void AutoClonedSelectionRangeArray::
   const auto WhiteSpaceRange =
       [&](const Maybe<EditorRawDOMPoint>& aPoint) -> Maybe<EditorRawDOMRange> {
     if (aPoint.isNothing() || !aPoint->IsInTextNode() ||
-        aPoint->IsEndOfContainer() || !aPoint->IsCharASCIISpaceOrNBSP()) {
+        aPoint->IsEndOfContainer() ||
+        (!aPoint->IsCharASCIISpaceOrNBSP() &&
+         aPoint->Char() != HTMLEditUtils::kFormFeed)) {
       return Nothing();
     }
     if (aEditorBase.IsTextEditor() || !aPoint->IsCharCollapsibleASCIISpace()) {
