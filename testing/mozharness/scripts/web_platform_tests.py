@@ -111,17 +111,6 @@ class WebPlatformTest(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidM
                 },
             ],
             [
-                ["--processes"],
-                {
-                    "action": "store",
-                    "type": "int",
-                    "dest": "processes",
-                    "default": None,
-                    "help": "Number of browser processes to run tests in, overriding "
-                    "the platform default.",
-                },
-            ],
-            [
                 ["--setpref"],
                 {
                     "action": "append",
@@ -415,9 +404,7 @@ class WebPlatformTest(TestingMixin, MercurialScript, CodeCoverageMixin, AndroidM
             # repeat should repeat the original test, so +1 for first run
             cmd.append("--repeat=%s" % (self.repeat + 1))
 
-        if c["processes"]:
-            processes = c["processes"]
-        elif (
+        if (
             self.is_android
             or mozinfo.info["tsan"]
             or "wdspec" in test_types

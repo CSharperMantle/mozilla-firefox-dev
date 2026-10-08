@@ -520,30 +520,16 @@ tasks:
         mozharness:
             chunked: true
             extra-options:
-                by-test-platform:
-                    macosx1470-64.*:
-                        - --test-type=testharness
-                        - --skip-implementation-status=backlog
-                        - --skip-implementation-status=not-implementing
-                        - --default-exclude
-                        - --tag=webgpu
-                        - --exclude-tag=webgpu-long
-                        - --exclude-tag=canvas
-                        - --exclude-tag=webcodecs
-                        - --exclude-tag=webrtc
-                        - --timeout-multiplier=5.0
-                        - --processes=3
-                    default:
-                        - --test-type=testharness
-                        - --skip-implementation-status=backlog
-                        - --skip-implementation-status=not-implementing
-                        - --default-exclude
-                        - --tag=webgpu
-                        - --exclude-tag=webgpu-long
-                        - --exclude-tag=canvas
-                        - --exclude-tag=webcodecs
-                        - --exclude-tag=webrtc
-                        - --timeout-multiplier=5.0
+                - --test-type=testharness
+                - --skip-implementation-status=backlog
+                - --skip-implementation-status=not-implementing
+                - --default-exclude
+                - --tag=webgpu
+                - --exclude-tag=webgpu-long
+                - --exclude-tag=canvas
+                - --exclude-tag=webcodecs
+                - --exclude-tag=webrtc
+                - --timeout-multiplier=5.0
         worker-type:
             by-test-platform:
                 .*windows.*: win11-64-25h2-webgpu
@@ -565,22 +551,12 @@ tasks:
         mozharness:
             chunked: true
             extra-options:
-                by-test-platform:
-                    macosx1470-64.*:
-                        - --test-type=testharness
-                        - --default-exclude
-                        - --tag=webgpu-long
-                        - --skip-implementation-status=backlog
-                        - --skip-implementation-status=not-implementing
-                        - --timeout-multiplier=5.0
-                        - --processes=3
-                    default:
-                        - --test-type=testharness
-                        - --default-exclude
-                        - --tag=webgpu-long
-                        - --skip-implementation-status=backlog
-                        - --skip-implementation-status=not-implementing
-                        - --timeout-multiplier=5.0
+                - --test-type=testharness
+                - --default-exclude
+                - --tag=webgpu-long
+                - --skip-implementation-status=backlog
+                - --skip-implementation-status=not-implementing
+                - --timeout-multiplier=5.0
         worker-type:
             by-test-platform:
                 .*windows.*: win11-64-25h2-webgpu
