@@ -22,8 +22,6 @@ toolchain:
     - nasm
     - nimbus-fml
     - pkgconf
-    - python-3.10
-    - python-3.11
     - samply
     - sccache
     - searchfox-cli
