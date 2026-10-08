@@ -637,12 +637,11 @@ class MOZ_STACK_CLASS AutoClonedSelectionRangeArray final
 
   /**
    * MaybeExtendAnchorFocusRangeToDeleteAdjacentWhiteSpace() extends the
-   * anchor-focus range to delete one white-space next to a word which was
-   * selected by double-click, matching the smart delete of macOS and WebKit.
-   * Prefer the preceding white-space, otherwise delete the following one.
-   * Do not extend a range which already starts or ends with white-space.
-   * Only white-space in the text node containing the range boundary is
-   * considered.
+   * anchor-focus range to delete one visible white-space next to a word which
+   * was selected by double-click, matching WebKit's macOS smart delete.
+   * Prefer preceding white-space, otherwise delete following white-space
+   * without crossing a paragraph boundary.  Do not extend a range which
+   * already starts or ends with visible white-space.
    * Enabled by `editor.word_select.delete_space_after_doubleclick_selection`.
    *
    *   "one [two] three" -> "one[ two] three" -> "one three"
