@@ -695,6 +695,19 @@ skip-if = [
 
 ["test_dns_offline.js"]
 
+["test_dns_ohttp_init.js"]
+run-if = [
+  "!socketprocess_networking",
+]
+prefs = [
+  "network.dns.native_https_query=true",
+  "network.dns.native-is-localhost=true",
+  "network.trr.mode=3",
+  "network.trr.use_ohttp=true",
+  "network.trr.ohttp.relay_uri=https://localhost/relay",
+  "network.trr.ohttp.config_uri=https://localhost/config",
+]
+
 ["test_dns_onion.js"]
 
 ["test_dns_originAttributes.js"]
