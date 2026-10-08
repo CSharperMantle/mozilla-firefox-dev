@@ -1579,9 +1579,10 @@ auto nsWindow::Bounds::ComputeX11(const nsWindow* aWindow) -> Bounds {
   LOG_WIN(aWindow, "  mClientArea %s", ToString(result.mClientArea).c_str());
 
   if (result.mClientArea.X() < 0 || result.mClientArea.Y() < 0 ||
-      result.mClientArea.Width() <= 1 || result.mClientArea.Height() <= 1) {
-    // If we don't have gdkwindow bounds, assume we take the whole toplevel
-    // except decorations.
+      (!aWindow->mHasReceivedSizeAllocate &&
+       (result.mClientArea.Width() <= 1 || result.mClientArea.Height() <= 1))) {
+    // For an invalid client position or a placeholder size before the first
+    // allocation, assume we take the whole toplevel except decorations.
     result.mClientArea =
         DesktopIntRect(systemDecorationOffset, toplevelBounds.Size());
     if (aWindow->ToplevelUsesCSD()) {
@@ -1630,9 +1631,10 @@ auto nsWindow::Bounds::ComputeWayland(const nsWindow* aWindow) -> Bounds {
           ToString(result.mClientMargin).c_str());
 
   if (result.mClientArea.X() < 0 || result.mClientArea.Y() < 0 ||
-      result.mClientArea.Width() <= 1 || result.mClientArea.Height() <= 1) {
-    // If we don't have gdkwindow bounds yet, assume we take the whole toplevel
-    // except the CSD decorations.
+      (!aWindow->mHasReceivedSizeAllocate &&
+       (result.mClientArea.Width() <= 1 || result.mClientArea.Height() <= 1))) {
+    // For an invalid client position or a placeholder size before the first
+    // allocation, assume we take the whole toplevel except CSD decorations.
     result.mClientMargin = aWindow->ToplevelUsesCSD() ? aWindow->mClientMargin
                                                       : DesktopIntMargin();
     result.mClientArea = toplevelBounds;
