@@ -114,6 +114,21 @@ const BLOCKER_CLICK_METRICS = {
   cryptominer: "clickCryptominers",
 };
 
+// Values of the closing_reason extra of trustpanel.closed
+const CLOSING_REASONS = {
+  DISMISSED: "dismissed",
+  NAVIGATED: "navigated",
+  ETP_TOGGLED: "etpToggled",
+  SITE_DATA_CLEARED: "siteDataCleared",
+  CLEAR_SITE_DATA_CANCELLED: "clearSiteDataCancelled",
+  PAGE_INFO_OPENED: "pageInfoOpened",
+  CERT_EXCEPTION_REMOVED: "certExceptionRemoved",
+  HTTPS_ONLY_CHANGED: "httpsOnlyChanged",
+  PRIVACY_SETTINGS_OPENED: "privacySettingsOpened",
+  SMARTBLOCK_TOGGLED: "smartblockToggled",
+  MONITOR_OPENED: "monitorOpened",
+};
+
 // Indexed by the HTTPS-Only menulist values, see #getHttpsOnlyPermission.
 const HTTPS_ONLY_SETTINGS = ["on", "off", "off-temporarily"];
 
@@ -197,6 +212,8 @@ class TrustPanel {
 
   #popupToggleDelayTimer = null;
   #openingReason = null;
+  #closingReason = null;
+  #shownAt = null;
 
   #blockers = {
     SocialTracking,
@@ -230,6 +247,9 @@ class TrustPanel {
           "dismissBreachAlert",
           this.dismissBreachAlert.bind(this)
         );
+        breachAlertElement.addEventListener("breachAlertMonitorOpened", () => {
+          this.#closingReason = CLOSING_REASONS.MONITOR_OPENED;
+        });
       }
     });
   }
@@ -329,7 +349,7 @@ class TrustPanel {
       document
         .getElementById("trustpanel-privacy-link")
         .addEventListener("click", () => {
-          this.#hidePopup();
+          this.#hidePopup(CLOSING_REASONS.PRIVACY_SETTINGS_OPENED);
           window.openTrustedLinkIn("about:preferences#privacy", "tab");
         });
       document
@@ -412,7 +432,8 @@ class TrustPanel {
     });
   }
 
-  async #hidePopup() {
+  async #hidePopup(reason) {
+    this.#closingReason = reason;
     let hidden = new Promise(c => {
       this.#popup.addEventListener("popuphidden", c, { once: true });
     });
@@ -517,6 +538,7 @@ class TrustPanel {
 
     // Close the panel if we navigate to a new url.
     if (this.#uri?.spec != uri.spec && this.#popup?.state == "open") {
+      this.#closingReason ??= CLOSING_REASONS.NAVIGATED;
       PanelMultiView.hidePopup(this.#popup);
     }
 
@@ -901,7 +923,7 @@ class TrustPanel {
 
   async #showSecurityPopup() {
     Glean.trustpanel.securityInfoPageInfoOpened.record();
-    await this.#hidePopup();
+    await this.#hidePopup(CLOSING_REASONS.PAGE_INFO_OPENED);
     window.BrowserCommands.pageInfo(null, "securityTab");
   }
 
@@ -916,6 +938,7 @@ class TrustPanel {
     );
     Glean.trustpanel.securityInfoCertExceptionRemoved.record();
     BrowserCommands.reloadSkipCache();
+    this.#closingReason = CLOSING_REASONS.CERT_EXCEPTION_REMOVED;
     PanelMultiView.hidePopup(this.#popup);
   }
 
@@ -1174,12 +1197,12 @@ class TrustPanel {
     let baseDomain = SiteDataManager.getBaseDomainFromHost(this.#uri.host);
     SiteDataManager.remove(baseDomain);
     Glean.trustpanel.clearCookiesConfirmed.record();
-    this.#hidePopup();
+    this.#hidePopup(CLOSING_REASONS.SITE_DATA_CLEARED);
   }
 
   #cancelClearSiteData() {
     Glean.trustpanel.clearCookiesCancelled.record();
-    this.#hidePopup();
+    this.#hidePopup(CLOSING_REASONS.CLEAR_SITE_DATA_CANCELLED);
   }
 
   #toggleTrackingProtection() {
@@ -1191,6 +1214,7 @@ class TrustPanel {
       Glean.securityUiProtectionspopup.clickEtpToggleOn.record();
     }
 
+    this.#closingReason = CLOSING_REASONS.ETP_TOGGLED;
     PanelMultiView.hidePopup(this.#popup);
     window.BrowserCommands.reload();
   }
@@ -1770,6 +1794,11 @@ class TrustPanel {
       setting: HTTPS_ONLY_SETTINGS[newValue],
     });
 
+    // Set before the branches below: switching between "off" and "off
+    // temporarily" leaves the panel open, and the close still has to be
+    // attributed to this action rather than to abandonment.
+    this.#closingReason = CLOSING_REASONS.HTTPS_ONLY_CHANGED;
+
     // If we're on the error-page, we have to redirect the user
     // from HTTPS to HTTP. Otherwise we can just reload the page.
     if (this.#isAboutHttpsOnlyErrorPage) {
@@ -1875,6 +1904,7 @@ class TrustPanel {
         } else {
           this.#sendReblockMessageToSmartblock(shimId);
         }
+        this.#closingReason = CLOSING_REASONS.SMARTBLOCK_TOGGLED;
         PanelMultiView.hidePopup(this.#popup);
       });
 
@@ -1977,15 +2007,22 @@ class TrustPanel {
         break;
       }
       case "popupshown":
-        this.onPopupShown(event);
+        // Ignore events from nested elements
+        if (event.target == this.#popup) {
+          this.onPopupShown(event);
+        }
         break;
       case "popuphidden":
-        this.onPopupHidden(event);
+        // Ignore events from nested elements
+        if (event.target == this.#popup) {
+          this.onPopupHidden(event);
+        }
         break;
     }
   }
 
   onPopupShown() {
+    this.#shownAt = performance.now();
     window.addEventListener("focus", this, true);
     PopupNotifications.suppressWhileOpen(this.#popup);
     // Disable the toggles for a short time after opening via SmartBlock placeholder button
@@ -2003,6 +2040,18 @@ class TrustPanel {
     for (let id of ["trust-icon-container", "identity-icon-box"]) {
       document.getElementById(id)?.removeAttribute("open");
     }
+
+    // A popup that never finished showing has no session to close.
+    if (this.#shownAt !== null) {
+      Glean.trustpanel.closed.record({
+        opening_reason: this.#openingReason ?? "unknown",
+        closing_reason: this.#closingReason ?? CLOSING_REASONS.DISMISSED,
+        duration_ms: Math.round(performance.now() - this.#shownAt),
+      });
+    }
+
+    this.#shownAt = null;
+    this.#closingReason = null;
   }
 
   /**
