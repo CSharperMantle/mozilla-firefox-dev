@@ -323,11 +323,37 @@ ip-protection-site-exceptions-all-sites-button =
        *[other] { $count } websites
     }
 
-ip-protection-site-rules-header =
-  .heading = Manage website rules
-ip-protection-site-rules-button =
-  .label = Manage website rules
+ip-protection-site-rules-header-1 =
+  .heading = Manage VPN rules
+ip-protection-site-rules-button-1 =
+  .label = Manage VPN rules
   .description = Set rules for sites that need extra privacy or VPN turned off.
+
+ip-protection-site-rules-list-section =
+  .label = Website rules
+  .description = Choose how VPN works for sites that need extra privacy or VPN turned off.
+
+ip-protection-site-rules-add-button =
+  .label = Set rule
+ip-protection-site-rules-delete-all-button =
+  .label = Delete all rules
+ip-protection-site-rules-empty = Rules you set will appear here.
+
+# Shown on a website whose rule turns the VPN on for it
+ip-protection-site-rules-rule-included = VPN always on
+# Shown on a website whose rule turns the VPN off for it
+ip-protection-site-rules-rule-excluded = VPN always off
+
+# Variables:
+#   $website (string) - The website the rule applies to, e.g. https://example.com
+ip-protection-site-rules-edit-button =
+  .title = Edit
+  .aria-label = Edit the rule for { $website }
+# Variables:
+#   $website (string) - The website the rule applies to, e.g. https://example.com
+ip-protection-site-rules-delete-button =
+  .title = Delete
+  .aria-label = Delete the rule for { $website }
 
 ip-protection-autostart =
   .label = Turn on VPN automatically
