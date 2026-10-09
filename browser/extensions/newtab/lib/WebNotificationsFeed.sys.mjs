@@ -125,7 +125,7 @@ async function readNotificationStore() {
  * @returns {NormalizedNotification}
  */
 function normalizeDiskEntry(entry, origin) {
-  const out = { origin };
+  const out = /** @type {NormalizedNotification} */ ({ origin });
   for (const key of DISK_PASSTHROUGH_FIELDS) {
     if (entry[key] !== undefined) {
       out[key] = entry[key];

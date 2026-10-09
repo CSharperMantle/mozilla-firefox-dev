@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/** @import {RegionLocaleEntries} from "moz-src:///toolkit/modules/RegionLocaleMap.sys.mjs" */
+
 // We use importESModule here instead of static import so that
 // the Karma test environment won't choke on this module. This
 // is because the Karma test environment already stubs out
@@ -113,10 +115,13 @@ const STORIES_REGION_LOCALE_CONFIG =
 // see RegionLocaleMap for the format. Shipped default, overridden by the
 // stories-region-locale-config pref or a newtabTrainhop storiesRegionLocale
 // payload.
+/** @type {RegionLocaleEntries} */
 const STORIES_REGION_LOCALE_DEFAULT = [
   // Nightly also gets a global English feed, standing in for the reach
   // locale-list-config used to provide until one is configured remotely.
-  ...(AppConstants.NIGHTLY_BUILD ? [["*", ["en-*"]]] : []),
+  ...(AppConstants.NIGHTLY_BUILD
+    ? /** @type {RegionLocaleEntries} */ ([["*", ["en-*"]]])
+    : []),
   ["US", ["en-*"]],
   ["CA", ["en-*"]],
   ["GB", ["en-*"]],
