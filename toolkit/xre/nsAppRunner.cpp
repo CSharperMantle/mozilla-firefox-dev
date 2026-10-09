@@ -3337,6 +3337,28 @@ struct FileWriteFunc final : public JSONWriteFunc {
   }
 };
 
+// Parses a JSON string and returns the raw install_timestamp value, or
+// Nothing() if the JSON is malformed or lacks the property.
+static mozilla::Maybe<uint64_t> ParseInstallTimestamp(
+    std::string_view aUtf8Json) {
+  Json::Value root;
+  Json::Reader reader;
+  if (!reader.parse(aUtf8Json.data(), aUtf8Json.data() + aUtf8Json.size(),
+                    root) ||
+      !root.isMember("install_timestamp")) {
+    return mozilla::Nothing();
+  }
+
+  std::string tsStr = root["install_timestamp"].asString();
+  char* end = nullptr;
+  uint64_t val = strtoull(tsStr.c_str(), &end, 10);
+  if (!end || *end != '\0') {
+    return mozilla::Nothing();
+  }
+  return mozilla::Some(val);
+}
+
+#  ifndef XP_MACOSX
 // Reads aJsonFile and returns the raw install_timestamp value, or Nothing() if
 // the file is absent, unreadable, or lacks the property.
 static mozilla::Maybe<uint64_t> ReadInstallTimestamp(nsIFile* aJsonFile,
@@ -3362,35 +3384,23 @@ static mozilla::Maybe<uint64_t> ReadInstallTimestamp(nsIFile* aJsonFile,
   nsAutoCString converted;
   std::string_view utf8View;
   if (aIsUTF16LE) {
-#  if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+#    if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
     const char16_t* chars = reinterpret_cast<const char16_t*>(buf.get());
     uint32_t charLen = len / 2;
     CopyUTF16toUTF8(Span(chars, charLen), converted);
     utf8View = std::string_view(converted.get(), converted.Length());
-#  else
+#    else
     MOZ_ASSERT_UNREACHABLE(
         "UTF-16LE reading not supported on big-endian architectures");
     return mozilla::Nothing();
-#  endif
+#    endif
   } else {
     utf8View = std::string_view(reinterpret_cast<const char*>(buf.get()), len);
   }
 
-  Json::Value root;
-  Json::Reader reader;
-  if (!reader.parse(utf8View.data(), utf8View.data() + utf8View.size(), root) ||
-      !root.isMember("install_timestamp")) {
-    return mozilla::Nothing();
-  }
-
-  std::string tsStr = root["install_timestamp"].asString();
-  char* end = nullptr;
-  uint64_t val = strtoull(tsStr.c_str(), &end, 10);
-  if (*end != '\0') {
-    return mozilla::Nothing();
-  }
-  return mozilla::Some(val);
+  return ParseInstallTimestamp(utf8View);
 }
+#  endif  // !XP_MACOSX
 
 Maybe<mozilla::PathString> GenerateDowngradeTelemetry(
     const nsACString& aPingId, const nsCString& aLastVersion, bool aHasSync,
@@ -3454,6 +3464,38 @@ Maybe<mozilla::PathString> GenerateDowngradeTelemetry(
     }
 #  endif
 
+#  ifdef XP_MACOSX
+    // GreD is <app>.app/Contents/Resources; go up two levels to the .app
+    // bundle directory where the updater stores the xattr.
+    maybeUpdateTime = [&]() -> mozilla::Maybe<PRTime> {
+      nsCOMPtr<nsIFile> contentsDir;
+      if (NS_FAILED(greDir->GetParent(getter_AddRefs(contentsDir))) ||
+          !contentsDir) {
+        return mozilla::Nothing();
+      }
+      nsCOMPtr<nsIFile> appBundle;
+      if (NS_FAILED(contentsDir->GetParent(getter_AddRefs(appBundle))) ||
+          !appBundle) {
+        return mozilla::Nothing();
+      }
+      nsCOMPtr<nsILocalFileMac> macFile = do_QueryInterface(appBundle);
+      if (!macFile) {
+        return mozilla::Nothing();
+      }
+      nsTArray<uint8_t> attrValue;
+      if (NS_FAILED(macFile->GetXAttr("org.mozilla.update-telemetry"_ns,
+                                      attrValue))) {
+        return mozilla::Nothing();
+      }
+      auto msTime = ParseInstallTimestamp(
+          std::string_view(reinterpret_cast<const char*>(attrValue.Elements()),
+                           attrValue.Length()));
+      if (!msTime) {
+        return mozilla::Nothing();
+      }
+      return mozilla::Some(PRTime(int64_t(*msTime) * PR_USEC_PER_MSEC));
+    }();
+#  else
     // update_telemetry.json uses a Unix timestamp in milliseconds.
     nsCOMPtr<nsIFile> updateTelemetry;
     if (NS_SUCCEEDED(greDir->Clone(getter_AddRefs(updateTelemetry))) &&
@@ -3464,6 +3506,7 @@ Maybe<mozilla::PathString> GenerateDowngradeTelemetry(
             mozilla::Some(PRTime(int64_t(*msTime) * PR_USEC_PER_MSEC));
       }
     }
+#  endif
   }
 
   PRTime nowUsec = PR_Now();
