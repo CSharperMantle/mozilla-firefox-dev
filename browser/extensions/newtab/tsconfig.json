@@ -2,7 +2,6 @@
   "include": ["common/**/*.mjs", "lib/**/*.mjs"],
   "exclude": [
     "lib/ActivityStream.sys.mjs",
-    "lib/ActivityStreamMessageChannel.sys.mjs",
     "lib/AdsFeed.sys.mjs",
     "lib/DiscoveryStreamFeed.sys.mjs",
     "lib/ExternalComponentsFeed.sys.mjs",
@@ -14,7 +13,6 @@
     "lib/SmartShortcutsRanker/RankShortcuts.mjs",
     "lib/SmartShortcutsRanker/RankShortcuts.worker.mjs",
     "lib/SmartShortcutsRanker/RankShortcutsWorkerClass.mjs",
-    "lib/Store.sys.mjs",
     "lib/TelemetryFeed.sys.mjs",
     "lib/TopSitesFeed.sys.mjs",
     "lib/TopStoriesFeed.sys.mjs",
