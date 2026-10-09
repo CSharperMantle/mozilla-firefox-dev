@@ -16,6 +16,7 @@ const ENTITLEMENT_CACHE_PREF = "browser.ipProtection.entitlementCache";
 const IPPROTECTION_CACHE_DISABLED_PREF = "browser.ipProtection.cacheDisabled";
 const IPPROTECTION_ADDED_PREF = "browser.ipProtection.added";
 const IPPROTECTION_STATE_CACHE_PREF = "browser.ipProtection.stateCache";
+const IPP_VPN_PERMISSION = "ipp-vpn";
 
 add_setup(async function ippSiteRulesSetup() {
   await SpecialPowers.pushPrefEnv({
@@ -31,8 +32,76 @@ add_setup(async function ippSiteRulesSetup() {
   registerCleanupFunction(() => {
     Services.prefs.clearUserPref(IPPROTECTION_ADDED_PREF);
     Services.prefs.clearUserPref(IPPROTECTION_STATE_CACHE_PREF);
+    Services.perms.removeByType(IPP_VPN_PERMISSION);
   });
 });
+
+function setSiteRule(website, capability) {
+  Services.perms.addFromPrincipal(
+    Services.scriptSecurityManager.createContentPrincipalFromOrigin(website),
+    IPP_VPN_PERMISSION,
+    capability
+  );
+}
+
+function storedRules() {
+  return Services.perms
+    .getAllByTypes([IPP_VPN_PERMISSION])
+    .map(perm => perm.principal.origin)
+    .sort();
+}
+
+/**
+ * Opens the site rules sub-pane and runs a task against its list element,
+ * starting from a store with no rules in it.
+ */
+async function withSiteRulesList(task) {
+  Services.perms.removeByType(IPP_VPN_PERMISSION);
+  await BrowserTestUtils.withNewTab(
+    { gBrowser, url: "about:preferences#vpnSiteRules" },
+    async function (browser) {
+      await task(await getSiteRulesList(browser), browser);
+    }
+  );
+  Services.perms.removeByType(IPP_VPN_PERMISSION);
+}
+
+async function getSiteRulesList(browser) {
+  let doc = browser.contentDocument;
+  let list = await BrowserTestUtils.waitForMutationCondition(
+    doc,
+    { childList: true, subtree: true },
+    () => doc.querySelector("vpn-site-rules-list"),
+    { msg: "Site rules list is rendered" }
+  );
+  await list.updateComplete;
+  return list;
+}
+
+/**
+ * Waits for the list to settle on the expected origins, in render order.
+ */
+async function awaitRows(list, expectedOrigins) {
+  await BrowserTestUtils.waitForMutationCondition(
+    list,
+    {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["data-origin"],
+    },
+    () => {
+      let rows = [...list.querySelectorAll(".vpn-site-rule")];
+      return (
+        rows.length == expectedOrigins.length &&
+        rows.every((row, i) => row.dataset.origin == expectedOrigins[i])
+      );
+    },
+    { msg: `List shows ${JSON.stringify(expectedOrigins)}` }
+  );
+  await list.updateComplete;
+  return [...list.querySelectorAll(".vpn-site-rule")];
+}
 
 // Test the site rules section replaces the site exceptions section when the
 // site inclusions feature is on.
@@ -55,7 +124,7 @@ add_task(async function test_site_rules_replaces_site_exceptions() {
       is_element_visible(siteRulesButton, "Site rules button is shown");
       is(
         siteRulesButton.getAttribute("data-l10n-id"),
-        "ip-protection-site-rules-button",
+        "ip-protection-site-rules-button-1",
         "Site rules button uses the site rules string"
       );
     }
@@ -95,11 +164,19 @@ add_task(async function test_site_rules_sub_pane_direct_link() {
     { gBrowser, url: "about:preferences#privacy-vpnsiterules" },
     async function (browser) {
       let doc = browser.contentDocument;
-      let win = browser.contentWindow;
+      let getPane = () =>
+        doc.querySelector(`setting-pane[data-category="paneVpnSiteRules"]`);
 
-      await TestUtils.waitForCondition(
-        () => win.gLastCategory?.category === "paneVpnSiteRules",
-        "Navigated to the site rules sub-pane"
+      await BrowserTestUtils.waitForMutationCondition(
+        doc,
+        {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          attributeFilter: ["hidden"],
+        },
+        () => getPane() && !getPane().hidden,
+        { msg: "Navigated to the site rules sub-pane" }
       );
 
       is(
@@ -107,10 +184,135 @@ add_task(async function test_site_rules_sub_pane_direct_link() {
         "#vpnSiteRules",
         "Legacy hash resolves to sub-pane"
       );
-      is_element_visible(
-        doc.querySelector(`setting-pane[data-category="paneVpnSiteRules"]`),
-        "Site rules sub-pane is shown"
-      );
+      is_element_visible(getPane(), "Site rules sub-pane is shown");
     }
   );
+});
+
+// Test the empty state stands in for the list when no site has a rule.
+add_task(async function test_site_rules_list_empty() {
+  await withSiteRulesList(async list => {
+    is_element_visible(list.emptyStateEl, "Empty state is shown");
+    is_element_visible(
+      list.emptyIllustrationEl,
+      "Empty state has an illustration"
+    );
+    is_element_visible(list.addButtonEl, "Set rule button is shown");
+    ok(!list.listEl, "No rules are listed");
+    ok(!list.deleteAllButtonEl, "Delete all rules button is not shown");
+  });
+});
+
+// Test each stored rule gets a row, sorted by origin and labelled with the
+// rule the permission holds.
+add_task(async function test_site_rules_list_rows() {
+  setSiteRule(
+    "https://zebra.example.com",
+    Ci.nsIPermissionManager.ALLOW_ACTION
+  );
+  setSiteRule("https://ant.example.com", Ci.nsIPermissionManager.DENY_ACTION);
+
+  await BrowserTestUtils.withNewTab(
+    { gBrowser, url: "about:preferences#vpnSiteRules" },
+    async function (browser) {
+      let list = await getSiteRulesList(browser);
+      let rows = await awaitRows(list, [
+        "https://ant.example.com",
+        "https://zebra.example.com",
+      ]);
+
+      ok(!list.emptyStateEl, "Empty state is not shown");
+      is_element_visible(list.deleteAllButtonEl, "Delete all rules is shown");
+
+      is(rows[0].label, "https://ant.example.com", "Row is labelled by origin");
+      is(
+        rows[0].querySelector("[slot=description]").dataset.l10nId,
+        "ip-protection-site-rules-rule-excluded",
+        "A DENY rule reads as the VPN being off"
+      );
+      is(
+        rows[1].querySelector("[slot=description]").dataset.l10nId,
+        "ip-protection-site-rules-rule-included",
+        "An ALLOW rule reads as the VPN being on"
+      );
+
+      for (let row of rows) {
+        ok(row.querySelector(".vpn-site-rule-edit"), "Row has an edit button");
+        ok(
+          row.querySelector(".vpn-site-rule-delete"),
+          "Row has a delete button"
+        );
+      }
+    }
+  );
+
+  Services.perms.removeByType(IPP_VPN_PERMISSION);
+});
+
+// Test a rule set elsewhere, e.g. from the VPN panel, reaches an open list.
+add_task(async function test_site_rules_list_updates_live() {
+  await withSiteRulesList(async list => {
+    setSiteRule(
+      "https://added.example.com",
+      Ci.nsIPermissionManager.ALLOW_ACTION
+    );
+    await awaitRows(list, ["https://added.example.com"]);
+    ok(!list.emptyStateEl, "Empty state is replaced by the new rule");
+  });
+});
+
+// Test a row's delete button clears that site's permission and leaves the
+// other rules alone.
+add_task(async function test_site_rules_list_delete_row() {
+  await withSiteRulesList(async (list, browser) => {
+    setSiteRule(
+      "https://kept.example.com",
+      Ci.nsIPermissionManager.ALLOW_ACTION
+    );
+    setSiteRule(
+      "https://gone.example.com",
+      Ci.nsIPermissionManager.DENY_ACTION
+    );
+    let rows = await awaitRows(list, [
+      "https://gone.example.com",
+      "https://kept.example.com",
+    ]);
+
+    let deleteButton = rows[0].querySelector(".vpn-site-rule-delete");
+    deleteButton.scrollIntoView();
+    EventUtils.synthesizeMouseAtCenter(deleteButton, {}, browser.contentWindow);
+
+    await awaitRows(list, ["https://kept.example.com"]);
+    Assert.deepEqual(
+      storedRules(),
+      ["https://kept.example.com"],
+      "Only the deleted site's permission is gone"
+    );
+  });
+});
+
+// Test the delete all button clears every rule and brings the empty state back.
+add_task(async function test_site_rules_list_delete_all() {
+  await withSiteRulesList(async (list, browser) => {
+    setSiteRule(
+      "https://one.example.com",
+      Ci.nsIPermissionManager.ALLOW_ACTION
+    );
+    setSiteRule("https://two.example.com", Ci.nsIPermissionManager.DENY_ACTION);
+    await awaitRows(list, [
+      "https://one.example.com",
+      "https://two.example.com",
+    ]);
+
+    list.deleteAllButtonEl.scrollIntoView();
+    EventUtils.synthesizeMouseAtCenter(
+      list.deleteAllButtonEl,
+      {},
+      browser.contentWindow
+    );
+
+    await awaitRows(list, []);
+    Assert.deepEqual(storedRules(), [], "Every rule is gone from the store");
+    is_element_visible(list.emptyStateEl, "Empty state is shown again");
+  });
 });

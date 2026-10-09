@@ -30,6 +30,10 @@ const lazy = XPCOMUtils.declareLazy({
   SiteDataManager: "resource:///modules/SiteDataManager.sys.mjs",
   IPProtection:
     "moz-src:///browser/components/ipprotection/IPProtection.sys.mjs",
+  IPPPermissionRules:
+    "moz-src:///toolkit/components/ipprotection/IPPSiteRuleManager.sys.mjs",
+  IPPPrincipalRules:
+    "moz-src:///toolkit/components/ipprotection/IPPSiteRuleManager.sys.mjs",
   BANDWIDTH: "chrome://browser/content/ipprotection/ipprotection-constants.mjs",
   TrackingDBService: {
     service: "@mozilla.org/tracking-db-service;1",
@@ -1546,7 +1550,7 @@ SettingGroupManager.registerGroups({
       },
       {
         id: "ipProtectionSiteRules",
-        l10nId: "ip-protection-site-rules-button",
+        l10nId: "ip-protection-site-rules-button-1",
         control: "moz-box-button",
         loadPane: "vpnSiteRules",
       },
@@ -1582,10 +1586,16 @@ SettingGroupManager.registerGroups({
       },
     ],
   },
-  // TODO: Add items to site rules section - Bug 2068284
   vpnSiteRules: {
     headingLevel: 2,
-    items: [],
+    l10nId: "ip-protection-site-rules-list-section",
+    supportPage: "built-in-vpn",
+    items: [
+      {
+        id: "ipProtectionSiteRulesList",
+        control: "vpn-site-rules-list",
+      },
+    ],
   },
   privacyPanel: {
     iconSrc: "chrome://devtools/skin/images/globe.svg",
@@ -2153,6 +2163,38 @@ Preferences.addSetting({
     !ipProtectionNotOptedIn.value,
 });
 
+const IPP_VPN_PERMISSION = "ipp-vpn";
+const ippSiteRuleCollator = new Intl.Collator();
+
+/**
+ * A Setting's setup() that re-reads it whenever a VPN site rule changes,
+ * whether the change came from this pane or from the VPN panel.
+ *
+ * @param {() => void} emitChange
+ * @returns {() => void}
+ */
+function observeIPPVPNPermissions(emitChange) {
+  let permObserver = {
+    /**
+     * @param {any} subject
+     * @param {string} topic
+     */
+    observe(subject, topic) {
+      if (topic !== "perm-changed") {
+        return;
+      }
+      let permission = subject?.QueryInterface(Ci.nsIPermission);
+      if (permission?.type === IPP_VPN_PERMISSION) {
+        emitChange();
+      }
+    },
+  };
+  Services.obs.addObserver(permObserver, "perm-changed");
+  return () => {
+    Services.obs.removeObserver(permObserver, "perm-changed");
+  };
+}
+
 Preferences.addSetting({
   id: "ipProtectionExceptionAllListButton",
   deps: [
@@ -2161,22 +2203,7 @@ Preferences.addSetting({
     "ipProtectionSiteInclusionsFeatureEnabled",
     "ipProtectionNotOptedIn",
   ],
-  setup(emitChange) {
-    let permObserver = {
-      observe(subject, topic, _data) {
-        if (subject && topic === "perm-changed") {
-          let permission = subject.QueryInterface(Ci.nsIPermission);
-          if (permission.type === "ipp-vpn") {
-            emitChange();
-          }
-        }
-      },
-    };
-    Services.obs.addObserver(permObserver, "perm-changed");
-    return () => {
-      Services.obs.removeObserver(permObserver, "perm-changed");
-    };
-  },
+  setup: observeIPPVPNPermissions,
   visible: ({
     ipProtectionVisible,
     ipProtectionSiteExceptionsFeatureEnabled,
@@ -2242,6 +2269,69 @@ Preferences.addSetting({
   onUserClick(e) {
     e.preventDefault();
     gotoPref("vpnSiteRules");
+  },
+});
+
+/**
+ * The websites the user has set a VPN rule for, sorted by origin.
+ *
+ * @returns {{ origin: string, rule: string }[]}
+ */
+function getIPPSiteRules() {
+  let { INCLUDED, EXCLUDED } = lazy.IPPPrincipalRules;
+  let { ALLOW_ACTION, DENY_ACTION } = Ci.nsIPermissionManager;
+  return Services.perms
+    .getAllByTypes([IPP_VPN_PERMISSION])
+    .filter(
+      perm =>
+        perm.capability === ALLOW_ACTION || perm.capability === DENY_ACTION
+    )
+    .map(perm => ({
+      origin: perm.principal.origin,
+      rule: perm.capability === ALLOW_ACTION ? INCLUDED : EXCLUDED,
+    }))
+    .sort((a, b) => ippSiteRuleCollator.compare(a.origin, b.origin));
+}
+
+Preferences.addSetting({
+  id: "ipProtectionSiteRulesList",
+  deps: [
+    "ipProtectionVisible",
+    "ipProtectionSiteInclusionsFeatureEnabled",
+    "ipProtectionNotOptedIn",
+  ],
+  visible: ({
+    ipProtectionVisible,
+    ipProtectionSiteInclusionsFeatureEnabled,
+    ipProtectionNotOptedIn,
+  }) =>
+    ipProtectionVisible.value &&
+    ipProtectionSiteInclusionsFeatureEnabled.value &&
+    !ipProtectionNotOptedIn.value,
+  setup: observeIPPVPNPermissions,
+  get: () => getIPPSiteRules(),
+  onUserClick(e) {
+    let dataset = /** @type {HTMLElement} */ (e.target).dataset;
+    let website = dataset.origin ?? "";
+    switch (dataset.action) {
+      case "add":
+      case "edit":
+        // TODO: Open the create/edit rule dialog - Bug 2074574
+        break;
+      case "delete":
+        // TODO: Confirm before deleting - Bug 2074578
+        lazy.IPPPermissionRules.setRule(
+          Services.scriptSecurityManager.createContentPrincipalFromOrigin(
+            website
+          ),
+          lazy.IPPPrincipalRules.DEFAULT
+        );
+        break;
+      case "delete-all":
+        // TODO: Confirm before deleting - Bug 2074578
+        Services.perms.removeByType(IPP_VPN_PERMISSION);
+        break;
+    }
   },
 });
 
