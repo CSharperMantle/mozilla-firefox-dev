@@ -826,12 +826,12 @@ jj:
         revision: 2508982cde5c7e4db0933e0b6469f9e778e71e28
 
 searchfox-cli:
-    description: searchfox-cli 0.19.0 source code
+    description: searchfox-cli 0.20.5 source code
     fetch:
         type: static-url
-        url: https://crates.io/api/v1/crates/searchfox-cli/0.19.0/download
-        sha256: 25612ec327e523e8e253f009a55157eae079431bdc8a93d1015c59dada4f6b3f
-        size: 26768
+        url: https://crates.io/api/v1/crates/searchfox-cli/0.20.5/download
+        sha256: e77e5334075599c4263b973effbb42d63769cb4cdd0dc6c1a8b5a39662e3ef65
+        size: 26871
         artifact-name: searchfox-cli.tar.zst
         strip-components: 1
         add-prefix: searchfox-cli/
@@ -848,34 +848,34 @@ socorro-cli:
         add-prefix: socorro-cli/
 
 stmo-cli:
-    description: stmo-cli 0.9.1 source code
+    description: stmo-cli 0.12.0 source code
     fetch:
         type: static-url
-        url: https://crates.io/api/v1/crates/stmo-cli/0.9.1/download
-        sha256: c76a2f976d24294c145a8d7a22ee9e7e048b054d29d397c43d5007144badd7e8
-        size: 88219
+        url: https://crates.io/api/v1/crates/stmo-cli/0.12.0/download
+        sha256: fa6b363ab846d1f637eb158fe90386378d1e5aa7c509e034c4e108963155bb86
+        size: 110603
         artifact-name: stmo-cli.tar.zst
         strip-components: 1
         add-prefix: stmo-cli/
 
 treeherder-cli:
-    description: treeherder-cli 0.2.16 source code
+    description: treeherder-cli 0.3.1 source code
     fetch:
         type: static-url
-        url: https://crates.io/api/v1/crates/treeherder-cli/0.2.16/download
-        sha256: 918230aacff5e5b71a42290a2d2d8ad82480b7c3dca565cfe4abd63abafde6ff
-        size: 126790
+        url: https://crates.io/api/v1/crates/treeherder-cli/0.3.1/download
+        sha256: a44fbca9fa66907d2aa9f8491a923a7402e5619e55a508b3269ea74b77f96cd2
+        size: 141088
         artifact-name: treeherder-cli.tar.zst
         strip-components: 1
         add-prefix: treeherder-cli/
 
 webspec-index:
-    description: webspec-index 0.12.0 source code
+    description: webspec-index 0.13.1 source code
     fetch:
         type: static-url
-        url: https://crates.io/api/v1/crates/webspec-index/0.12.0/download
-        sha256: 1a82dc18333061cf11092ebf7f8f509ca36ae682b525ed3e8701c9b9c8f8ad2f
-        size: 184601
+        url: https://crates.io/api/v1/crates/webspec-index/0.13.1/download
+        sha256: 81d89d3a2db260f224dd617c9b36ec804fa145c84a8cc9a23a42f05170219fc1
+        size: 206446
         artifact-name: webspec-index.tar.zst
         strip-components: 1
         add-prefix: webspec-index/
