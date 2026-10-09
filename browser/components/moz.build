@@ -79,7 +79,6 @@ DIRS += [
     "uitour",
     "urlbar",
     "webrtc",
-    "widgets",
 ]
 
 DIRS += ["build"]
