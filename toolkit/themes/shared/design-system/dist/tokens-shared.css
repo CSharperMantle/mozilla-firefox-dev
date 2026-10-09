@@ -357,6 +357,13 @@
     --color-yellow-100: oklch(27% 0.13 90);
     --color-yellow-110: oklch(20% 0.08 90);
 
+    /** dialog **/
+    --dialog-background-color: var(--popup-background-color);
+    --dialog-border-color: var(--popup-border-color);
+    --dialog-border-radius: var(--popup-border-radius);
+    --dialog-box-shadow: var(--popup-box-shadow);
+    --dialog-padding: var(--space-large);
+
     /** focus-outline **/
     --focus-outline: var(--focus-outline-width) solid var(--focus-outline-color);
     --focus-outline-color: var(--color-accent-primary);
@@ -431,8 +438,8 @@
 
     /** panel **/
     --panel-background-color: light-dark(var(--color-white), rgb(66, 65, 77));
-    --panel-border-color: light-dark(rgb(240, 240, 244), rgb(82, 82, 94));
-    --panel-border-radius: var(--border-radius-medium);
+    --panel-border-color: var(--popup-border-color);
+    --panel-border-radius: var(--popup-border-radius);
     --panel-box-shadow: 0 0 var(--panel-box-shadow-margin) hsla(0, 0%, 0%, 0.2);
     --panel-box-shadow-margin: 4px;
     --panel-footer-background-color: light-dark(color-mix(in srgb, currentColor 12%, transparent), color-mix(in srgb, currentColor 17%, transparent));
@@ -995,8 +1002,6 @@
 
       /** panel **/
       --panel-background-color: var(--popup-background-color);
-      --panel-border-color: var(--popup-border-color);
-      --panel-border-radius: var(--popup-border-radius);
       --panel-menuitem-border-radius: var(--border-radius-large);
       --panel-text-color: var(--text-color);
 

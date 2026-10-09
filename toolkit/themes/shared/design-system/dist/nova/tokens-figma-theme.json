@@ -474,11 +474,6 @@
     "dark": "{Theme$popup/background/color}",
     "forcedColors": "{Theme$popup/background/color}"
   },
-  "panel/border/color": {
-    "light": "{Theme$popup/border/color}",
-    "dark": "{Theme$popup/border/color}",
-    "forcedColors": "{Theme$popup/border/color}"
-  },
   "panel/text/color": {
     "light": "{Theme$text/color}",
     "dark": "{Theme$text/color}",
