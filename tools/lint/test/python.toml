@@ -80,6 +80,8 @@ skip-if = ["os == 'win'"]
 
 ["test_shellcheck.py"]
 
+["test_source_headers.py"]
+
 ["test_spidermonkey.py"]
 
 ["test_stylelint.py"]

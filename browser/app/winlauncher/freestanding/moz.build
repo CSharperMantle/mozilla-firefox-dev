@@ -61,6 +61,7 @@ SOURCE_HEADERS += [
     "Freestanding.h",
     "LoaderPrivateAPI.h",
     "ModuleLoadFrame.h",
+    "NativeNtBlockSet.h",
     "SafeThreadLocal.h",
     "SharedSection.h",
 ]
