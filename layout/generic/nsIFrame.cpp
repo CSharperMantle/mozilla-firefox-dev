@@ -12301,6 +12301,12 @@ gfx::Matrix nsIFrame::ComputeWidgetTransform() const {
       uiReset->mMozWindowTransform, refBox, float(appUnitsPerDevPixel),
       nsStyleTransformMatrix::Zoomed::Yes);
 
+  // Apply the transform-origin translation to the matrix.
+  const StyleTransformOrigin& origin = StyleDisplay()->mTransformOrigin;
+  Point transformOrigin = nsStyleTransformMatrix::Convert2DPosition(
+      origin.horizontal, origin.vertical, refBox, appUnitsPerDevPixel);
+  matrix.ChangeBasis(Point3D(transformOrigin.x, transformOrigin.y, 0));
+
   gfx::Matrix result2d;
   if (!matrix.CanDraw2D(&result2d)) {
     // FIXME: It would be preferable to reject non-2D transforms at parse time.
