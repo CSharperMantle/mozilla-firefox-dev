@@ -575,7 +575,7 @@ function parseDeclarationsInternal(
   }
 
   // Handle whatever trailing properties or values might still be there
-  if (current) {
+  if (current || importantState !== IMPORTANT_STATE_NONE) {
     // If nested rule doesn't have closing bracket
     if (isInNested && nestingLevel > 0) {
       // We need to remove the previous (nested) pending declaration
