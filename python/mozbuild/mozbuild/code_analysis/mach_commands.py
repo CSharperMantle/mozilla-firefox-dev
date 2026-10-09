@@ -861,16 +861,27 @@ def _build_export(command_context, jobs, verbose=False):
     # Then build the rest of the build dependencies by running the full
     # export target, because we can't do anything better.
     for target in ("pre-export", "export", "pre-compile"):
+        output = []
         rc = command_context._run_make(
             directory=command_context.topobjdir,
             target=target,
-            line_handler=None,
+            line_handler=None if verbose else output.append,
             print_directory=verbose,
             log=verbose,
             silent=not verbose,
             num_jobs=jobs,
+            append_env={"NO_BUILDSTATUS_MESSAGES": "1"},
+            ensure_exit_code=False,
         )
         if rc != 0:
+            for line in output:
+                on_line(line.rstrip())
+            command_context.log(
+                logging.ERROR,
+                "static-analysis",
+                {"target": target, "rc": rc},
+                "Running make {target} failed with exit code {rc}.",
+            )
             return rc
     return 0
 
