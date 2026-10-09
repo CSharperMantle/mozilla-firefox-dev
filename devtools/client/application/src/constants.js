@@ -31,7 +31,6 @@ const PAGE_TYPES = {
   MANIFEST: "manifest",
   SERVICE_WORKERS: "service-workers",
   SESSION_HISTORY: "session-history",
-  SPECULATIVE_LOADS: "speculative-loads",
 };
 
 const DEFAULT_PAGE = PAGE_TYPES.SERVICE_WORKERS;

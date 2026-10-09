@@ -76,10 +76,7 @@ window.Application = {
     this.actions = bindActionCreators(actions, this.store.dispatch);
 
     services.init(this.toolbox);
-    await l10n.init([
-      "devtools/client/application.ftl",
-      "devtools/preview/speculative-loads.ftl",
-    ]);
+    await l10n.init(["devtools/client/application.ftl"]);
 
     await this.updateWorkers();
     this.workersListener = new WorkersListener(this.client.mainRoot);

@@ -166,7 +166,6 @@ devtools.jar:
     skin/images/forward.svg (themes/images/forward.svg)
     skin/images/rules-view-reduced-motion-emulation.svg (themes/images/rules-view-reduced-motion-emulation.svg)
     skin/images/rules-view-no-preference-motion-emulation.svg (themes/images/rules-view-no-preference-motion-emulation.svg)
-    skin/images/speculative-loads.svg (themes/images/speculative-loads.svg)
     skin/markup.css (themes/markup.css)
 
     # shared
@@ -477,7 +476,6 @@ devtools.jar:
     content/application/src/components/service-workers/Worker.css (application/src/components/service-workers/Worker.css)
     content/application/src/components/ui/UIButton.css (application/src/components/ui/UIButton.css)
     content/application/src/components/session-history/SessionHistory.css (application/src/components/session-history/SessionHistory.css)
-    content/application/src/components/speculative-loads/SpeculativeLoads.css (application/src/components/speculative-loads/SpeculativeLoads.css)
 
     # Anti tracking panel
     content/anti-tracking/index.html (anti-tracking/index.html)
