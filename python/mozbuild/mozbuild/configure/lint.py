@@ -269,6 +269,7 @@ class LintSandbox(ConfigureSandbox):
         """Return the module level `@depends` functions that nothing reads.
 
         A function is read when:
+
         - it is passed to `set_config`, `set_define`, `imply_option`,
           `include`, `option` or a `when`,
         - another `@depends` function depends on it, or
