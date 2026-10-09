@@ -2,7 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/** @import {Store} from "resource://newtab/lib/Store.sys.mjs" */
+/**
+ * @import {Store} from "resource://newtab/lib/Store.sys.mjs"
+ * @import {WidgetRegistryEntry} from "resource://newtab/common/WidgetsRegistry.mjs"
+ */
 
 import { actionTypes as at } from "resource://newtab/common/Actions.mjs";
 import {
@@ -21,7 +24,7 @@ export const PREFERENCES_LOADED_EVENT_SUBPANE = "customHomepage-pane-loaded";
  * the Widgets group can be ordered by what the user reads. A label that does
  * not resolve maps to its widget id.
  *
- * @param {{ id: string, prefsL10nId: string }[]} widgets
+ * @param {WidgetRegistryEntry[]} widgets
  * @returns {Map<string, string>}
  */
 function widgetLabels(widgets) {
