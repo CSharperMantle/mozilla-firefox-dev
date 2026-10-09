@@ -256,15 +256,6 @@ ChildDNSService::CancelAsyncResolveNative(
 }
 
 NS_IMETHODIMP
-ChildDNSService::Resolve(const nsACString& hostname,
-                         nsIDNSService::DNSFlags flags,
-                         JS::Handle<JS::Value> aOriginAttributes,
-                         JSContext* aCx, uint8_t aArgc, nsIDNSRecord** result) {
-  // not planning to ever support this, since sync IPDL is evil.
-  return NS_ERROR_NOT_AVAILABLE;
-}
-
-NS_IMETHODIMP
 ChildDNSService::ResolveNative(const nsACString& hostname,
                                nsIDNSService::DNSFlags flags,
                                const OriginAttributes& aOriginAttributes,
