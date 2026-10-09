@@ -18,6 +18,8 @@ import "chrome://browser/content/aiwindow/components/aitab-highlights.mjs";
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://browser/content/aiwindow/components/aitab-error.mjs";
 // eslint-disable-next-line import/no-unassigned-import
+import "chrome://browser/content/aiwindow/components/aitab-footer.mjs";
+// eslint-disable-next-line import/no-unassigned-import
 import "chrome://browser/content/aiwindow/components/aitab-text-block.mjs";
 
 // The same names the child and parent actors use, so a message can be traced
@@ -270,10 +272,6 @@ export class AITabPage extends MozLitElement {
     `;
   }
 
-  #renderFooter(_footer) {
-    return nothing;
-  }
-
   #renderStatus() {
     if (this.status == "loading") {
       return nothing;
@@ -297,10 +295,10 @@ export class AITabPage extends MozLitElement {
     const hasHeader = children[0]?.component === "Header";
 
     return html`<main class="aitab-sheet">
-      ${hasHeader ? this.#renderHeader(children[0]) : nothing}
-      ${this.#renderBlocks(hasHeader ? children.slice(1) : children)}
-      ${this.#renderFooter()}
-    </main>`;
+        ${hasHeader ? this.#renderHeader(children[0]) : nothing}
+        ${this.#renderBlocks(hasHeader ? children.slice(1) : children)}
+      </main>
+      <aitab-footer></aitab-footer>`;
   }
 
   #renderBlocks(blocks) {
