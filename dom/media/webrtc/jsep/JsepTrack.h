@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <functional>
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -148,8 +149,8 @@ class JsepTrack {
       }
       mEarlyRtpExtensions = rhs.mEarlyRtpExtensions;
       if (rhs.mNegotiatedDetails) {
-        mNegotiatedDetails.reset(
-            new JsepTrackNegotiatedDetails(*rhs.mNegotiatedDetails));
+        mNegotiatedDetails = std::make_unique<JsepTrackNegotiatedDetails>(
+            *rhs.mNegotiatedDetails);
       }
     }
     return *this;

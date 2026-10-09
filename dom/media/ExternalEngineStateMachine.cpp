@@ -4,6 +4,8 @@
 
 #include "ExternalEngineStateMachine.h"
 
+#include <memory>
+
 #include "PerformanceRecorder.h"
 #ifdef MOZ_WMF_MEDIA_ENGINE
 #  include "MFMediaEngineDecoderModule.h"
@@ -1113,7 +1115,7 @@ void ExternalEngineStateMachine::OnLoadedFirstFrame() {
       mSentFirstFrameLoadedEvent ? MediaDecoderEventVisibility::Suppressed
                                  : MediaDecoderEventVisibility::Observable;
   mSentFirstFrameLoadedEvent = true;
-  mFirstFrameLoadedEvent.Notify(UniquePtr<MediaInfo>(new MediaInfo(Info())),
+  mFirstFrameLoadedEvent.Notify(std::make_unique<MediaInfo>(Info()),
                                 visibility);
   mOnNextFrameStatus.Notify(MediaDecoderOwner::NEXT_FRAME_AVAILABLE);
 }

@@ -6,6 +6,7 @@
 #include "nsHttpTransaction.h"
 
 #include <algorithm>
+#include <memory>
 #include <utility>
 
 #include "HTTPSRecordResolver.h"
@@ -3607,7 +3608,8 @@ void nsHttpTransaction::SetHttpTrailers(nsCString& aTrailers) {
   LOG(("[\n    %s\n]", aTrailers.get()));
 
   // Introduce a local variable to minimize the critical section.
-  UniquePtr<nsHttpHeaderArray> httpTrailers(new nsHttpHeaderArray());
+  UniquePtr<nsHttpHeaderArray> httpTrailers =
+      std::make_unique<nsHttpHeaderArray>();
   // Given it's usually null, use double-check locking for performance.
   if (mForTakeResponseTrailers) {
     MutexAutoLock lock(mLock);

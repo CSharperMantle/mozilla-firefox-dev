@@ -4,6 +4,8 @@
 
 #include "InterceptedHttpChannel.h"
 
+#include <memory>
+
 #include "NetworkMarker.h"
 #include "mozilla/Logging.h"
 #include "mozilla/SchedulerGroup.h"
@@ -844,7 +846,7 @@ InterceptedHttpChannel::SynthesizeStatus(uint16_t aStatus,
   }
 
   if (!mSynthesizedResponseHead) {
-    mSynthesizedResponseHead.reset(new nsHttpResponseHead());
+    mSynthesizedResponseHead = std::make_unique<nsHttpResponseHead>();
   }
 
   nsAutoCString statusLine;
@@ -866,7 +868,7 @@ InterceptedHttpChannel::SynthesizeHeader(const nsACString& aName,
   }
 
   if (!mSynthesizedResponseHead) {
-    mSynthesizedResponseHead.reset(new nsHttpResponseHead());
+    mSynthesizedResponseHead = std::make_unique<nsHttpResponseHead>();
   }
 
   nsAutoCString header = aName + ": "_ns + aValue;
@@ -913,7 +915,7 @@ InterceptedHttpChannel::StartSynthesizedResponse(
   mSynthesizedCacheInfo = aSynthesizedCacheInfo;
 
   if (!mSynthesizedResponseHead) {
-    mSynthesizedResponseHead.reset(new nsHttpResponseHead());
+    mSynthesizedResponseHead = std::make_unique<nsHttpResponseHead>();
   }
 
   mResponseHead = std::move(mSynthesizedResponseHead);

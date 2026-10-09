@@ -8,6 +8,7 @@
 #include <array>
 #include <bitset>
 #include <cctype>
+#include <memory>
 
 #include "AccessCheck.h"
 #include "CompositableHost.h"
@@ -434,7 +435,7 @@ bool WebGLContext::CreateAndInitGL(
 
   const auto val = StaticPrefs::webgl_debug_incomplete_tex_color();
   if (val) {
-    mIncompleteTexOverride.reset(new gl::Texture(*gl));
+    mIncompleteTexOverride = std::make_unique<gl::Texture>(*gl);
     const gl::ScopedBindTexture autoBind(gl, mIncompleteTexOverride->name);
     const auto heapVal = std::make_unique<uint32_t>(val);
     gl->fTexImage2D(LOCAL_GL_TEXTURE_2D, 0, LOCAL_GL_RGBA, 1, 1, 0,

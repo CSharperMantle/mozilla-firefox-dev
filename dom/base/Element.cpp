@@ -13,6 +13,7 @@
 #include <inttypes.h>
 
 #include <cstddef>
+#include <memory>
 #include <utility>
 
 #include "DOMMatrix.h"
@@ -2494,7 +2495,8 @@ Element* Element::AddAttrAssociatedElementObserver(
   // TODO (bug 1997286): Observe explicitly set attr-element binding/unbinding.
 
   if (!observerData.mCallbackData) {
-    observerData.mCallbackData.reset(new AttrElementObserverCallbackData());
+    observerData.mCallbackData =
+        std::make_unique<AttrElementObserverCallbackData>();
     observerData.mCallbackData->mAttr = aAttr;
     observerData.mCallbackData->mElement = do_GetWeakReference(this);
 

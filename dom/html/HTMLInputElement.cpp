@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <memory>
 
 #include "HTMLDataListElement.h"
 #include "HTMLFormSubmissionConstants.h"
@@ -4728,7 +4729,7 @@ void HTMLInputElement::HandleTypeChange(FormControlType aNewType,
   if (aNewType == FormControlType::InputFile ||
       oldType == FormControlType::InputFile) {
     if (aNewType == FormControlType::InputFile) {
-      mFileData.reset(new FileData());
+      mFileData = std::make_unique<FileData>();
     } else {
       mFileData->Unlink();
       mFileData = nullptr;

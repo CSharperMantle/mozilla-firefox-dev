@@ -52,6 +52,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <chrono>
+#include <memory>
 #include <time.h>
 
 #include <sys/stat.h>
@@ -5321,7 +5322,7 @@ int add_dir_entries(const NS_tchar* dirpath, ActionList* list) {
             rv = UPDATER_QUOTED_PATH_MEM_ERROR;
             break;
           }
-          action.reset(new RemoveFile());
+          action = std::make_unique<RemoveFile>();
           rv = action->Parse(quotedpath);
           free(quotedpath);
           if (!rv) {
@@ -5340,7 +5341,7 @@ int add_dir_entries(const NS_tchar* dirpath, ActionList* list) {
             break;
           }
 
-          action.reset(new RemoveDir());
+          action = std::make_unique<RemoveDir>();
           rv = action->Parse(quotedpath);
           free(quotedpath);
           if (!rv) {

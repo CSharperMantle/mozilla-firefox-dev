@@ -5,6 +5,7 @@
 #include "SMILAnimationController.h"
 
 #include <algorithm>
+#include <memory>
 
 #include "SMILCSSProperty.h"
 #include "SMILCompositor.h"
@@ -277,8 +278,8 @@ void SMILAnimationController::DoSample(bool aSkipUnchangedContainers) {
   // save iterating over the animation elements twice.
 
   // Create the compositor table
-  std::unique_ptr<SMILCompositorTable> currentCompositorTable(
-      new SMILCompositorTable(0));
+  std::unique_ptr<SMILCompositorTable> currentCompositorTable =
+      std::make_unique<SMILCompositorTable>(0);
 
   // Compositors hold raw pointers to animation functions owned by their
   // animation elements, and composing can run script, so keep those elements

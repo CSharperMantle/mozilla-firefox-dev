@@ -6,6 +6,7 @@
 #include "mozilla/net/HttpBaseChannel.h"
 
 #include <algorithm>
+#include <memory>
 #include <utility>
 
 #include "HttpBaseChannel.h"
@@ -2394,7 +2395,7 @@ HttpBaseChannel::RedirectTo(nsIURI* targetURI) {
   // We may want to rewrite origin allowance, hence we need an
   // artificial response head.
   if (!mResponseHead) {
-    mResponseHead.reset(new nsHttpResponseHead());
+    mResponseHead = std::make_unique<nsHttpResponseHead>();
   }
   return NS_OK;
 }
