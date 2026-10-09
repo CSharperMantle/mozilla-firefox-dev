@@ -32,8 +32,6 @@ if (Services.sysinfo.getProperty("hasWinPackageId")) {
     from_msi: undefined,
     default_path: undefined,
     install_existed: false,
-    other_inst: false,
-    other_msix_inst: false,
     profdir_existed: false,
   };
 } else {
@@ -44,8 +42,6 @@ if (Services.sysinfo.getProperty("hasWinPackageId")) {
     install_existed: false,
     profdir_existed: false,
     installer_type: "full",
-    other_inst: false,
-    other_msix_inst: false,
     silent: false,
     from_msi: false,
     default_path: true,
@@ -158,14 +154,6 @@ add_task(async function test_new_profile_gifft_mirror() {
   Assert.equal(
     testDataJSON.profdir_existed,
     Glean.installationFirstSeen.profdirExisted.testGetValue()
-  );
-  Assert.equal(
-    testDataJSON.other_inst,
-    Glean.installationFirstSeen.otherInst.testGetValue()
-  );
-  Assert.equal(
-    testDataJSON.other_msix_inst,
-    Glean.installationFirstSeen.otherMsixInst.testGetValue()
   );
   // These fields are only recorded on the full installer.
   if (!Services.sysinfo.getProperty("hasWinPackageId")) {

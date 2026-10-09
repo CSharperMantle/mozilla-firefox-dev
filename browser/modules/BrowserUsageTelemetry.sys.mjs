@@ -22,9 +22,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   SessionStore:
     "moz-src:///browser/components/sessionstore/SessionStore.sys.mjs",
   TabMetrics: "moz-src:///browser/components/tabbrowser/TabMetrics.sys.mjs",
-  WindowsInstallsInfo:
-    "resource://gre/modules/components-utils/WindowsInstallsInfo.sys.mjs",
-
   clearTimeout: "resource://gre/modules/Timer.sys.mjs",
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
 });
@@ -1972,10 +1969,7 @@ export let BrowserUsageTelemetry = {
    *   been recorded, or if the data file was not found.
    * @rejects JavaScript exception on any failure.
    */
-  async collectInstallationTelemetry(
-    dataPathOverride,
-    msixPackagePrefixes = ["Mozilla.Firefox", "Mozilla.MozillaFirefox"]
-  ) {
+  async collectInstallationTelemetry(dataPathOverride) {
     if (AppConstants.platform != "win") {
       // This is a windows-only feature.
       return {};
@@ -1992,30 +1986,6 @@ export let BrowserUsageTelemetry = {
       pfn = Services.sysinfo.getProperty("winPackageFamilyName");
     } catch (e) {}
 
-    function getInstallData() {
-      // We only care about where _any_ other install existed - no
-      // need to count more than 1.
-      const installPaths = lazy.WindowsInstallsInfo.getInstallPaths(
-        1,
-        new Set([Services.dirsvc.get("GreBinD", Ci.nsIFile).path])
-      );
-      const msixInstalls = new Set();
-      // We're just going to eat all errors here -- we don't want the event
-      // to go unsent if we were unable to look for MSIX installs.
-      try {
-        wpm
-          .findUserInstalledPackages(msixPackagePrefixes)
-          .forEach(i => msixInstalls.add(i));
-        if (pfn) {
-          msixInstalls.delete(pfn);
-        }
-      } catch (ex) {}
-      return {
-        installPaths,
-        msixInstalls,
-      };
-    }
-
     let extra = {};
 
     if (pfn) {
@@ -2026,7 +1996,6 @@ export let BrowserUsageTelemetry = {
 
       // First time seeing this install, record the timestamp.
       Services.prefs.setStringPref(TIMESTAMP_PREF, wpm.getInstalledDate());
-      let install_data = getInstallData();
 
       installer_type = "msix";
 
@@ -2046,10 +2015,6 @@ export let BrowserUsageTelemetry = {
       extra.silent = "false";
       // There's no way to change the install path for an MSIX package
       extra.default_path = "true";
-      extra.install_existed = install_data.msixInstalls.has(pfn).toString();
-      install_data.msixInstalls.delete(pfn);
-      extra.other_inst = (!!install_data.installPaths.size).toString();
-      extra.other_msix_inst = (!!install_data.msixInstalls.size).toString();
     } else {
       let dataPath = dataPathOverride;
       if (!dataPath) {
@@ -2078,7 +2043,6 @@ export let BrowserUsageTelemetry = {
 
       // First time seeing this install, record the timestamp.
       Services.prefs.setStringPref(TIMESTAMP_PREF, data.install_timestamp);
-      let install_data = getInstallData();
 
       installer_type = data.installer_type;
 
@@ -2092,8 +2056,6 @@ export let BrowserUsageTelemetry = {
       extra.admin_user = data.admin_user.toString();
       extra.install_existed = data.install_existed.toString();
       extra.profdir_existed = data.profdir_existed.toString();
-      extra.other_inst = (!!install_data.installPaths.size).toString();
-      extra.other_msix_inst = (!!install_data.msixInstalls.size).toString();
 
       if (data.installer_type == "full") {
         extra.silent = data.silent.toString();
@@ -2104,10 +2066,7 @@ export let BrowserUsageTelemetry = {
     return { installer_type, extra };
   },
 
-  async reportInstallationTelemetry(
-    dataPathOverride,
-    msixPackagePrefixes = ["Mozilla.Firefox", "Mozilla.MozillaFirefox"]
-  ) {
+  async reportInstallationTelemetry(dataPathOverride) {
     // The optional dataPathOverride is only used for testing purposes.
     // Use this as a proxy for whether we're in a testing environment.
     // If we're in a testing environment we don't want to return the
@@ -2118,10 +2077,10 @@ export let BrowserUsageTelemetry = {
     }
 
     gInstallationTelemetryPromise = (async () => {
-      let data = await BrowserUsageTelemetry.collectInstallationTelemetry(
-        dataPathOverride,
-        msixPackagePrefixes
-      );
+      let data =
+        await BrowserUsageTelemetry.collectInstallationTelemetry(
+          dataPathOverride
+        );
 
       if (data?.installer_type) {
         let { installer_type, extra } = data;
@@ -2146,10 +2105,6 @@ export let BrowserUsageTelemetry = {
         );
         Glean.installationFirstSeen.profdirExisted.set(
           extra.profdir_existed === "true"
-        );
-        Glean.installationFirstSeen.otherInst.set(extra.other_inst === "true");
-        Glean.installationFirstSeen.otherMsixInst.set(
-          extra.other_msix_inst === "true"
         );
         if (installer_type == "full") {
           Glean.installationFirstSeen.silent.set(extra.silent === "true");
