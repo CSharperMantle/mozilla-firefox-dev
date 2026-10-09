@@ -60,7 +60,9 @@ ${app_license_block}\
     </ul>
 
     <ul>
+% if acknowledgements:
       <li><a href="#acknowledgements">Acknowledgements</a>
+% endif
       <li><a href="#trademarks">Trademarks</a>
 % if config.get("OS_ARCH") == "WINNT":
       <li><a href="#proprietary-notices">Proprietary Operating System Components</a>
@@ -129,6 +131,7 @@ ${license['text']}\
       </tbody>
     </table>
 
+% if acknowledgements:
     <hr>
 
     <h2><a id="acknowledgements"></a>Acknowledgements</h2>
@@ -138,24 +141,11 @@ ${license['text']}\
     people and projects for their contributions:</p>
 
     <ul>
-      <li>This software is based in part on the work of the Independent
-          JPEG Group.</li>
-      <li>Portions of the Android version of this software are copyright
-          &copy; 1996-2026
-          <a href="https://www.freetype.org/">The FreeType Project</a>.
-          All rights reserved.</li>
-      <li>The <a href="https://www.zlib.net/">zlib</a> compression library
-          (Jean-loup Gailly, Mark Adler and team)</li>
-      <li>The <a href="http://www.libpng.org/pub/png/">libpng</a> graphics library
-          (Glenn Randers-Pehrson and team)</li>
-      <li>The <a href="https://www.sqlite.org/">sqlite</a> database engine
-          (D. Richard Hipp and team)</li>
-      <li>The <a href="http://nsis.sourceforge.net/">Nullsoft Scriptable Install System</a>
-          (Amir Szekely and team)</li>
 % for acknowledgement in acknowledgements:
       <li>${acknowledgement}</li>
 % endfor
     </ul>
+% endif
 
     <hr>
 
