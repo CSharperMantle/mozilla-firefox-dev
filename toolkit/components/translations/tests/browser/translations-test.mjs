@@ -83,32 +83,38 @@ export function getSelectors() {
       return content.document.querySelector("header");
     },
     /**
-     * Returns the first paragraph that is last of its type among its siblings.
+     * Returns the final paragraph in document order.
      *
      * @returns {HTMLParagraphElement | null}
      */
     getFinalParagraph() {
-      return content.document.querySelector("p:last-of-type");
+      const paragraphs = content.document.querySelectorAll("p");
+
+      return paragraphs.item(paragraphs.length - 1);
     },
     /**
-     * Returns the first last-of-type paragraph's title attribute.
+     * Returns the document's final paragraph's title attribute.
      *
      * @returns {string | null | undefined}
      */
     getFinalParagraphTitle() {
-      return content.document
-        .querySelector("p:last-of-type")
-        ?.getAttribute("title");
+      return getSelectors().getFinalParagraph()?.getAttribute("title");
     },
     /**
-     * Returns the first last-of-type paragraph's aria-label attribute.
+     * Returns the document's final paragraph's aria-label attribute.
      *
      * @returns {string | null | undefined}
      */
     getFinalParagraphAriaLabel() {
-      return content.document
-        .querySelector("p:last-of-type")
-        ?.getAttribute("aria-label");
+      return getSelectors().getFinalParagraph()?.getAttribute("aria-label");
+    },
+    /**
+     * Returns the first paragraph that is last of its type among its siblings.
+     *
+     * @returns {HTMLParagraphElement | null}
+     */
+    getLastOfTypeParagraph() {
+      return content.document.querySelector("p:last-of-type");
     },
     /**
      * Returns the French section on the Select Translations test page.
