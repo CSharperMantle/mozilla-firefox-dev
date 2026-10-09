@@ -3173,12 +3173,6 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
 #alltabs-button {
   list-style-image: url("chrome://browser/skin/search-tabs.svg");
 
-  @media (-moz-platform: windows) {
-    #TabsToolbar & {
-      list-style-image: url("chrome://global/skin/icons/arrow-down.svg");
-    }
-  }
-
   #tabbrowser-tabs[hiddensoundplaying] ~ & > .toolbarbutton-badge-stack > .toolbarbutton-badge {
     background: transparent url(chrome://browser/skin/tabbrowser/tab-audio-playing-small.svg);
     box-shadow: none;
