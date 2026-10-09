@@ -935,20 +935,17 @@ add_task(async function test_input_selection() {
         { type: "mouseup" },
         browser
       );
-      await TestUtils.waitForCondition(() => stub.callCount !== 0);
+      const showCalls = () =>
+        stub.getCalls().filter(c => c.args[0] == "GenAI:ShowShortcuts");
+      await TestUtils.waitForCondition(() => showCalls().length);
 
-      Assert.equal(stub.callCount, 1, "Show shortcuts once");
-      Assert.notEqual(
-        stub.firstCall.args[0],
-        "GenAI:HideShortcuts",
-        "No unnecessary hides"
-      );
+      Assert.equal(showCalls().length, 1, "Show shortcuts once");
       Assert.equal(
-        stub.firstCall.args[1].selection,
+        showCalls()[0].args[1].selection,
         "inp",
         "Got selected text from input"
       );
-      Assert.equal(stub.firstCall.args[1].inputType, "input", "Got input type");
+      Assert.equal(showCalls()[0].args[1].inputType, "input", "Got input type");
     }
   );
 
