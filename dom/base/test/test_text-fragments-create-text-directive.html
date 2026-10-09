@@ -868,6 +868,10 @@
 
     async function runTests() {
       try {
+        // Every test case navigates, so repeated runs hit the navigation rate limit.
+        await SpecialPowers.pushPrefEnv({
+          set: [["dom.navigation.navigationRateLimit.count", 0]],
+        });
         testRangeBoundariesAreEqual();
         await basicTests();
         await testEmptyRange();
