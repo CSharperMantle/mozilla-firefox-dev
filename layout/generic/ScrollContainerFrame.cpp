@@ -6888,11 +6888,17 @@ void ScrollContainerFrame::LayoutScrollbars(ScrollReflowInput& aState,
 
     nsRect r;
     r.width = std::max(std::max(r.width, scrollbarSize), resizerMinSize.width);
-    r.x = scrollbarOnLeft ? aInsideBorderArea.x
-                          : aInsideBorderArea.XMost() - r.width;
     r.height =
         std::max(std::max(r.height, scrollbarSize), resizerMinSize.height);
-    r.y = aInsideBorderArea.YMost() - r.height;
+
+    // Get scrollbar insets specified via -moz-scrollbar-inset-{inline,block}.
+    // These are used to position the resizer within rounded corners.
+    const nsMargin scrollbarInset = ScrollbarInsets();
+
+    r.x = scrollbarOnLeft
+              ? aInsideBorderArea.x + scrollbarInset.left
+              : aInsideBorderArea.XMost() - r.width - scrollbarInset.right;
+    r.y = aInsideBorderArea.YMost() - r.height - scrollbarInset.bottom;
 
     LayoutScrollbarPartAtRect(aState, resizerRI, r);
   }

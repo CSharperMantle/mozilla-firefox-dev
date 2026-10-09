@@ -563,6 +563,8 @@ html|dialog,
 }
 
 .dialogBox {
+  --dialog-resizer-inset: calc(0.3 * var(--dialog-border-radius));
+
   background-clip: content-box;
   color: var(--text-color);
   /* `transparent` will use the dialogText color in high-contrast themes and
@@ -571,6 +573,8 @@ html|dialog,
   margin: 0;
   padding: 0;
   overflow-x: auto;
+  -moz-scrollbar-inset-inline: 0 var(--dialog-resizer-inset);
+  -moz-scrollbar-inset-block: 0 var(--dialog-resizer-inset);
 }
 
 .dialogBox[resizable="true"] {
