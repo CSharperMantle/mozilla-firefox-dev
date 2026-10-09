@@ -85,6 +85,14 @@ const WIDGETS = [
     preference: "widgets.recentSearches.enabled",
     widgetSize: "medium",
   },
+  {
+    id: "horoscopes",
+    l10nId: "newtab-custom-widget-horoscopes-toggle",
+    source: "WIDGET_HOROSCOPES",
+    widget_name: "horoscopes",
+    preference: "widgets.horoscopes.enabled",
+    widgetSize: "medium",
+  },
 ];
 
 // The minimum entry the panel renders from; the registry helpers tolerate the
@@ -104,6 +112,7 @@ const FIXTURE_WIDGET = {
 const PANEL_LABELS = {
   "newtab-custom-widget-clock-toggle": "Clock",
   "newtab-custom-widget-crossword-toggle": "Crossword",
+  "newtab-custom-widget-horoscopes-toggle": "Horoscopes",
   "newtab-custom-widget-lists-toggle": "Lists",
   "newtab-custom-widget-picture-toggle": "Picture of the day",
   "newtab-custom-widget-privacy-toggle": "Privacy",
@@ -115,15 +124,16 @@ const PANEL_LABELS = {
 };
 
 // The German, Greek and Japanese labels are Firefox's own translations, apart
-// from the fixture widget's and the Japanese Search label. The Finance fixtures
-// reuse the Stocks translations as stand-ins until the renamed message is
-// translated.
+// from the fixture widget's, the Japanese Search label and the Horoscopes
+// labels, which have no translations yet. The Finance fixtures reuse the Stocks
+// translations as stand-ins until the renamed message is translated.
 // Übersicht sorts before Uhr only under locale-aware collation; a code point
 // comparison would put it after Wetter.
 const GERMAN_PANEL_LABELS = {
   "newtab-custom-widget-stocks-toggle2": "Aktien",
   "newtab-custom-widget-picture-toggle": "Bild des Tages",
   "newtab-custom-widget-privacy-toggle": "Datenschutz",
+  "newtab-custom-widget-horoscopes-toggle": "Horoskope",
   "newtab-custom-widget-crossword-toggle": "Kreuzworträtsel",
   "newtab-custom-widget-lists-toggle": "Listen",
   "newtab-custom-widget-search-toggle": "Suche",
@@ -143,6 +153,7 @@ const GREEK_PANEL_LABELS = {
   "newtab-custom-widget-stocks-toggle2": "Μετοχές",
   "newtab-custom-widget-clock-toggle": "Ρολόι",
   "newtab-custom-widget-crossword-toggle": "Σταυρόλεξο",
+  "newtab-custom-widget-horoscopes-toggle": "Ωροσκόπια",
 };
 
 // Latin letters sort before kana and kana before kanji under the default
@@ -152,6 +163,7 @@ const JAPANESE_PANEL_LABELS = {
   "newtab-custom-widget-crossword-toggle": "クロスワードパズル",
   "newtab-custom-widget-timer-toggle": "タイマー",
   "newtab-custom-widget-privacy-toggle": "プライバシー",
+  "newtab-custom-widget-horoscopes-toggle": "ホロスコープ",
   "newtab-custom-widget-picture-toggle": "今日の一枚",
   "newtab-custom-widget-search-toggle": "最近の検索",
   "newtab-custom-widget-weather-toggle": "天気予報",
@@ -164,6 +176,7 @@ const EN_US_ORDER = [
   "clocks",
   "crossword",
   "stocks",
+  "horoscopes",
   "lists",
   "pictureOfTheDay",
   "privacy",
@@ -178,6 +191,7 @@ const EN_US_ORDER_WITH_FIXTURE = [
   "crossword",
   "stocks",
   "fixtureWidget",
+  "horoscopes",
   "lists",
   "pictureOfTheDay",
   "privacy",
@@ -190,6 +204,7 @@ const GERMAN_ORDER = [
   "stocks",
   "pictureOfTheDay",
   "privacy",
+  "horoscopes",
   "crossword",
   "lists",
   "recentSearches",
@@ -209,6 +224,7 @@ const GREEK_ORDER = [
   "stocks",
   "clocks",
   "crossword",
+  "horoscopes",
 ];
 
 const JAPANESE_ORDER = [
@@ -216,6 +232,7 @@ const JAPANESE_ORDER = [
   "crossword",
   "focusTimer",
   "privacy",
+  "horoscopes",
   "pictureOfTheDay",
   "recentSearches",
   "weather",
@@ -230,6 +247,7 @@ const TIMER_ID_SORT_ORDER = [
   "crossword",
   "stocks",
   "focusTimer",
+  "horoscopes",
   "lists",
   "pictureOfTheDay",
   "privacy",
@@ -242,6 +260,7 @@ const ID_ORDER = [
   "clocks",
   "crossword",
   "focusTimer",
+  "horoscopes",
   "lists",
   "pictureOfTheDay",
   "privacy",
@@ -569,6 +588,7 @@ describe("<WidgetsManagementPanel>", () => {
       const { container } = await renderPanel({}, prefs);
 
       expect(toggleIds(container)).toEqual([
+        "horoscopes-toggle",
         "pictureOfTheDay-toggle",
         "recentSearches-toggle",
         "focusTimer-toggle",

@@ -821,6 +821,7 @@ describe("ActivityStream", () => {
       "widgets.crossword.enabled",
       "widgets.stocks.enabled",
       "widgets.recentSearches.enabled",
+      "widgets.horoscopes.enabled",
     ];
     beforeEach(() => {
       services.locale.appLocaleAsBCP47 = "en-US";
@@ -960,6 +961,15 @@ describe("ActivityStream", () => {
       expect(
         PREFS_CONFIG.get("widgets.system.recentSearches.enabled").value
       ).toBe(false);
+    });
+  });
+  describe("horoscopes widget defaults", () => {
+    it("should be off everywhere by default", () => {
+      as._updateDynamicPrefs();
+      expect(PREFS_CONFIG.get("widgets.horoscopes.enabled").value).toBe(false);
+      expect(PREFS_CONFIG.get("widgets.system.horoscopes.enabled").value).toBe(
+        false
+      );
     });
   });
   describe("getWeatherWidgetSize", () => {

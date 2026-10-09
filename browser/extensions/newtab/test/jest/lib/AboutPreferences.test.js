@@ -40,6 +40,7 @@ describe("AboutPreferences Feed", () => {
   const PREFS_LABELS = {
     "home-prefs-clocks-header": "Clock",
     "home-prefs-crossword-widget-header": "Crossword",
+    "home-prefs-horoscopes-header": "Horoscopes",
     "home-prefs-lists-header": "Lists",
     "home-prefs-picture-header": "Picture of the day",
     "home-prefs-privacy-header": "Privacy",
@@ -51,15 +52,17 @@ describe("AboutPreferences Feed", () => {
   };
 
   // The German, Greek and Japanese labels are Firefox's own translations,
-  // apart from the fixture widget's and the Japanese Search label. The Finance
-  // fixtures reuse the Stocks translations as stand-ins until the renamed
-  // message is translated.
+  // apart from the fixture widget's, the Japanese Search label and the
+  // Horoscopes labels, which have no translations yet. The Finance fixtures
+  // reuse the Stocks translations as stand-ins until the renamed message is
+  // translated.
   // Übersicht sorts before Uhr only under locale-aware collation; a code
   // point comparison would put it after Wetter.
   const GERMAN_PREFS_LABELS = {
     "home-prefs-stocks-header2": "Aktien",
     "home-prefs-picture-header": "Bild des Tages",
     "home-prefs-privacy-header": "Datenschutz",
+    "home-prefs-horoscopes-header": "Horoskope",
     "home-prefs-crossword-widget-header": "Kreuzworträtsel",
     "home-prefs-lists-header": "Listen",
     "home-prefs-search-widget-header": "Suche",
@@ -79,6 +82,7 @@ describe("AboutPreferences Feed", () => {
     "home-prefs-stocks-header2": "Μετοχές",
     "home-prefs-clocks-header": "Ρολόι",
     "home-prefs-crossword-widget-header": "Σταυρόλεξο",
+    "home-prefs-horoscopes-header": "Ωροσκόπια",
   };
 
   // Latin letters sort before kana and kana before kanji under the default
@@ -88,6 +92,7 @@ describe("AboutPreferences Feed", () => {
     "home-prefs-crossword-widget-header": "クロスワードパズル",
     "home-prefs-timer-header": "タイマー",
     "home-prefs-privacy-header": "プライバシー",
+    "home-prefs-horoscopes-header": "ホロスコープ",
     "home-prefs-picture-header": "今日の一枚",
     "home-prefs-search-widget-header": "最近の検索",
     "home-prefs-weather-header-srd": "天気予報",
@@ -100,6 +105,7 @@ describe("AboutPreferences Feed", () => {
     "clocks",
     "crossword",
     "stocks",
+    "horoscopes",
     "lists",
     "pictureOfTheDay",
     "privacy",
@@ -112,6 +118,7 @@ describe("AboutPreferences Feed", () => {
     "stocks",
     "pictureOfTheDay",
     "privacy",
+    "horoscopes",
     "crossword",
     "lists",
     "recentSearches",
@@ -131,6 +138,7 @@ describe("AboutPreferences Feed", () => {
     "stocks",
     "clocks",
     "crossword",
+    "horoscopes",
   ];
 
   const JAPANESE_ORDER = [
@@ -138,6 +146,7 @@ describe("AboutPreferences Feed", () => {
     "crossword",
     "focusTimer",
     "privacy",
+    "horoscopes",
     "pictureOfTheDay",
     "recentSearches",
     "weather",
@@ -152,6 +161,7 @@ describe("AboutPreferences Feed", () => {
     "crossword",
     "stocks",
     "focusTimer",
+    "horoscopes",
     "lists",
     "pictureOfTheDay",
     "privacy",
@@ -164,6 +174,7 @@ describe("AboutPreferences Feed", () => {
     "clocks",
     "crossword",
     "focusTimer",
+    "horoscopes",
     "lists",
     "pictureOfTheDay",
     "privacy",
@@ -733,6 +744,7 @@ describe("AboutPreferences Feed", () => {
         { id: "clocks", l10nId: "home-prefs-clocks-header" },
         { id: "crossword", l10nId: "home-prefs-crossword-widget-header" },
         { id: "stocks", l10nId: "home-prefs-stocks-header2" },
+        { id: "horoscopes", l10nId: "home-prefs-horoscopes-header" },
         { id: "lists", l10nId: "home-prefs-lists-header" },
         { id: "pictureOfTheDay", l10nId: "home-prefs-picture-header" },
         { id: "privacy", l10nId: "home-prefs-privacy-header" },

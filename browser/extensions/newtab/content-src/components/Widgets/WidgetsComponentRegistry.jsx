@@ -13,6 +13,7 @@ import { Crossword } from "./Crossword/Crossword";
 import { Stocks } from "./Stocks/Stocks";
 import { PictureOfTheDay } from "./PictureOfTheDay/PictureOfTheDay";
 import { RecentSearches } from "./RecentSearches/RecentSearches";
+import { Horoscopes } from "./Horoscopes/Horoscopes";
 import { WIDGET_REGISTRY, resolveWidgetSize } from "common/WidgetsRegistry.mjs";
 
 const weatherEntry = WIDGET_REGISTRY.find(w => w.id === "weather");
@@ -47,6 +48,7 @@ export const WIDGET_ROW_COMPONENTS = {
   stocks: Stocks,
   pictureOfTheDay: PictureOfTheDay,
   recentSearches: RecentSearches,
+  horoscopes: Horoscopes,
 };
 
 export const WIDGET_SIDEBAR_COMPONENTS = {

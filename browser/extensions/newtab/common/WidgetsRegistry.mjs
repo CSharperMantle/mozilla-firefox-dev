@@ -173,6 +173,10 @@ export const PREF_WIDGETS_RECENT_SEARCHES_ENABLED =
 export const PREF_RECENT_SEARCHES_SIZE = "widgets.recentSearches.size";
 export const PREF_WIDGETS_SYSTEM_RECENT_SEARCHES_ENABLED =
   "widgets.system.recentSearches.enabled";
+export const PREF_WIDGETS_HOROSCOPES_ENABLED = "widgets.horoscopes.enabled";
+export const PREF_HOROSCOPES_SIZE = "widgets.horoscopes.size";
+export const PREF_WIDGETS_SYSTEM_HOROSCOPES_ENABLED =
+  "widgets.system.horoscopes.enabled";
 
 /**
  * @typedef {object} WidgetRegistryEntry
@@ -197,7 +201,7 @@ export const PREF_WIDGETS_SYSTEM_RECENT_SEARCHES_ENABLED =
  * @property {boolean} [requiresWidgetSearchSap] - When true, the widget is hidden entirely on hosts whose search code is too old to generate accurate partner codes. See isWidgetDataUnavailable.
  * @property {boolean} [retired] - When true the widget never renders and gets no settings or devtools toggle, whatever its prefs and trainhopConfig say.
  * @property {boolean} [skipNightlyDefault] - When true, the widget opts out of being on everywhere in Nightly. See skipsNightlyDefault in lib/ActivityStream.sys.mjs.
- * @property {string|null} [trainhopNamespace] - When set, the widget ships its whole config in one dedicated object at trainhopConfig.<namespace>. Its `enabled` overrides the default value of enabledPref on the default branch (user toggle still wins, like widgetsSettings.*Enabled); `visible` reveals the widget (isWidgetAddable) without writing a pref; `size` is read by resolveWidgetSize. Picture of the Day, Crossword, Privacy and Recent Searches use this today.
+ * @property {string|null} [trainhopNamespace] - When set, the widget ships its whole config in one dedicated object at trainhopConfig.<namespace>. Its `enabled` overrides the default value of enabledPref on the default branch (user toggle still wins, like widgetsSettings.*Enabled); `visible` reveals the widget (isWidgetAddable) without writing a pref; `size` is read by resolveWidgetSize. Picture of the Day, Crossword, Privacy, Recent Searches and Horoscopes use this today.
  */
 
 // If you add a widget market pref to firefox.js that older hosts don't have,
@@ -383,6 +387,26 @@ export const WIDGET_REGISTRY = [
     // @backward-compat { version 157 } See isWidgetSearchSapHostSupported in
     // PrefsFeed.sys.mjs.
     requiresWidgetSearchSap: true,
+  },
+  {
+    id: "horoscopes",
+    telemetryName: "horoscopes",
+    prefsL10nId: "home-prefs-horoscopes-header",
+    customizeL10nId: "newtab-custom-widget-horoscopes-toggle",
+    customizeEventSource: "WIDGET_HOROSCOPES",
+    order: 9,
+    enabledPref: PREF_WIDGETS_HOROSCOPES_ENABLED,
+    sizePref: PREF_HOROSCOPES_SIZE,
+    defaultSize: "medium",
+    validSizes: ["medium", "large"],
+    hasSidebar: false,
+    systemEnabledPref: PREF_WIDGETS_SYSTEM_HOROSCOPES_ENABLED,
+    trainhopEnabledKey: "horoscopesEnabled",
+    trainhopSizeKey: "horoscopesSize",
+    trainhopSidebarKey: null,
+    widgetsSettingsVisibleKey: "horoscopesVisible",
+    widgetsSettingsEnabledKey: "horoscopesEnabled",
+    trainhopNamespace: "widgetHoroscopes",
   },
 ];
 

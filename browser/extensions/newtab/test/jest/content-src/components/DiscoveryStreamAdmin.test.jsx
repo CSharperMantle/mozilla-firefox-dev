@@ -519,6 +519,7 @@ describe("<DiscoveryStreamAdminUI>", () => {
       const labels = {
         "newtab-custom-widget-clock-toggle": "Clock",
         "newtab-custom-widget-crossword-toggle": "Crossword",
+        "newtab-custom-widget-horoscopes-toggle": "Horoscopes",
         "newtab-custom-widget-lists-toggle": "Lists",
         "newtab-custom-widget-picture-toggle": "Picture of the day",
         "newtab-custom-widget-privacy-toggle": "Privacy",
@@ -539,13 +540,14 @@ describe("<DiscoveryStreamAdminUI>", () => {
         [...container.querySelectorAll('[id^="widgets.system."]')].map(toggle =>
           toggle.getAttribute("data-l10n-id")
         );
-      await waitFor(() => expect(order()).toHaveLength(9));
+      await waitFor(() => expect(order()).toHaveLength(10));
 
       // Written by hand so the test does not mirror the sort.
       expect(order()).toEqual([
         "newtab-custom-widget-clock-toggle",
         "newtab-custom-widget-crossword-toggle",
         "newtab-custom-widget-stocks-toggle2",
+        "newtab-custom-widget-horoscopes-toggle",
         "newtab-custom-widget-lists-toggle",
         "newtab-custom-widget-picture-toggle",
         "newtab-custom-widget-privacy-toggle",

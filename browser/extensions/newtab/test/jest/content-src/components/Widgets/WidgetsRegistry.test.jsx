@@ -207,6 +207,7 @@ describe("getWidgetOrder", () => {
       "pictureOfTheDay",
       "stocks",
       "recentSearches",
+      "horoscopes",
     ]);
   });
 
@@ -221,6 +222,7 @@ describe("getWidgetOrder", () => {
       "crossword",
       "stocks",
       "recentSearches",
+      "horoscopes",
     ]);
   });
 
@@ -235,6 +237,7 @@ describe("getWidgetOrder", () => {
       "crossword",
       "stocks",
       "recentSearches",
+      "horoscopes",
     ]);
   });
 
@@ -256,6 +259,7 @@ describe("getWidgetOrder", () => {
       "crossword",
       "stocks",
       "recentSearches",
+      "horoscopes",
     ]);
     expect(result.length).toBe(registryIds.length);
   });
@@ -281,6 +285,7 @@ describe("resolveWidgetOrder", () => {
       "crossword",
       "stocks",
       "recentSearches",
+      "horoscopes",
     ]);
   });
 
@@ -300,6 +305,7 @@ describe("resolveWidgetOrder", () => {
       "crossword",
       "stocks",
       "recentSearches",
+      "horoscopes",
     ]);
   });
 
@@ -319,6 +325,7 @@ describe("resolveWidgetOrder", () => {
       "crossword",
       "stocks",
       "recentSearches",
+      "horoscopes",
     ]);
   });
 });
@@ -467,6 +474,16 @@ describe("isWidgetAddable", () => {
       isWidgetAddable(recentSearches, {
         [recentSearches.systemEnabledPref]: false,
         trainhopConfig: { widgetRecentSearches: { visible: true } },
+      })
+    ).toBe(true);
+  });
+
+  it("is addable when revealed via the dedicated widgetHoroscopes namespace", () => {
+    const horoscopes = WIDGET_REGISTRY.find(w => w.id === "horoscopes");
+    expect(
+      isWidgetAddable(horoscopes, {
+        [horoscopes.systemEnabledPref]: false,
+        trainhopConfig: { widgetHoroscopes: { visible: true } },
       })
     ).toBe(true);
   });
@@ -1038,6 +1055,7 @@ describe("WIDGET_REGISTRY customize panel fields", () => {
     crossword: "WIDGET_CROSSWORD",
     stocks: "WIDGET_STOCKS",
     recentSearches: "WIDGET_RECENT_SEARCHES",
+    horoscopes: "WIDGET_HOROSCOPES",
   };
 
   it("gives every active entry a customizeL10nId", () => {

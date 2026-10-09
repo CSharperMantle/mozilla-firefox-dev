@@ -295,6 +295,11 @@ function Widgets({ widgetIds }) {
       prefs,
       widgetsEnabled
     ),
+    horoscopes: isWidgetEnabled(
+      WIDGET_REGISTRY.find(w => w.id === "horoscopes"),
+      prefs,
+      widgetsEnabled
+    ),
   };
 
   // Given an explicit list, keep only those. Callers wanting every enabled

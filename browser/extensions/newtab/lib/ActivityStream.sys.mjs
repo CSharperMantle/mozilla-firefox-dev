@@ -1868,6 +1868,22 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
+    "widgets.horoscopes.enabled",
+    {
+      title: "Enables the horoscopes widget",
+      // Off everywhere. To release organically: add locale-config to firefox.js, switch to marketGate.
+      getValue: () => !marketGateEnabled(),
+    },
+  ],
+  [
+    "widgets.horoscopes.interaction",
+    {
+      title:
+        "Boolean flag for determining if a user has interacted with the horoscopes widget",
+      value: false,
+    },
+  ],
+  [
     "widgets.pictureOfTheDay.enabled",
     {
       title: "Enables the picture of the day widget",
@@ -1894,6 +1910,14 @@ export const PREFS_CONFIG = new Map([
     "widgets.system.recentSearches.enabled",
     {
       title: "Enables the recent searches widget experiment in Nimbus",
+      // Off everywhere. To release organically: add locale-config to firefox.js, switch to marketGate.
+      value: false,
+    },
+  ],
+  [
+    "widgets.system.horoscopes.enabled",
+    {
+      title: "Enables the horoscopes widget experiment in Nimbus",
       // Off everywhere. To release organically: add locale-config to firefox.js, switch to marketGate.
       value: false,
     },
@@ -2022,6 +2046,13 @@ export const PREFS_CONFIG = new Map([
     "widgets.recentSearches.size",
     {
       title: "Size of the recent searches widget (medium or large)",
+      value: "",
+    },
+  ],
+  [
+    "widgets.horoscopes.size",
+    {
+      title: "Size of the horoscopes widget (medium or large)",
       value: "",
     },
   ],
