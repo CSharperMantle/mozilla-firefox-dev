@@ -55,7 +55,6 @@ add_setup(async function () {
     set: [
       ["extensions.formautofill.useml", true],
       ["extensions.formautofill.useml.nativeOnnxAvailable", true],
-      ["extensions.formautofill.useml.successful", true],
     ],
   });
 });

@@ -34,7 +34,6 @@ const ADDRESSES_COLLECTION_NAME = "addresses";
 const CREDITCARDS_COLLECTION_NAME = "creditCards";
 const AUTOFILL_CREDITCARDS_OS_AUTH_LOCKED_PREF =
   FormAutofill.AUTOFILL_CREDITCARDS_OS_AUTH_LOCKED_PREF;
-const AUTOFILL_ML_SUCCESS_PREF = "extensions.formautofill.useml.successful";
 const AUTOFILL_ML_NATIVE_ONNX_PREF =
   "extensions.formautofill.useml.nativeOnnxAvailable";
 const MANAGE_ADDRESSES_L10N_IDS = [
@@ -287,12 +286,22 @@ FormAutofillUtils = {
     );
   },
 
-  setMLUsedAlready() {
-    Services.prefs.setBoolPref(AUTOFILL_ML_SUCCESS_PREF, true);
-  },
-
   setNativeOnnxRuntimeAvailable(available) {
     Services.prefs.setBoolPref(AUTOFILL_ML_NATIVE_ONNX_PREF, available);
+  },
+
+  /**
+   * Return true if the ML inferencer is allowed to infer the field type for a
+   * field, or false if the field type has already been sufficiently determined
+   * (autocomplete or fathom) or false if there are no ML tokens for this field.
+   */
+  canUseML(fieldDetail) {
+    return (
+      fieldDetail.mlData &&
+      fieldDetail.reason != "autocomplete" &&
+      fieldDetail.reason != "fathom" &&
+      !FormAutofillUtils.mlIgnoreFieldTypes.includes(fieldDetail.fieldName)
+    );
   },
 
   /**
@@ -1658,13 +1667,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
       .split(",")
       .map(fieldType => fieldType.trim())
       .filter(fieldType => !!fieldType)
-);
-
-XPCOMUtils.defineLazyPreferenceGetter(
-  FormAutofillUtils,
-  "isMLUsedAlready",
-  AUTOFILL_ML_SUCCESS_PREF,
-  false
 );
 
 XPCOMUtils.defineLazyPreferenceGetter(

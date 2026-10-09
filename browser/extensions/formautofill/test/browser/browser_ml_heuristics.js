@@ -9,7 +9,7 @@ const { FormAutofillML } = ChromeUtils.importESModule(
 );
 
 let detectedFields = [
-  // first test
+  // first ML test
   "given-name",
   "family-name",
   "street-address",
@@ -17,23 +17,31 @@ let detectedFields = [
   "address-level1",
   "postal-code",
   "country",
-  // second test
+  // second ML test
   "postal-code",
   "cc-exp-month",
   "cc-exp-year",
   "cc-csc",
 ];
 
+let expectedDetectFieldsResult;
+
 //eslint-disable-next-line no-unused-vars
 function detectFields(fieldDetails) {
+  if (!expectedDetectFieldsResult) {
+    return false;
+  }
+
   for (let fd of fieldDetails) {
-    if (fd.fieldName || !fd.mlData) {
+    if (!FormAutofillUtils.canUseML(fd)) {
       continue;
     }
 
     fd.fieldName = detectedFields.shift();
     fd.reason = "ml";
   }
+
+  return true;
 }
 
 add_setup(async function () {
@@ -55,7 +63,6 @@ add_setup(async function () {
     set: [
       ["extensions.formautofill.useml", true],
       ["extensions.formautofill.useml.nativeOnnxAvailable", true],
-      ["extensions.formautofill.useml.successful", false],
     ],
   });
 
@@ -65,8 +72,7 @@ add_setup(async function () {
 });
 
 add_heuristic_tests([
-  // This first test should run with "extensions.formautofill.useml.successful" set to false, so
-  // should use heuristics and not ML inference.
+  // This first test runs where ML inference fails, so this should fallback to heuristics.
   {
     fixtureData: `
       <p><label>givenname: <input type="text" id="given-name" name="given-name"/></label></p>
@@ -79,11 +85,12 @@ add_heuristic_tests([
       <p><label>country: <input type="text" id="country" name="country"/></label></p>
       <p><label>tel: <input type="text" id="tel" name="tel" autocomplete="tel"/></label></p>
       <p><label>email: <input type="email" id="email" name="email"/></label></p>`,
+    onTestStart: async () => {
+      expectedDetectFieldsResult = false;
+    },
     onTestComplete: async () => {
-      // Assign the preference after the test.
-      await SpecialPowers.pushPrefEnv({
-        set: [["extensions.formautofill.useml.successful", true]],
-      });
+      // All other tests should have successful ML inference.
+      expectedDetectFieldsResult = true;
       await assertTelemetry({
         given_name: "0",
         family_name: "0",
