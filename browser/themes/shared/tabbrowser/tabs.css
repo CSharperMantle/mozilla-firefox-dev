@@ -1815,6 +1815,18 @@ tab-group > tab-split-view-wrapper {
   }
 }
 
+/* During expand-on-hover collapse animation, keep split-tab icons
+   constrained to the collapsed pill geometry to avoid mid-transition drifting. */
+:root[sidebar-expand-on-hover]
+  #tabbrowser-tabbox[sidebar-ongoing-animations]
+  #tabbrowser-tabs[orient="vertical"]
+  tab-split-view-wrapper
+  .tabbrowser-tab
+  .tab-content {
+  width: var(--tab-collapsed-background-width);
+  justify-content: center;
+}
+
 /* Drag/drop of split-view-wrapped tabs */
 #tabbrowser-tabs[orient="vertical"] tab-split-view-wrapper {
   &[small-stack] {
@@ -2855,6 +2867,13 @@ tab-group {
         border-top: var(--tabstrip-inner-border);
       }
     }
+  }
+
+  /* Collapsing holds the launcher at its expanded width so that clip-path has
+  something to clip, so the divider would otherwise be drawn around the width
+  it is animating away from. Wait for the real width to be restored. */
+  #sidebar-container[sidebar-ongoing-animations] #tabbrowser-tabs:not([expanded]) > & {
+    background-image: none;
   }
 }
 
