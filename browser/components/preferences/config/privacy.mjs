@@ -2310,6 +2310,36 @@ function openIPPSiteRuleDialog(params) {
   dialog?._box.classList.add("vpnSiteRuleDialogBox");
 }
 
+/**
+ * Delete a website's VPN rule once the user confirms it.
+ *
+ * @param {HTMLElement} button The delete button that was clicked.
+ * @param {string} website
+ */
+async function deleteIPPSiteRule(button, website) {
+  let list = /** @type {any} */ (button.closest("vpn-site-rules-list"));
+  if (!(await list.confirmDelete(website))) {
+    return;
+  }
+  lazy.IPPPermissionRules.setRule(
+    Services.scriptSecurityManager.createContentPrincipalFromOrigin(website),
+    lazy.IPPPrincipalRules.DEFAULT
+  );
+}
+
+/**
+ * Delete every VPN site rule once the user confirms it.
+ *
+ * @param {HTMLElement} button The delete all button that was clicked.
+ */
+async function deleteAllIPPSiteRules(button) {
+  let list = /** @type {any} */ (button.closest("vpn-site-rules-list"));
+  if (!(await list.confirmDeleteAll())) {
+    return;
+  }
+  Services.perms.removeByType(IPP_VPN_PERMISSION);
+}
+
 Preferences.addSetting({
   id: "ipProtectionSiteRulesList",
   deps: [
@@ -2328,7 +2358,8 @@ Preferences.addSetting({
   setup: observeIPPVPNPermissions,
   get: () => getIPPSiteRules(),
   onUserClick(e) {
-    let dataset = /** @type {HTMLElement} */ (e.target).dataset;
+    let target = /** @type {HTMLElement} */ (e.target);
+    let dataset = target.dataset;
     let website = dataset.origin ?? "";
     switch (dataset.action) {
       case "add":
@@ -2338,17 +2369,10 @@ Preferences.addSetting({
         openIPPSiteRuleDialog({ origin: website });
         break;
       case "delete":
-        // TODO: Confirm before deleting - Bug 2074578
-        lazy.IPPPermissionRules.setRule(
-          Services.scriptSecurityManager.createContentPrincipalFromOrigin(
-            website
-          ),
-          lazy.IPPPrincipalRules.DEFAULT
-        );
+        deleteIPPSiteRule(target, website);
         break;
       case "delete-all":
-        // TODO: Confirm before deleting - Bug 2074578
-        Services.perms.removeByType(IPP_VPN_PERMISSION);
+        deleteAllIPPSiteRules(target);
         break;
     }
   },

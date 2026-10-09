@@ -267,38 +267,11 @@ add_task(async function test_site_rules_list_updates_live() {
   });
 });
 
-// Test a row's delete button clears that site's permission and leaves the
-// other rules alone.
-add_task(async function test_site_rules_list_delete_row() {
-  await withSiteRulesList(async (list, browser) => {
-    setSiteRule(
-      "https://kept.example.com",
-      Ci.nsIPermissionManager.ALLOW_ACTION
-    );
-    setSiteRule(
-      "https://gone.example.com",
-      Ci.nsIPermissionManager.DENY_ACTION
-    );
-    let rows = await awaitRows(list, [
-      "https://gone.example.com",
-      "https://kept.example.com",
-    ]);
-
-    let deleteButton = rows[0].querySelector(".vpn-site-rule-delete");
-    deleteButton.scrollIntoView();
-    EventUtils.synthesizeMouseAtCenter(deleteButton, {}, browser.contentWindow);
-
-    await awaitRows(list, ["https://kept.example.com"]);
-    Assert.deepEqual(
-      storedRules(),
-      ["https://kept.example.com"],
-      "Only the deleted site's permission is gone"
-    );
-  });
-});
-
-// Test the delete all button clears every rule and brings the empty state back.
-add_task(async function test_site_rules_list_delete_all() {
+/**
+ * Stores two rules, clicks the delete all button, and runs a task once the
+ * confirmation dialog is showing.
+ */
+async function withDeleteAllRulesDialog(task) {
   await withSiteRulesList(async (list, browser) => {
     setSiteRule(
       "https://one.example.com",
@@ -316,10 +289,64 @@ add_task(async function test_site_rules_list_delete_all() {
       {},
       browser.contentWindow
     );
+    await BrowserTestUtils.waitForMutationCondition(
+      list.deleteDialogEl,
+      { attributes: true, attributeFilter: ["open"] },
+      () => list.deleteDialogEl.open,
+      { msg: "Delete all confirmation is shown" }
+    );
+
+    await task(list, browser);
+  });
+}
+
+// Test the delete all button asks for confirmation, then clears every rule and
+// brings the empty state back.
+add_task(async function test_site_rules_list_delete_all() {
+  await withDeleteAllRulesDialog(async list => {
+    Assert.deepEqual(
+      list.ownerDocument.l10n.getAttributes(list.deleteMessageEl),
+      { id: "ip-protection-delete-all-site-rules-message", args: null },
+      "Message asks to delete all website rules"
+    );
+    is(
+      list.deleteConfirmButtonEl.dataset.l10nId,
+      "ip-protection-delete-all-site-rules-confirm",
+      "Primary button is labelled Delete all rules"
+    );
+    is(
+      list.deleteConfirmButtonEl.type,
+      "primary",
+      "Delete all rules is the primary button"
+    );
+    Assert.deepEqual(
+      storedRules(),
+      ["https://one.example.com", "https://two.example.com"],
+      "Nothing is deleted before the user confirms"
+    );
+
+    await clickDeleteDialogButton(list, list.deleteConfirmButtonEl);
 
     await awaitRows(list, []);
     Assert.deepEqual(storedRules(), [], "Every rule is gone from the store");
     is_element_visible(list.emptyStateEl, "Empty state is shown again");
+  });
+});
+
+// Test cancelling the delete all confirmation keeps every rule.
+add_task(async function test_site_rules_list_delete_all_cancel() {
+  await withDeleteAllRulesDialog(async list => {
+    await clickDeleteDialogButton(list, list.deleteCancelButtonEl);
+
+    Assert.deepEqual(
+      storedRules(),
+      ["https://one.example.com", "https://two.example.com"],
+      "Cancelling keeps every rule"
+    );
+    await awaitRows(list, [
+      "https://one.example.com",
+      "https://two.example.com",
+    ]);
   });
 });
 
@@ -857,6 +884,111 @@ add_task(async function test_edit_rule_dialog_save_onto_existing_rule() {
       capabilityFor("https://example.org"),
       Ci.nsIPermissionManager.DENY_ACTION,
       "The edited rule replaced the existing one"
+    );
+  });
+});
+
+/**
+ * Stores two rules, clicks the delete button on the first, and runs a task
+ * once the confirmation dialog is showing.
+ */
+async function withDeleteRuleDialog(task) {
+  await withSiteRulesList(async (list, browser) => {
+    setSiteRule(
+      "https://kept.example.com",
+      Ci.nsIPermissionManager.ALLOW_ACTION
+    );
+    setSiteRule(
+      "https://gone.example.com",
+      Ci.nsIPermissionManager.DENY_ACTION
+    );
+    let rows = await awaitRows(list, [
+      "https://gone.example.com",
+      "https://kept.example.com",
+    ]);
+
+    let deleteButton = rows[0].querySelector(".vpn-site-rule-delete");
+    deleteButton.scrollIntoView();
+    EventUtils.synthesizeMouseAtCenter(deleteButton, {}, browser.contentWindow);
+    await BrowserTestUtils.waitForMutationCondition(
+      list.deleteDialogEl,
+      { attributes: true, attributeFilter: ["open"] },
+      () => list.deleteDialogEl.open,
+      { msg: "Delete confirmation is shown" }
+    );
+
+    await task(list, browser);
+  });
+}
+
+/**
+ * Clicks a button in the delete confirmation and waits for it to close.
+ */
+async function clickDeleteDialogButton(list, button) {
+  let closed = BrowserTestUtils.waitForEvent(list.deleteDialogEl, "close");
+  button.click();
+  await closed;
+}
+
+// Test the confirmation is a modal dialog that names the website, shows the
+// delete icon, and offers Delete and Cancel, without touching any rule.
+add_task(async function test_delete_rule_dialog_contents() {
+  await withDeleteRuleDialog(async list => {
+    let dialog = list.deleteDialogEl;
+    ok(dialog.matches(":modal"), "Confirmation is modal");
+    is(
+      dialog.getAttribute("aria-labelledby"),
+      list.deleteMessageEl.id,
+      "Dialog is labelled by its message"
+    );
+    Assert.deepEqual(
+      list.ownerDocument.l10n.getAttributes(list.deleteMessageEl),
+      {
+        id: "ip-protection-delete-site-rule-message",
+        args: { website: "https://gone.example.com" },
+      },
+      "Message names the website whose rule is deleted"
+    );
+    is(
+      dialog.querySelector(".vpn-site-rules-delete-icon").getAttribute("src"),
+      "chrome://global/skin/icons/delete.svg",
+      "Dialog shows the delete icon"
+    );
+    is(
+      list.deleteConfirmButtonEl.type,
+      "primary",
+      "Delete is the primary button"
+    );
+    is(
+      list.deleteConfirmButtonEl.dataset.l10nId,
+      "ip-protection-delete-site-rule-confirm",
+      "Primary button is labelled Delete"
+    );
+    is(
+      list.deleteCancelButtonEl.dataset.l10nId,
+      "ip-protection-delete-site-rule-cancel",
+      "Secondary button is labelled Cancel"
+    );
+    Assert.deepEqual(
+      storedRules(),
+      ["https://gone.example.com", "https://kept.example.com"],
+      "Nothing is deleted before the user confirms"
+    );
+
+    await clickDeleteDialogButton(list, list.deleteCancelButtonEl);
+  });
+});
+
+// Test confirming deletes that site's rule and leaves the other rules alone.
+add_task(async function test_delete_rule_dialog_confirm() {
+  await withDeleteRuleDialog(async list => {
+    await clickDeleteDialogButton(list, list.deleteConfirmButtonEl);
+
+    await awaitRows(list, ["https://kept.example.com"]);
+    Assert.deepEqual(
+      storedRules(),
+      ["https://kept.example.com"],
+      "Only the deleted site's permission is gone"
     );
   });
 });

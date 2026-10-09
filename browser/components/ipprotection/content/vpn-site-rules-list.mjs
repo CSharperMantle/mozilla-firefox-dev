@@ -14,11 +14,25 @@ const RULE_L10N_IDS = {
   excluded: "ip-protection-site-rules-rule-excluded",
 };
 
+const DELETE_RULE_PROMPT = {
+  messageL10nId: "ip-protection-delete-site-rule-message",
+  confirmL10nId: "ip-protection-delete-site-rule-confirm",
+};
+
+const DELETE_ALL_RULES_PROMPT = {
+  messageL10nId: "ip-protection-delete-all-site-rules-message",
+  confirmL10nId: "ip-protection-delete-all-site-rules-confirm",
+};
+
+const DELETE_RETURN_VALUE = "delete";
+
 /**
  * The per-website VPN rules section of built-in VPN settings
  *
  * This element only presents the rules; every action is a moz-button carrying
- * a data-action, handled by the Setting that supplied the rules.
+ * a data-action, handled by the Setting that supplied the rules. The Setting
+ * can ask the user to confirm a deletion with confirmDelete() or
+ * confirmDeleteAll().
  *
  * @tagname vpn-site-rules-list
  * @property {object[]} value
@@ -32,6 +46,7 @@ export default class VPNSiteRulesList extends MozLitElement {
   static properties = {
     value: { type: Array },
     control: { type: Object },
+    deletePrompt: { type: Object, state: true },
   };
 
   static queries = {
@@ -40,12 +55,17 @@ export default class VPNSiteRulesList extends MozLitElement {
     emptyStateEl: ".vpn-site-rules-empty",
     emptyIllustrationEl: ".vpn-site-rules-empty-illustration",
     listEl: ".vpn-site-rules-list",
+    deleteDialogEl: ".vpn-site-rules-delete-dialog",
+    deleteMessageEl: ".vpn-site-rules-delete-message",
+    deleteCancelButtonEl: ".vpn-site-rules-delete-cancel",
+    deleteConfirmButtonEl: ".vpn-site-rules-delete-confirm",
   };
 
   constructor() {
     super();
     this.value = [];
     this.control = undefined;
+    this.deletePrompt = null;
   }
 
   createRenderRoot() {
@@ -54,6 +74,49 @@ export default class VPNSiteRulesList extends MozLitElement {
 
   get rules() {
     return Array.isArray(this.value) ? this.value : [];
+  }
+
+  /**
+   * Ask the user to confirm deleting the rule for a website.
+   *
+   * @param {string} website
+   * @returns {Promise<boolean>} Whether the user chose to delete the rule.
+   */
+  confirmDelete(website) {
+    return this.#confirm({ ...DELETE_RULE_PROMPT, messageArgs: { website } });
+  }
+
+  /**
+   * Ask the user to confirm deleting every rule.
+   *
+   * @returns {Promise<boolean>} Whether the user chose to delete the rules.
+   */
+  confirmDeleteAll() {
+    return this.#confirm(DELETE_ALL_RULES_PROMPT);
+  }
+
+  /**
+   * @param {object} deletePrompt
+   *   Strings shown in the delete confirmation dialog.
+   * @param {string} deletePrompt.messageL10nId
+   *   Fluent ID for the dialog message.
+   * @param {object} [deletePrompt.messageArgs]
+   *   Fluent arguments for the message, such as the website.
+   * @param {string} deletePrompt.confirmL10nId
+   *   Fluent ID for the confirm button label.
+   * @returns {Promise<boolean>} Whether the user confirmed.
+   */
+  async #confirm(deletePrompt) {
+    this.deletePrompt = deletePrompt;
+    await this.updateComplete;
+    let dialog = this.deleteDialogEl;
+    dialog.returnValue = "";
+    let dialogClosed = new Promise(resolve =>
+      dialog.addEventListener("close", resolve, { once: true })
+    );
+    dialog.showModal();
+    await dialogClosed;
+    return dialog.returnValue == DELETE_RETURN_VALUE;
   }
 
   /**
@@ -140,8 +203,45 @@ export default class VPNSiteRulesList extends MozLitElement {
     </moz-box-item>`;
   }
 
+  #deleteDialogTemplate() {
+    return html`<dialog
+      class="vpn-site-rules-delete-dialog"
+      aria-labelledby="vpn-site-rules-delete-message"
+    >
+      <div class="vpn-site-rules-delete-content">
+        <img
+          class="vpn-site-rules-delete-icon"
+          src="chrome://global/skin/icons/delete.svg"
+          alt=""
+        />
+        <p
+          id="vpn-site-rules-delete-message"
+          class="vpn-site-rules-delete-message"
+          data-l10n-id=${this.deletePrompt?.messageL10nId ?? nothing}
+          data-l10n-args=${this.deletePrompt?.messageArgs
+            ? JSON.stringify(this.deletePrompt.messageArgs)
+            : nothing}
+        ></p>
+      </div>
+      <moz-button-group>
+        <moz-button
+          class="vpn-site-rules-delete-cancel"
+          data-l10n-id="ip-protection-delete-site-rule-cancel"
+          @click=${() => this.deleteDialogEl.close()}
+        ></moz-button>
+        <moz-button
+          class="vpn-site-rules-delete-confirm"
+          type="primary"
+          data-l10n-id=${this.deletePrompt?.confirmL10nId ?? nothing}
+          @click=${() => this.deleteDialogEl.close(DELETE_RETURN_VALUE)}
+        ></moz-button>
+      </moz-button-group>
+    </dialog>`;
+  }
+
   render() {
     return html`
+      ${this.#deleteDialogTemplate()}
       <div class="vpn-site-rules">
         ${this.#actionTemplate({
           action: "add",
