@@ -149,6 +149,8 @@ support-files = [
   "file_pageload_prefetch_target.sjs",
 ]
 
+["browser_sizeToContent_tab.js"]
+
 ["browser_speculation_rules_hover_delays.js"]
 support-files = [
   "file_pageload_prefetch_target.sjs",

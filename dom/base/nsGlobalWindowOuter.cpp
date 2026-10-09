@@ -5509,7 +5509,7 @@ void nsGlobalWindowOuter::SizeToContentOuter(
     return;
   }
 
-  if (mBrowsingContext->IsSubframe()) {
+  if (mBrowsingContext->IsSubframe() || mBrowsingContext->IsContent()) {
     return;
   }
 
