@@ -85,8 +85,7 @@ void wgpu_child_resolve_request_adapter_promise(
 
 void wgpu_child_resolve_request_device_promise(
     WGPUWebGPUChildPtr aChild, RawId aDeviceId, RawId aQueueId,
-                                               const WGPULimits* aLimits,
-    const ffi::WGPUFfiRequestDeviceError* aError) {
+    const WGPULimits* aLimits, const ffi::WGPUFfiRequestDeviceError* aError) {
   auto* c = static_cast<WebGPUChild*>(aChild);
   auto pending_promise = c->DequeueRequestDevicePromise();
 
