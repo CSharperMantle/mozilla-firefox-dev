@@ -4,7 +4,6 @@
     "lib/AboutPreferences.sys.mjs",
     "lib/ActivityStream.sys.mjs",
     "lib/ActivityStreamMessageChannel.sys.mjs",
-    "lib/actors/MozNewTabRemoteRendererProtocolParent.sys.mjs",
     "lib/AdsClient.sys.mjs",
     "lib/AdsFeed.sys.mjs",
     "lib/DiscoveryStreamFeed.sys.mjs",
