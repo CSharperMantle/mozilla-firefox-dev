@@ -85,6 +85,7 @@ export var SessionStartup = {
    * Initialize the component
    */
   init() {
+    Services.prefs.lockPref("browser.sessionstore.encryption.available");
     Services.obs.notifyObservers(null, "sessionstore-init-started");
 
     if (!AppConstants.DEBUG) {

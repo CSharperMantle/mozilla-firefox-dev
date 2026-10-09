@@ -9,6 +9,8 @@ const lazy = XPCOMUtils.declareLazy({
     "moz-src:///browser/components/sessionstore/SessionLogger.sys.mjs",
 });
 
+const DEK_NAME_SESSIONSTORE = "sessionstore";
+
 /**
  * We just started (we haven't written anything to disk yet) from
  * `Paths.clean`. The backup directory may not exist.
@@ -147,6 +149,18 @@ export const SessionWriter = new (class {
     let exn;
     let telemetry = {};
 
+    const encrypt =
+      Services.prefs.getBoolPref(
+        "browser.sessionstore.encryption.available",
+        false
+      ) &&
+      Services.prefs.getBoolPref(
+        "browser.sessionstore.encryption.enabled",
+        false
+      )
+        ? DEK_NAME_SESSIONSTORE
+        : "";
+
     // Cap the number of backward and forward shistory entries on shutdown.
     if (options.isFinalWrite) {
       for (let window of state.windows) {
@@ -186,7 +200,10 @@ export const SessionWriter = new (class {
           // and write it to $Path.cleanBackup.
           let oldCleanPath = this.#paths.clean.replace("jsonlz4", "js");
           let d = await IOUtils.read(oldCleanPath);
-          await IOUtils.write(this.#paths.cleanBackup, d, { compress: true });
+          await IOUtils.write(this.#paths.cleanBackup, d, {
+            compress: true,
+            encrypt,
+          });
         }
       }
 
@@ -202,6 +219,7 @@ export const SessionWriter = new (class {
         await IOUtils.writeJSON(this.#paths.clean, state, {
           tmpPath: this.#paths.clean + ".tmp",
           compress: true,
+          encrypt,
         });
         fileStat = await IOUtils.stat(this.#paths.clean);
       } else if (this.#state == STATE_RECOVERY) {
@@ -215,6 +233,7 @@ export const SessionWriter = new (class {
           tmpPath: this.#paths.recovery + ".tmp",
           backupFile: this.#paths.recoveryBackup,
           compress: true,
+          encrypt,
         });
         fileStat = await IOUtils.stat(this.#paths.recovery);
       } else {
@@ -224,6 +243,7 @@ export const SessionWriter = new (class {
         await IOUtils.writeJSON(this.#paths.recovery, state, {
           tmpPath: this.#paths.recovery + ".tmp",
           compress: true,
+          encrypt,
         });
         fileStat = await IOUtils.stat(this.#paths.recovery);
       }

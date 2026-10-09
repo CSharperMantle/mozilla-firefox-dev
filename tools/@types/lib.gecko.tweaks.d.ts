@@ -118,6 +118,15 @@ interface nsICryptoHash extends nsISupports {
   update(aData: ArrayLike<number>, aLen: number): void;
 }
 
+// The type generator drops UTF8String dictionary members from IOUtils options.
+interface ReadUTF8Options {
+  decrypt?: string;
+}
+
+interface WriteOptions {
+  encrypt?: string;
+}
+
 interface nsIDOMWindow extends Window {}
 
 interface nsISimpleEnumerator extends Iterable<any> {}
