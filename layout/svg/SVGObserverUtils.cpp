@@ -589,8 +589,7 @@ void SVGTextPathObserver::OnRenderingChange() {
   if (text) {
     text->AddStateBits(NS_STATE_SVG_POSITIONING_DIRTY);
 
-    if (text->HasAnyStateBits(NS_STATE_SVG_TEXT_IN_REFLOW |
-                              NS_STATE_SVG_TEXT_CORRESPONDENCE_DIRTY)) {
+    if (text->HasAnyStateBits(NS_STATE_SVG_TEXT_IN_REFLOW)) {
       return;
     }
 
