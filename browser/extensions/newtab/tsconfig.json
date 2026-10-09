@@ -25,7 +25,6 @@
     "lib/TopSitesFeed.sys.mjs",
     "lib/TopStoriesFeed.sys.mjs",
     "lib/Wallpapers/WallpaperFeed.sys.mjs",
-    "lib/WeatherFeed.sys.mjs",
     "lib/WebNotificationsFeed.sys.mjs"
   ],
   "extends": "../../../tools/@types/tsconfig.json",

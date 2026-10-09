@@ -83,7 +83,7 @@ export class WeatherFeed {
   }
 
   async init() {
-    await this.loadWeather(true /* isStartup */);
+    await this.loadWeather();
   }
 
   stopFetching() {
@@ -137,7 +137,7 @@ export class WeatherFeed {
     this.update();
   }
 
-  async loadWeather(isStartup = false) {
+  async loadWeather() {
     const cachedData = (await this.cache.get()) || {};
     const { weather, locationData } = cachedData;
 
@@ -150,7 +150,7 @@ export class WeatherFeed {
       !weather?.lastUpdated ||
       !(this.Date().now() - weather.lastUpdated < WEATHER_UPDATE_TIME)
     ) {
-      await this.fetch(isStartup);
+      await this.fetch();
     } else if (!this.lastUpdated) {
       this.suggestions = weather.suggestions;
       this.hourlyForecasts = weather.hourlyForecasts || [];
