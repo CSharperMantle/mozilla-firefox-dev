@@ -278,7 +278,7 @@ the message path, as the
 [overview](overview.md#direct-path-and-message-path) describes. The address
 and search bars in the toolbar take the direct path by default, so an ordinary
 test run says nothing about the message path. The New Tab search bar always
-takes the message path.
+takes the message path. {doc}`debugging` covers logging from content code.
 
 ### Running a Test Over the Message Path
 
