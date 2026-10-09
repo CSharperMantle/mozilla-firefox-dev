@@ -32,8 +32,7 @@ const ADDR_TYPE = 2;
 // Regular expression to match a word of text.
 const WORD_RE = /\s*([\p{L}\p{N}]+)/u;
 
-const ADJACENT_BEFORE_PREFIX = "bb";
-const ADJACENT_AFTER_PREFIX = "aa";
+const HINT_PREFIX = "**hint";
 
 // strip_common / strip_frequent apply only to forms with at least this many
 // fields -- below it, a "shared" token is likely coincidental and removing it is
@@ -1107,7 +1106,7 @@ export const FormAutofillHeuristics = {
       let words = [];
       this.tokenizeAttributes(element, words);
 
-      elementDataList.push({ element, words });
+      elementDataList.push({ element, words: words.join(" ") });
     }
 
     // Optionally drop form-wide boilerplate tokens before building neighbor
@@ -1116,28 +1115,58 @@ export const FormAutofillHeuristics = {
 
     let resultsMap = new Map();
 
-    // Each field's tokens plus its immediate neighbors' tokens, prefixed "bb"
-    // (previous) and "aa" (next) so the model can tell own vs adjacent context.
+    // Each field's tokens plus its immediate neighbors' tokens.
     for (let e = 0; e < elementDataList.length; e++) {
-      let words = elementDataList[e].words.copyWithin();
+      let words = elementDataList[e].words;
+      let previousWords = e > 0 ? elementDataList[e - 1].words : "";
+      let nextWords =
+        e < elementDataList.length - 1 ? elementDataList[e + 1].words : "";
 
-      if (e > 0) {
-        words = words.concat(
-          elementDataList[e - 1].words.map(
-            text => ADJACENT_BEFORE_PREFIX + text
-          )
-        );
-      }
-      if (e < elementDataList.length - 1) {
-        words = words.concat(
-          elementDataList[e + 1].words.map(text => ADJACENT_AFTER_PREFIX + text)
-        );
-      }
-
-      resultsMap.set(elementDataList[e].element, words.join(" "));
+      resultsMap.set(elementDataList[e].element, [
+        words,
+        previousWords,
+        nextWords,
+      ]);
     }
 
     return resultsMap;
+  },
+
+  getHintToken(fieldDetail) {
+    const name =
+      lazy.FormAutofillUtils.canUseML(fieldDetail) ||
+      fieldDetail.reason == "autocomplete"
+        ? fieldDetail.fieldName
+        : "";
+
+    if (!name || !FormAutofill.mlHintFields.has(name)) {
+      return HINT_PREFIX + "none";
+    }
+
+    return HINT_PREFIX + name.replaceAll("-", "");
+  },
+
+  addHintTokens(fieldDetail, previousHint, nextHint) {
+    if (!fieldDetail.mlData) {
+      return;
+    }
+
+    const currentHint = this.getHintToken(fieldDetail);
+    previousHint ??= HINT_PREFIX + "none";
+    nextHint ??= HINT_PREFIX + "none";
+
+    // Reassign a fresh array rather than mutating elements in place: mlData can
+    // reach this point as a read-only array (e.g. a frozen/IPC-cloned copy via
+    // the inspectFields path), so `mlData[0] = ...` would throw "0 is read-only".
+    fieldDetail.mlData = [
+      currentHint + " " + fieldDetail.mlData[0],
+      fieldDetail.mlData[1]
+        ? previousHint + " " + fieldDetail.mlData[1]
+        : fieldDetail.mlData[1],
+      fieldDetail.mlData[2]
+        ? nextHint + " " + fieldDetail.mlData[2]
+        : fieldDetail.mlData[2],
+    ];
   },
 
   /**
@@ -1157,11 +1186,36 @@ export const FormAutofillHeuristics = {
       lazy.FormAutofillUtils.isCreditCardOrAddressFieldType(element)
     );
 
+    // The "regex_hint" mlFeature prepends each field's regex-heuristic
+    // recommendation as a "**hint" token.
+    const shouldAddHints = FormAutofill.mlFeatures.has("regex_hint");
+
     // Because we include information about the adjacent fields, it is
     // easier to  perform all of the tokenization at once and insert the
     // results into a map first, keyed by element. The tokens can then be
     // retrieved later within inferFieldInfo.
     let mlTokensMap = this.tokenizeElements(elements);
+
+    // As we iterate, we store details about the previous details and hints,
+    // so that we can update the hints for that and surrounding fields. The
+    // previous detail is used, because by then we know the hints for the
+    // current and next fields
+    let previousDetail = null;
+    let currentHint, previousHint;
+
+    let addHintsToPrevious = fieldDetail => {
+      if (!shouldAddHints) {
+        return;
+      }
+
+      const nextHint = fieldDetail ? this.getHintToken(fieldDetail) : null;
+      if (previousDetail) {
+        this.addHintTokens(previousDetail, previousHint, nextHint);
+      }
+      previousHint = currentHint;
+      currentHint = nextHint;
+      previousDetail = fieldDetail;
+    };
 
     const fieldDetails = [];
     for (let idx = 0; idx < elements.length; idx++) {
@@ -1178,6 +1232,7 @@ export const FormAutofillHeuristics = {
         // keep track of them. This way they will also be cleared on a form clearing action.
         element.autofillState != lazy.FormAutofillUtils.FIELD_STATES.AUTO_FILLED
       ) {
+        addHintsToPrevious(null);
         continue;
       }
 
@@ -1189,16 +1244,24 @@ export const FormAutofillHeuristics = {
 
       const attributes = this.parseAdditionalAttributes(element, fieldName);
 
-      fieldDetails.push(
-        lazy.FieldDetail.create(element, formLike, fieldName, {
+      const fieldDetail = lazy.FieldDetail.create(
+        element,
+        formLike,
+        fieldName,
+        {
           autocompleteInfo: inferInfo.autocompleteInfo,
           fathomConfidence: inferInfo.fathomConfidence,
           isVisible,
           isLookup: attributes.isLookup,
           mlData,
-        })
+        }
       );
+      fieldDetails.push(fieldDetail);
+
+      addHintsToPrevious(fieldDetail);
     }
+
+    addHintsToPrevious(null);
 
     this.parseAndUpdateFieldNamesContent(fieldDetails);
 

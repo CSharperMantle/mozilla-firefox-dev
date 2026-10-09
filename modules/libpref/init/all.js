@@ -4091,6 +4091,14 @@ pref("extensions.formautofill.useml.ignoreFieldTypes", "");
 // model must be trained with the same features enabled.
 pref("extensions.formautofill.useml.features", "[]");
 
+// Field types whose regex-heuristic recommendation is fed to the model as a
+// "**hint<class>" token (the "regex_hint" mlFeature); a regex prediction outside
+// this set becomes "**hintnone". Only takes effect when "regex_hint" is in
+// useml.features. This list is part of the model's input contract and must match
+// the hintable set the shipped model was trained with.
+pref("extensions.formautofill.useml.hint.fields",
+  "[\"email\",\"tel\",\"tel-country-code\",\"street-address\",\"address-line1\",\"address-line2\",\"address-line3\",\"postal-code\",\"address-level1\",\"address-level2\",\"organization\",\"country\",\"name\",\"given-name\",\"family-name\",\"cc-name\",\"cc-type\"]");
+
 // Pin the ML model revision to load (the encoder and head engines share one
 // version). Empty = use the Remote Settings default.
 pref("extensions.formautofill.useml.modelVersion", "");

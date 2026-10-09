@@ -67,37 +67,10 @@ const FormFill_Head_Config = {
   modelToUseId: "mozilla/form-autofill-head", // used only by isModelInstalled
 };
 
-/**
- * Split a form-autofill context string into the current, previous, and next
- * field strings.
- *
- * Tokens prefixed with `bb` belong to the previous field and have the prefix
- * removed. Tokens prefixed with `aa` belong to the next field and have the
- * prefix removed. All remaining tokens belong to the current field.
- *
- * @param {string} mlData Context string containing tokens from the current
- *   field plus neighboring fields.
- * @returns {[string, string, string]} A tuple containing the current, previous,
- *   and next field strings, in that order.
- */
-export function splitContext(mlData) {
-  const cur = [];
-  const prev = [];
-  const next = [];
-  for (const w of mlData.split(/\s+/)) {
-    if (!w) {
-      continue;
-    }
-    if (w.length > 2 && w.startsWith("bb")) {
-      prev.push(w.slice(2));
-    } else if (w.length > 2 && w.startsWith("aa")) {
-      next.push(w.slice(2));
-    } else {
-      cur.push(w);
-    }
-  }
-  return [cur.join(" "), prev.join(" "), next.join(" ")];
-}
+// For the single classifier, these prefixes are used on words for the
+// previous and next elements.
+const ADJACENT_BEFORE_PREFIX = "bb";
+const ADJACENT_AFTER_PREFIX = "aa";
 
 export class FormAutofillML {
   // featureId -> engine, covering whichever classifier is active.
@@ -185,6 +158,33 @@ export class FormAutofillML {
     }
 
     return true;
+  }
+
+  combineAdjacentTokens(fieldDetails) {
+    for (let fieldDetail of fieldDetails) {
+      if (!fieldDetail.mlData) {
+        continue;
+      }
+
+      let words = fieldDetail.mlData[0].split(" ");
+
+      if (fieldDetail.mlData[1]) {
+        words = words.concat(
+          fieldDetail.mlData[1]
+            .split(" ")
+            .map(text => ADJACENT_BEFORE_PREFIX + text)
+        );
+      }
+      if (fieldDetail.mlData[2]) {
+        words = words.concat(
+          fieldDetail.mlData[2]
+            .split(" ")
+            .map(text => ADJACENT_AFTER_PREFIX + text)
+        );
+      }
+
+      fieldDetail.mlDataCombined = words.join(" ");
+    }
   }
 
   /**
@@ -322,6 +322,8 @@ export class FormAutofillML {
       return false;
     }
 
+    this.combineAdjacentTokens(fieldDetails);
+
     // Only fields that have tokens and don't already have a field name assigned
     // need identifying. One input string per field, classified in one batch.
     const mlFields = fieldDetails.filter(fd => FormAutofillUtils.canUseML(fd));
@@ -331,7 +333,7 @@ export class FormAutofillML {
     }
 
     const results = await engines[0].run({
-      args: [mlFields.map(fd => fd.mlData)],
+      args: [mlFields.map(fd => fd.mlDataCombined)],
       options: { pooling: "mean", normalize: true },
     });
 
@@ -381,7 +383,7 @@ export class FormAutofillML {
     //   - An absent previous/next section is the empty string "", which the
     //     encoder turns into a fixed non-zero [CLS][SEP] embedding (NOT a zero
     //     vector), so the difference features become `cur - emptyEmb`.
-    const sections = mlFields.map(fd => splitContext(fd.mlData));
+    const sections = mlFields.map(fd => fd.mlData);
     const uniqueStrings = [...new Set([""].concat(...sections))];
     let embeddings = await encoderEngine.run({
       args: [uniqueStrings],
