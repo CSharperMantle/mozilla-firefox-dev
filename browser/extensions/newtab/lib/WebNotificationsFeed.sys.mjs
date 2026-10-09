@@ -400,7 +400,12 @@ export class WebNotificationsFeed {
     }
   }
 
-  /** Dismisses every notification, or every one for a single origin. */
+  /**
+   * Dismisses every notification, or every one for a single origin.
+   *
+   * @param {object} [options]
+   * @param {string} [options.origin]
+   */
   _dismissAll({ origin } = {}) {
     const targets = [];
     for (const id of Object.keys(this._notifications)) {

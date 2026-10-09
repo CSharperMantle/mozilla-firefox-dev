@@ -493,6 +493,8 @@ export class TemporaryMerinoClientShim {
    *   Timeout in milliseconds. This method will return once the timeout
    *   elapses, a response is received, or an error occurs, whichever happens
    *   first.
+   * @param {string=} options.endpointUrl
+   *   Overrides the Merino endpoint URL from the merinoEndpointURL pref.
    * @returns {Promise<MerinoClientSuggestion>}
    *   The Merino suggestions or null if there's an error or unexpected
    *   response.
@@ -577,6 +579,8 @@ export class TemporaryMerinoClientShim {
    *   region codes.
    * @param {string=} options.city
    *   The city that should be a city name.
+   * @param {string=} options.endpointUrl
+   *   The hourly forecasts endpoint. Without it, null is returned.
    * @returns {Promise<Array<{date_time: string, epoch_date_time: number, icon_id: number, temperature: {c: number, f: number}, url: string}>|null>}
    *   Array of hourly forecast slots, or null if the endpoint is not
    *   configured or an error occurs.
