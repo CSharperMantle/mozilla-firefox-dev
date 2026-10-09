@@ -255,14 +255,16 @@ export class PdfJsParent extends JSWindowActorParent {
   }
 
   _openAboutPdfFeatures() {
-    // Do not let an embedded viewer navigate the top-level tab.
+    // Ignore embedded viewers.
     if (this.browsingContext !== this.browsingContext.top) {
       return;
     }
-    const browser = this.browser;
-    browser?.documentGlobal.openTrustedLinkIn("about:pdf#features", "current", {
-      targetBrowser: browser,
-    });
+    // Keep the PDF and unsaved edits open.
+    this.browser?.documentGlobal.openTrustedLinkIn(
+      "about:pdf#features",
+      "tab",
+      { inBackground: false, relatedToCurrent: true }
+    );
   }
 
   _claimFeaturesNotification() {
