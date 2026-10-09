@@ -515,7 +515,7 @@ function parseDeclarationsInternal(
       resetStateForNextDeclaration();
     } else if (token.tokenType === "Ident") {
       if (
-        token.text === "important" &&
+        token.text.toLowerCase() === "important" &&
         importantState === IMPORTANT_STATE_SAW_EXCLAMATION
       ) {
         importantState = IMPORTANT_STATE_COMPLETE;

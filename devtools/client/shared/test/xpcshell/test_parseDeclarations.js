@@ -186,6 +186,19 @@ const TEST_DATA = [
       },
     ],
   },
+  // Test uppercase priority
+  {
+    input: "p1: v1 !IMPORTANT;",
+    expected: [
+      {
+        name: "p1",
+        value: "v1",
+        priority: "important",
+        offsets: [0, 18],
+        declarationText: "p1: v1 !IMPORTANT;",
+      },
+    ],
+  },
   // Test trailing "!" without terminating ";".
   {
     input: "p1: v1 !",
