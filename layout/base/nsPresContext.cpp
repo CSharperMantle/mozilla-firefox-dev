@@ -334,7 +334,6 @@ static const char* gExactCallbackPrefs[] = {
     "dom.meta-viewport.enabled",
     "image.animation_mode",
     "intl.accept_languages",
-    "layout.css.always_underline_links",
     "layout.css.devPixelsPerPx",
     "layout.css.dpi",
     "layout.css.letter-spacing.model",
@@ -575,10 +574,6 @@ void nsPresContext::PreferenceChanged(const char* aPrefName) {
       }
       mMissingFonts = nullptr;
     }
-  }
-
-  if (prefName.EqualsLiteral("layout.css.always_underline_links")) {
-    restyleHint |= RestyleHint::RecascadeSubtree();
   }
 
   if (StringBeginsWith(prefName, "font."_ns) ||
