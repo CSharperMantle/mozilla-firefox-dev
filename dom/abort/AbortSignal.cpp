@@ -16,7 +16,6 @@
 #include "nsCycleCollectionParticipant.h"
 #include "nsGlobalWindowInner.h"
 #include "nsPIDOMWindow.h"
-#include "nsTHashSet.h"
 
 namespace mozilla::dom {
 
@@ -350,22 +349,11 @@ already_AddRefed<AbortSignal> AbortSignal::Any(
   // Step 3. Set resultSignal's dependent to true
   resultSignal->mDependent = true;
 
-  // A single signal has no duplicate source signals. With multiple signals,
-  // their source lists may overlap, so deduplicate before adding either side
-  // of the dependency. Avoid a hash table for the common single-signal case.
-  nsTHashSet<AbortSignal*> seenSourceSignals;
-  auto makeDependentOn = [&](AbortSignal* aSourceSignal) {
-    if (aSignals.Length() == 1 ||
-        seenSourceSignals.EnsureInserted(aSourceSignal)) {
-      resultSignal->MakeDependentOn(aSourceSignal);
-    }
-  };
-
   // Step 4. For each signal of signals
   for (const auto& signal : aSignals) {
     if (!signal->Dependent()) {
       // Step 4.1. If signal is not dependent, make resultSignal dependent on it
-      makeDependentOn(signal);
+      resultSignal->MakeDependentOn(signal);
     } else {
       // Step 4.2. Otherwise, make resultSignal dependent on its source signals
       for (const auto& sourceSignal : signal->mSourceSignals) {
@@ -376,7 +364,7 @@ already_AddRefed<AbortSignal> AbortSignal::Any(
           continue;
         }
         MOZ_ASSERT(!sourceSignal->Aborted() && !sourceSignal->Dependent());
-        makeDependentOn(sourceSignal);
+        resultSignal->MakeDependentOn(sourceSignal);
       }
     }
   }
@@ -388,10 +376,14 @@ already_AddRefed<AbortSignal> AbortSignal::Any(
 void AbortSignal::MakeDependentOn(AbortSignal* aSignal) {
   MOZ_ASSERT(mDependent);
   MOZ_ASSERT(aSignal);
-  // Any() has already removed duplicate source signals.
+  // append only if not already contained in list
   // https://infra.spec.whatwg.org/#set-append
-  mSourceSignals.AppendElement(aSignal);
-  aSignal->mDependentSignals.AppendElement(this);
+  if (!mSourceSignals.Contains(aSignal)) {
+    mSourceSignals.AppendElement(aSignal);
+  }
+  if (!aSignal->mDependentSignals.Contains(this)) {
+    aSignal->mDependentSignals.AppendElement(this);
+  }
 }
 
 // https://dom.spec.whatwg.org/#dom-abortsignal-throwifaborted
