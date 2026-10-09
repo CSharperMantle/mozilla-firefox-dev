@@ -21,6 +21,9 @@ add_task(async function test_search_input_popupshowing() {
   const bookmarksComponent = isUpdatedBookmarks
     ? sidebar.contentDocument.querySelector("sidebar-bookmarks")
     : null;
+  if (isUpdatedBookmarks) {
+    await SidebarController.waitUntilStable();
+  }
   const inputField = isUpdatedBookmarks
     ? bookmarksComponent.searchInput.inputEl
     : sidebar.contentDocument.getElementById("search-box");

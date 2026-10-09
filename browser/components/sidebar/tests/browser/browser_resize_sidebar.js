@@ -166,11 +166,11 @@ add_task(async function test_custom_width_persists() {
 
   info("Collapse the sidebar using toolbar button.");
   EventUtils.synthesizeMouseAtCenter(SidebarController.toolbarButton, {});
-  await SidebarController.sidebarMain.updateComplete;
+  await SidebarController.waitUntilStable();
 
   info("Expand the sidebar using toolbar button.");
   EventUtils.synthesizeMouseAtCenter(SidebarController.toolbarButton, {});
-  await SidebarController.sidebarMain.updateComplete;
+  await SidebarController.waitUntilStable();
   Assert.equal(
     customWidth,
     getLauncherWidth(),
