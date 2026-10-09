@@ -266,9 +266,9 @@
 
   dialog {
     background: var(--newtab-background-color-secondary);
-    border: 1px solid var(--card-border-color);
-    border-radius: var(--border-radius-medium);
-    box-shadow: var(--card-box-shadow);
+    border: var(--border-width) solid var(--dialog-border-color);
+    border-radius: var(--dialog-border-radius);
+    box-shadow: var(--dialog-box-shadow);
     display: flex;
     width: 332px;
 
