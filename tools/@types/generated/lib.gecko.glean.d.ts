@@ -1356,7 +1356,10 @@ interface GleanImpl {
     startupSessionDecision: GleanEventWithExtras<{ action?: string, init_error?: string, interstitial_reason?: string, permanent_private?: string|boolean, previous_session_crashed?: string|boolean, resume_reason?: string, session_type?: string }>;
     startupTimeline: Record<"sessionRestoreInitialized"|"sessionRestoreRestoring", GleanQuantity>;
     windowFeaturesMismatchIgnored: GleanEventWithExtras<{ entry_point?: string, existing_features?: string, requested_features?: string }>;
+    writeAttempts: GleanCounter;
+    writeFailure: GleanEventWithExtras<{ cause?: string, is_final_write?: string|boolean, session_written?: string|boolean, step?: string }>;
     writeFile: GleanTimingDistribution;
+    writeOutcome: Record<"failed"|"session_written_backup_failed"|"success", GleanCounter>;
   }
 
   collectionShare: {

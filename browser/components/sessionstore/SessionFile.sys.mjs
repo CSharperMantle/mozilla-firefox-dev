@@ -23,6 +23,8 @@ const lazy = XPCOMUtils.declareLazy({
   RunState: "moz-src:///browser/components/sessionstore/RunState.sys.mjs",
   SessionStore:
     "moz-src:///browser/components/sessionstore/SessionStore.sys.mjs",
+  SessionWriteError:
+    "moz-src:///browser/components/sessionstore/SessionWriter.sys.mjs",
   SessionWriter:
     "moz-src:///browser/components/sessionstore/SessionWriter.sys.mjs",
 });
@@ -186,6 +188,13 @@ var SessionFileInternal = {
   // Number of failed calls to `write`.
   // Used for error reporting.
   _failures: 0,
+
+  // Number of failed calls to `write` since the last successful one.
+  _consecutiveFailures: 0,
+
+  // "success", or "<step>:<cause>" for the last failed write. Used so that a
+  // write failing the same way repeatedly is only reported once.
+  _lastWriteOutcome: null,
 
   // `true` once we have initialized SessionWriter.
   _initialized: false,
@@ -515,6 +524,7 @@ var SessionFileInternal = {
       isFinalWrite && !lazy.SessionStore.willAutoRestore;
 
     this._attempts++;
+    Glean.sessionRestore.writeAttempts.add(1);
     let options = { isFinalWrite, performShutdownCleanup };
     let write = this.getWriter().then(writer => writer.write(aData, options));
 
@@ -534,6 +544,7 @@ var SessionFileInternal = {
         }
 
         this._successes++;
+        this._recordWriteSuccess();
         if (msg.result.upgradeBackup) {
           // We have just completed a backup-on-upgrade, store the information
           // in preferences.
@@ -545,12 +556,8 @@ var SessionFileInternal = {
       },
       err => {
         // Catch and report any errors.
-        lazy.sessionStoreLogger.error(
-          "Could not write session state file ",
-          err,
-          err.stack
-        );
         this._failures++;
+        this._recordWriteFailure(err, isFinalWrite);
         // By not doing anything special here we ensure that |promise| cannot
         // be rejected anymore. The shutdown/cleanup code at the end of the
         // function will thus always be executed.
@@ -585,6 +592,65 @@ var SessionFileInternal = {
           "sessionstore-final-state-write-complete"
         );
       }
+    });
+  },
+
+  _recordWriteSuccess() {
+    Glean.sessionRestore.writeOutcome.success.add(1);
+    if (this._consecutiveFailures) {
+      lazy.sessionStoreLogger.warn(
+        `Wrote session state file after ${this._consecutiveFailures} consecutive failed writes`
+      );
+    }
+    this._consecutiveFailures = 0;
+    this._lastWriteOutcome = "success";
+  },
+
+  /**
+   * Counts a failed write and, unless it failed the same way as the previous
+   * write, logs and records the details. A failed final write is always
+   * recorded.
+   *
+   * @param {*} err The rejection from SessionWriter.write, normally a
+   *   SessionWriteError.
+   * @param {boolean} isFinalWrite
+   */
+  _recordWriteFailure(err, isFinalWrite) {
+    this._consecutiveFailures++;
+
+    let isWriteError = err instanceof lazy.SessionWriteError;
+    /** @type {SessionWriteStep|"unknown"} */
+    let step = isWriteError ? err.step : "unknown";
+    let error = isWriteError ? err.cause : err;
+    let sessionWritten = isWriteError && err.sessionWritten;
+    // IOUtils appends the nsresult name to its error messages, which is more
+    // specific than the DOMException name.
+    let cause =
+      /\((NS_ERROR_[A-Z0-9_]+)\)$/.exec(error?.message)?.[1] ??
+      (error?.name || typeof error);
+
+    Glean.sessionRestore.writeOutcome[
+      sessionWritten ? "session_written_backup_failed" : "failed"
+    ].add(1);
+
+    let outcome = `${step}:${cause}`;
+    if (outcome == this._lastWriteOutcome && !isFinalWrite) {
+      return;
+    }
+    this._lastWriteOutcome = outcome;
+
+    lazy.sessionStoreLogger.error(
+      `Could not write session state file at step ${step} (${cause}), ` +
+        `isFinalWrite: ${isFinalWrite}, consecutive failures: ${this._consecutiveFailures}, ` +
+        `attempts: ${this._attempts}, successes: ${this._successes}, failures: ${this._failures}`,
+      error
+    );
+
+    Glean.sessionRestore.writeFailure.record({
+      step,
+      cause,
+      session_written: sessionWritten,
+      is_final_write: isFinalWrite,
     });
   },
 
