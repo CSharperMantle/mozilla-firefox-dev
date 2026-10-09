@@ -38,6 +38,8 @@ skip-if = [
 
 ["test_session_availability.js"]
 
+["test_session_migration_encryption.js"]
+
 ["test_session_schema.js"]
 support-files = [
   "data/sessionstore_complete.json",

@@ -58,6 +58,8 @@ skip-if = [
   "os == 'win' && os_version == '11.26200' && arch == 'x86_64'", # Bug 1727691
 ]
 
+["test_restore_with_encryption.py"]
+
 ["test_session_availability.py"]
 
 ["test_session_decision.py"]
