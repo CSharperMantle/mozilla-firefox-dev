@@ -6182,6 +6182,7 @@ ${
     this._handoffSession = undefined;
     this._isHandoffSession = false;
     this.removeAttribute("focused");
+    this._preventClickSelectsAll = false;
 
     if (this._autofillPlaceholder && this.userTypedValue) {
       // If we were autofilling, remove the autofilled portion, by restoring
@@ -6457,6 +6458,10 @@ ${
   }
 
   _on_input(event) {
+    // Don't let the click following a focusing mousedown select-all and
+    // clobber text typed in between.
+    this._preventClickSelectsAll = true;
+
     // A new input starts a fresh search; bump the epoch so a pending
     // deferred-Enter's async keyup won't reset this search's caret.
     this.#inputEpoch++;

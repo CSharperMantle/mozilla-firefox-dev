@@ -5194,8 +5194,8 @@ ${
   }
 
   /**
-   * Used to indicate if the input already has focus when a click is made, and
-   * if so, then we shouldn't select all the text.
+   * Set when a click shouldn't select all the text: either the input already
+   * had focus at mousedown, or the user typed after the focusing mousedown.
    */
   #preventClickSelectsAll = false;
 
@@ -5533,6 +5533,8 @@ ${
   }
 
   _on_input(event) {
+    this.#preventClickSelectsAll = true;
+
     // A new input starts a fresh search; bump the epoch so a pending
     // deferred-Enter's async keyup won't reset this search's caret.
     this.#inputEpoch++;
