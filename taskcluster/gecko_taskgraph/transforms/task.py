@@ -2479,7 +2479,7 @@ def _variant_symbols():
         [
             (
                 v,
-                TEST_VARIANTS[v]["suffix"],
+                TEST_VARIANTS[v].get("treeherder-suffix") or TEST_VARIANTS[v]["suffix"],
                 TEST_VARIANTS[v].get("description", "{description}"),
             )
             for v in TEST_VARIANTS

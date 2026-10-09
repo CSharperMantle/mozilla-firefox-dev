@@ -217,6 +217,7 @@ geckoview-isolated-process:
     when:
         <<: *gv_e10s_filter
     suffix: "isolated"
+    treeherder-suffix: "iso"
     mozinfo: "isolated_process"
     merge:
         mozharness:
