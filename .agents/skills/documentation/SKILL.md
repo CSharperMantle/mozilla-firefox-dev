@@ -261,15 +261,17 @@ they do not agree:
     the build does not avoid it. `--no-autodoc` builds the page anyway, with the
     generated API pages missing and `js:autoclass` warning as an unknown
     directive.
--   **jsdoc rejects type expressions that TypeScript accepts, and does it
-    quietly.** A type predicate (`{element is MozTabbrowserTab}`), a tuple,
-    indexed access, and a postfix `[]` on a parenthesised union (`{(A|B)[]}`)
-    each log a build ERROR while the member still renders -- without the row for
-    the parameter or return value being documented. Write `{Array<A|B>}` for the
-    last of those, and put a predicate's meaning in the summary line.
-    Indexed access (`{Foo['id']}`) has no spelling jsdoc accepts, whatever the
-    quoting, so a derived type needs a named `@typedef` alias beside the one it
-    derives from.
+-   **Write TypeScript types as TypeScript wants them.**
+    `docs/jsdoc-plugins/accept-typescript-types.mjs` passes predicates,
+    generics, indexed access, tuples, arrow and `import()` types through to the
+    page verbatim, though not as links.
+-   **Prose under an `@type` tag is moved above it** by
+    `docs/jsdoc-plugins/keep-type-descriptions.mjs`, where jsdoc reads it, but
+    only when `@type` is the first tag and the prose has its own lines. A
+    one-line `/** @type {number} Seconds since the epoch. */` loses its text;
+    write it out over several lines.
+-   **Give `@typedef` a type** -- `@typedef {object} Name` -- or jsdoc takes the
+    first `{` in the prose under it as the type and logs a build ERROR.
 -   **A documented default value renders**, so `[options.animate=true]` is a
     claim about the code. Write one only where the signature supplies that
     default, and describe a computed default in the prose instead, where it can
