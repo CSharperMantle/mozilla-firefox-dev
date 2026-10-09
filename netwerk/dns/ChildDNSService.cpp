@@ -73,7 +73,7 @@ void ChildDNSService::GetDNSRecordHashKey(
     nsIDNSService::DNSFlags aFlags, uintptr_t aListenerAddr,
     nsACString& aHashKey) {
   aHashKey.Assign(aHost);
-  aHashKey.Assign(aTrrServer);
+  aHashKey.Append(aTrrServer);
   aHashKey.AppendInt(aPort);
   aHashKey.AppendInt(aType);
 
