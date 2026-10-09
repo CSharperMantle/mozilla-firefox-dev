@@ -8,6 +8,7 @@
 #include "mozilla/PresShell.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/dom/Document.h"
+#include "mozilla/dom/DocumentInlines.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/PrefetchCandidates.h"
 #include "mozilla/dom/PrefetchLog.h"
@@ -161,7 +162,7 @@ void SpeculationRules::InnerConsiderLoads() {
   }
 
   // In order to find matching links, we need the link frames to have been
-  // constructed. If there are frames pending, wait until the next refresh.
+  // constructed. If frame construction is pending, wait for it.
   if (WaitForPendingFrames()) {
     return;
   }
@@ -197,16 +198,20 @@ void SpeculationRules::InnerConsiderLoads() {
   EnactCandidates(nullptr, Eagerness::Immediate);
 }
 
+bool SpeculationRules::IsFrameConstructionPending() const {
+  PresShell* presShell = mDocument ? mDocument->GetPresShell() : nullptr;
+  return presShell && presShell->NeedFlush(FlushType::Frames, false);
+}
+
 bool SpeculationRules::WaitForPendingFrames() {
   if (mPendingFramesObserver) {
     return true;
   }
 
-  PresShell* presShell = mDocument->GetPresShell();
-  if (!presShell || !presShell->NeedFlush(FlushType::Frames, false)) {
+  if (!IsFrameConstructionPending()) {
     return false;
   }
-  nsPresContext* presContext = presShell->GetPresContext();
+  nsPresContext* presContext = mDocument->GetPresContext();
   if (!presContext) {
     return false;
   }
@@ -221,6 +226,9 @@ bool SpeculationRules::WaitForPendingFrames() {
 
   mPendingFramesObserver = MakeRefPtr<ManagedPostRefreshObserver>(
       presContext, [self = RefPtr{this}](bool aWasCanceled) {
+        if (!aWasCanceled && self->IsFrameConstructionPending()) {
+          return ManagedPostRefreshObserver::Unregister::No;
+        }
         self->mPendingFramesObserver = nullptr;
         if (!aWasCanceled) {
           self->InnerConsiderLoads();
