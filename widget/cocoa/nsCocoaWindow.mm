@@ -627,7 +627,7 @@ nsresult nsCocoaWindow::SynthesizeNativeTouchpadDoubleTap(
 
 bool nsCocoaWindow::SendEventToNativeMenuSystem(NSEvent* aEvent) {
   bool handled = false;
-  if (nsMenuBarX* mb = GetMenuBar()) {
+  if (RefPtr<nsMenuBarX> mb = GetMenuBar()) {
     // Check if main menu wants to handle the event.
     handled = mb->PerformKeyEquivalent(aEvent);
   }
@@ -740,7 +740,7 @@ nsresult nsCocoaWindow::GetNativeMenuItemKeyEquivalent(
 
   // Not [NSApp mainMenu]: that may belong to a different window, for example
   // the hidden window's menu bar.
-  nsMenuBarX* menuBar = GetMenuBar();
+  RefPtr<nsMenuBarX> menuBar = GetMenuBar();
   if (!menuBar) {
     return NS_ERROR_FAILURE;
   }
@@ -795,7 +795,7 @@ nsresult nsCocoaWindow::GetNativeMenuItemKeyEquivalent(
 // Used for testing native menu system structure and event handling.
 nsresult nsCocoaWindow::ForceUpdateNativeMenuAt(const nsAString& indexString) {
   NS_OBJC_BEGIN_TRY_BLOCK_RETURN;
-  if (nsMenuBarX* mb = GetMenuBar()) {
+  if (RefPtr<nsMenuBarX> mb = GetMenuBar()) {
     if (indexString.IsEmpty())
       mb->ForceNativeMenuReload();
     else
@@ -7312,7 +7312,8 @@ void nsCocoaWindow::SetMenuBar(RefPtr<nsMenuBarX>&& aMenuBar) {
   // other menu bar has been painted yet so that some reasonable menu bar is
   // displayed when the app starts up.
   if (mMenuBar && ((!gSomeMenuBarPainted &&
-                    nsMenuUtilsX::GetHiddenWindowMenuBar() == mMenuBar) ||
+                    RefPtr<nsMenuBarX>(
+                        nsMenuUtilsX::GetHiddenWindowMenuBar()) == mMenuBar) ||
                    mWindow.isMainWindow)) {
     // We do an async paint in order to prevent crashes when macOS is actively
     // enumerating the menu items in `NSApp.mainMenu`.
@@ -7382,7 +7383,9 @@ LayoutDeviceIntMargin nsCocoaWindow::NormalSizeModeClientToWindowMargin() {
   NS_OBJC_END_TRY_BLOCK_RETURN({});
 }
 
-nsMenuBarX* nsCocoaWindow::GetMenuBar() { return mMenuBar; }
+already_AddRefed<nsMenuBarX> nsCocoaWindow::GetMenuBar() {
+  return do_AddRef(mMenuBar);
+}
 
 void nsCocoaWindow::CaptureRollupEvents(bool aDoCapture) {
   NS_OBJC_BEGIN_TRY_IGNORE_BLOCK;
@@ -7726,7 +7729,7 @@ already_AddRefed<nsIWidget> nsIWidget::CreateChildWindow() {
   nsCocoaWindow* geckoWidget = [windowDelegate geckoWidget];
   NS_ASSERTION(geckoWidget, "Window delegate not returning a gecko widget!");
 
-  if (nsMenuBarX* geckoMenuBar = geckoWidget->GetMenuBar()) {
+  if (RefPtr<nsMenuBarX> geckoMenuBar = geckoWidget->GetMenuBar()) {
     // We do an async paint in order to prevent crashes when macOS is actively
     // enumerating the menu items in `NSApp.mainMenu`.
     geckoMenuBar->PaintAsyncIfNeeded();

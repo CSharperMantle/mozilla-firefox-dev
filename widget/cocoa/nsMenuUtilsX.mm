@@ -110,7 +110,7 @@ unsigned int nsMenuUtilsX::MacModifiersForGeckoModifiers(
   return macModifiers;
 }
 
-nsMenuBarX* nsMenuUtilsX::GetHiddenWindowMenuBar() {
+already_AddRefed<nsMenuBarX> nsMenuUtilsX::GetHiddenWindowMenuBar() {
   if (gfxPlatform::IsHeadless()) {
     return nullptr;
   }
