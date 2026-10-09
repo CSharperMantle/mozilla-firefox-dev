@@ -385,12 +385,11 @@ class Bootstrapper:
             return
 
         mach_binary = checkout_root / "mach"
+        args = [sys.executable, str(mach_binary), "install-moz-phab"]
+        if self.instance.no_system_changes:
+            args.append("--no-system-changes")
         try:
-            subprocess.check_call((
-                sys.executable,
-                str(mach_binary),
-                "install-moz-phab",
-            ))
+            subprocess.check_call(args)
         except subprocess.CalledProcessError as e:
             print(
                 f"WARNING: './mach install-moz-phab' failed with exit code "
@@ -470,17 +469,13 @@ class Bootstrapper:
             self._check_for_dev_drive(checkout_root)
             self._add_microsoft_defender_antivirus_exclusions(checkout_root, state_dir)
 
-        if self.instance.no_system_changes:
-            self.maybe_install_private_packages_or_exit(
-                application, checkout_type, mozconfig_builder
+        if not self.instance.no_system_changes:
+            self.instance.install_system_packages()
+
+            # Like 'install_browser_packages' or 'install_mobile_android_packages'.
+            getattr(self.instance, "install_%s_packages" % application)(
+                mozconfig_builder
             )
-            self._output_mozconfig(application, mozconfig_builder)
-            sys.exit(0)
-
-        self.instance.install_system_packages()
-
-        # Like 'install_browser_packages' or 'install_mobile_android_packages'.
-        getattr(self.instance, "install_%s_packages" % application)(mozconfig_builder)
 
         if not self.instance.artifact_mode:
             self.instance.ensure_rust_modern()
@@ -491,7 +486,7 @@ class Bootstrapper:
 
         # Possibly configure Mercurial, but not if the current checkout or repo
         # type is Git.
-        if checkout_type == "hg":
+        if checkout_type == "hg" and not self.instance.no_system_changes:
             hg_installed, hg_modern = self.instance.ensure_mercurial_modern()
 
         if hg_installed and checkout_type == "hg":
@@ -501,7 +496,9 @@ class Bootstrapper:
                 configure_hg = self.hg_configure
 
             if configure_hg:
-                repo.configure(state_dir)
+                repo.configure(
+                    state_dir, no_system_changes=self.instance.no_system_changes
+                )
 
         # Offer to configure Git, if the current checkout or repo type is Git.
         elif git and checkout_type == "git":
@@ -513,7 +510,9 @@ class Bootstrapper:
                 should_configure_git = self.hg_configure
 
             if should_configure_git:
-                repo.configure(state_dir)
+                repo.configure(
+                    state_dir, no_system_changes=self.instance.no_system_changes
+                )
 
         self.maybe_install_private_packages_or_exit(
             application, checkout_type, mozconfig_builder
