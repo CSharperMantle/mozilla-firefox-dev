@@ -4,8 +4,6 @@
 
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
-const STRING_BUNDLE_URI = "chrome://browser/locale/feeds/subscribe.properties";
-
 export function WebProtocolHandlerRegistrar() {}
 
 const lazy = {};
@@ -38,20 +36,6 @@ ChromeUtils.defineLazyGetter(lazy, "log", () => {
 });
 
 WebProtocolHandlerRegistrar.prototype = {
-  get stringBundle() {
-    let sb = Services.strings.createBundle(STRING_BUNDLE_URI);
-    delete WebProtocolHandlerRegistrar.prototype.stringBundle;
-    return (WebProtocolHandlerRegistrar.prototype.stringBundle = sb);
-  },
-
-  _getFormattedString(key, params) {
-    return this.stringBundle.formatStringFromName(key, params);
-  },
-
-  _getString(key) {
-    return this.stringBundle.GetStringFromName(key);
-  },
-
   /* Because we want to iterate over the known webmailers in the observe method
    * and with each site visited, we want to check as fast as possible if the
    * current site is already registered as a mailto handler. Using the sites
@@ -463,16 +447,10 @@ WebProtocolHandlerRegistrar.prototype = {
     }
 
     // Now Ask the user and provide the proper callback
-    let message = this._getFormattedString("addProtocolHandlerMessage", [
-      aURI.host,
-      aProtocol,
-    ]);
-
     let notificationIcon = aURI.prePath + "/favicon.ico";
     let notificationValue = "Protocol Registration: " + aProtocol;
     let addButton = {
-      label: this._getString("addProtocolHandlerAddButton"),
-      accessKey: this._getString("addProtocolHandlerAddButtonAccesskey"),
+      "l10n-id": "protocolhandler-add-handler-button",
       protocolInfo: { protocol: aProtocol, uri: aURI.spec, name: aTitle },
       primary: true,
 
@@ -510,10 +488,17 @@ WebProtocolHandlerRegistrar.prototype = {
       return;
     }
 
+    browser.documentGlobal.MozXULElement.insertFTLIfNeeded(
+      "browser/webProtocolHandler.ftl"
+    );
+
     notificationBox.appendNotification(
       notificationValue,
       {
-        label: message,
+        label: {
+          "l10n-id": "protocolhandler-add-handler-message",
+          "l10n-args": { host: aURI.host, protocol: aProtocol },
+        },
         image: notificationIcon,
         priority: notificationBox.PRIORITY_INFO_LOW,
       },
