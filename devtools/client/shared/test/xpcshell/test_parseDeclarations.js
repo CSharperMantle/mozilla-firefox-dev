@@ -1527,6 +1527,9 @@ const TEST_DATA = [
       width: var(--foobar, var(--fallback));
       -moz-appearance: none;
       --: 5;
+      --prio-parenthesis: token(!important);
+      --prio-square-bracket: [!important];
+      --prio-curly-bracket: {foo !important};
     `,
     expected: [
       {
@@ -1581,6 +1584,30 @@ const TEST_DATA = [
         priority: "",
         offsets: [184, 190],
         declarationText: "--: 5;",
+      },
+      {
+        name: "--prio-parenthesis",
+        value: "token(!important)",
+        priority: "",
+        offsets: [197, 235],
+        declarationText: "--prio-parenthesis: token(!important);",
+        isCustomProperty: true,
+      },
+      {
+        name: "--prio-square-bracket",
+        value: "[!important]",
+        priority: "",
+        offsets: [242, 278],
+        declarationText: "--prio-square-bracket: [!important];",
+        isCustomProperty: true,
+      },
+      {
+        name: "--prio-curly-bracket",
+        value: "{foo !important}",
+        priority: "",
+        offsets: [285, 324],
+        declarationText: "--prio-curly-bracket: {foo !important};",
+        isCustomProperty: true,
       },
     ],
   },

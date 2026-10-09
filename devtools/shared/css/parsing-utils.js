@@ -533,7 +533,13 @@ function parseDeclarationsInternal(
         }
         current += token.text;
       }
-    } else if (token.tokenType === "Delim" && token.text === "!") {
+    } else if (
+      token.tokenType === "Delim" &&
+      token.text === "!" &&
+      // !important inside parenthesis, curly or square brackets shouldn't impact the
+      // priority of the declaration
+      !currentBlocks.length
+    ) {
       importantState = IMPORTANT_STATE_SAW_EXCLAMATION;
     } else if (token.tokenType === "WhiteSpace") {
       if (current !== "") {
