@@ -138,7 +138,7 @@ export class RemoteRenderer {
    * @returns {boolean}
    */
   willDoomOnShutdown(uri) {
-    return this.#cacheEntryURIsToDoomAtShutdown.find(doomedURI =>
+    return this.#cacheEntryURIsToDoomAtShutdown.some(doomedURI =>
       doomedURI.equals(uri)
     );
   }
