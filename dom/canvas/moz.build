@@ -240,7 +240,6 @@ SOURCE_HEADERS += [
     "WebGLBuffer.h",
     "WebGLContext.h",
     "WebGLContextLossHandler.h",
-    "WebGLContextUtils.h",
     "WebGLExtensions.h",
     "WebGLFormats.h",
     "WebGLFramebuffer.h",
