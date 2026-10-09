@@ -15,7 +15,6 @@
     "lib/NewTabInit.sys.mjs",
     "lib/PrefsFeed.sys.mjs",
     "lib/RemoteRenderer.sys.mjs",
-    "lib/SectionsManager.sys.mjs",
     "lib/SmartShortcutsRanker/RankShortcuts.mjs",
     "lib/SmartShortcutsRanker/RankShortcuts.worker.mjs",
     "lib/SmartShortcutsRanker/RankShortcutsWorkerClass.mjs",
