@@ -7,7 +7,6 @@
   ],
   "exclude": [
     "content/tab-hover-preview.mjs",
-    "content/tab.mjs",
     "content/tabs.mjs",
     "SmartTabGrouping.sys.mjs"
   ],

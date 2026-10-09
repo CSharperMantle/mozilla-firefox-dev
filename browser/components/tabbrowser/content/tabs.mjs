@@ -163,13 +163,6 @@ export class MozTabbrowserTabs extends MozElements.TabsBase {
     CustomizableUI.addListener(this);
     this._updateNewTabVisibility();
 
-    XPCOMUtils.defineLazyPreferenceGetter(
-      this,
-      "_closeTabByDblclick",
-      "browser.tabs.closeTabByDblclick",
-      false
-    );
-
     // The base class set these up before we had the arrowscrollbox.
     this.updateWheelListeners();
 
