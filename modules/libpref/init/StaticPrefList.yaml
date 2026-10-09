@@ -14670,6 +14670,14 @@
   value: false
   mirror: always
 
+# Default to using the SSPI instead of GSSAPI on Windows.
+#if defined(XP_WIN)
+- name: network.auth.use-sspi
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+#endif
+
 # When true, the hashing of the certificate will be done with the hashing
 # algorithm specified in the cert instead of SHA256.
 - name: network.auth.sspi_detect_hash

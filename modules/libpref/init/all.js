@@ -1362,11 +1362,6 @@ pref("network.negotiate-auth.allow-proxies", true);
 // Path to a specific gssapi library
 pref("network.negotiate-auth.gsslib", "");
 
-#ifdef XP_WIN
-  // Default to using the SSPI intead of GSSAPI on windows
-  pref("network.auth.use-sspi", true);
-#endif
-
 // Controls which NTLM authentication implementation we default to. True forces
 // the use of our generic (internal) NTLM authentication implementation vs. any
 // native implementation provided by the os. This pref is for diagnosing issues

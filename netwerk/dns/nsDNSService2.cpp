@@ -1271,12 +1271,6 @@ nsDNSService::ResolveNative(const nsACString& aHostname,
   return ResolveInternal(aHostname, flags, aOriginAttributes, result);
 }
 
-nsresult nsDNSService::DeprecatedSyncResolve(
-    const nsACString& aHostname, nsIDNSService::DNSFlags flags,
-    const OriginAttributes& aOriginAttributes, nsIDNSRecord** result) {
-  return ResolveInternal(aHostname, flags, aOriginAttributes, result);
-}
-
 nsresult nsDNSService::ResolveInternal(
     const nsACString& aHostname, nsIDNSService::DNSFlags flags,
     const OriginAttributes& aOriginAttributes, nsIDNSRecord** result) {
