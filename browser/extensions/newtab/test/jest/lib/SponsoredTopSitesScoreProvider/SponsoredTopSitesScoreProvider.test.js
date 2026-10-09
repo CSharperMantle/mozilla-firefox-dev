@@ -11,8 +11,13 @@ describe("SponsoredTopSitesScoreProvider", () => {
   let rsFactory;
   let rsClient;
   let executePlacesQuery;
+  let cacheStore;
+  let prefStore;
   let getFlags;
   let provider;
+
+  const PREF_LAST_TIME =
+    "browser.newtabpage.activity-stream.sponsoredTopSitesScoring.lastReleaseTime";
 
   beforeAll(async () => {
     restoreChromeUtils = stubGlobals({
@@ -21,6 +26,7 @@ describe("SponsoredTopSitesScoreProvider", () => {
           Object.setPrototypeOf(object, globalThis);
           return globalThis;
         },
+        importESModule: () => globalThis,
       },
     });
     ({ SponsoredTopSitesScoreProvider } =
@@ -38,9 +44,28 @@ describe("SponsoredTopSitesScoreProvider", () => {
     };
     rsFactory = jest.fn(() => rsClient);
     executePlacesQuery = jest.fn().mockResolvedValue([]);
+    cacheStore = {};
+    prefStore = {};
     getFlags = jest.fn().mockReturnValue({});
     restoreGlobals = stubGlobals({
       RemoteSettings: rsFactory,
+      Services: {
+        prefs: {
+          getIntPref: (name, def) =>
+            name in prefStore ? prefStore[name] : def,
+          setIntPref: (name, value) => {
+            prefStore[name] = value;
+          },
+        },
+      },
+      PersistentCache: class {
+        async get(key) {
+          return key ? cacheStore[key] : cacheStore;
+        }
+        async set(key, value) {
+          cacheStore[key] = value;
+        }
+      },
       PlacesUtils: {
         getReversedHost: url => `${url.host.split("").reverse().join("")}.`,
         history: { TRANSITIONS: { LINK: 1, TYPED: 2, BOOKMARK: 3 } },
@@ -59,9 +84,23 @@ describe("SponsoredTopSitesScoreProvider", () => {
 
   const RECORD_ID = "sponsored_top_site_scoring";
 
-  it("constructs with no scores", () => {
+  // A raw Remote Settings record that passes validation.
+  const VALID_RECORD = {
+    id: RECORD_ID,
+    targets: { t1: ["example.com"] },
+    lookback_days: 28,
+    recency_halflife_days: 7,
+    trend_days: 30,
+    allowed_targets: 2,
+    decimals: 1,
+    privacy_parameter: 50,
+    repeat_visit_weight: 80,
+    normalization_cap: 150,
+  };
+
+  it("constructs with no scores", async () => {
     expect(provider).toBeInstanceOf(SponsoredTopSitesScoreProvider);
-    expect(provider.getScores()).toEqual({});
+    expect(await provider.getScores()).toEqual({});
   });
 
   describe("#init", () => {
@@ -76,10 +115,53 @@ describe("SponsoredTopSitesScoreProvider", () => {
       );
       expect(provider._refreshTimer).not.toBeNull();
     });
+
+    it("restores persisted scores from the cache", async () => {
+      cacheStore.scores = { "example.com": 5 };
+      jest
+        .spyOn(provider, "_getLastReleaseTime")
+        .mockReturnValue(Math.round(Date.now() / 1000));
+
+      await provider.init();
+
+      expect(await provider.getScores()).toEqual({ "example.com": 5 });
+    });
+  });
+
+  describe("#_refreshScores", () => {
+    beforeEach(() => {
+      provider._rs = rsClient;
+    });
+
+    it("persists the scores and records the release time", async () => {
+      getFlags.mockReturnValue({ [RECORD_ID]: true });
+      rsClient.get.mockResolvedValue([{ ...VALID_RECORD, targets: {} }]);
+
+      await provider._refreshScores();
+
+      expect(cacheStore.scores).toEqual({});
+      expect(prefStore[PREF_LAST_TIME]).toBe(Math.round(Date.now() / 1000));
+    });
+
+    it("skips recomputing when last release interval is 60 seconds ago", async () => {
+      getFlags.mockReturnValue({ [RECORD_ID]: true });
+      rsClient.get.mockResolvedValue([{ id: RECORD_ID }]);
+      cacheStore.scores = { "example.com": 5 };
+      jest
+        .spyOn(provider, "_getLastReleaseTime")
+        .mockReturnValue(Math.round(Date.now() / 1000) - 60);
+
+      await provider._refreshScores();
+
+      // Check that scores are untouched and release time is not set.
+      expect(await provider.getScores()).toEqual({ "example.com": 5 });
+      expect(prefStore[PREF_LAST_TIME]).toBeUndefined();
+      expect(rsClient.get).not.toHaveBeenCalled();
+    });
   });
 
   describe("#uninit", () => {
-    it("clears the timer, client, and scores", async () => {
+    it("clears the timer and client", async () => {
       getFlags.mockReturnValue({ [RECORD_ID]: true });
       await provider.init();
 
@@ -87,7 +169,6 @@ describe("SponsoredTopSitesScoreProvider", () => {
 
       expect(provider._refreshTimer).toBeNull();
       expect(provider._rs).toBeNull();
-      expect(provider.getScores()).toEqual({});
     });
   });
 
@@ -114,20 +195,6 @@ describe("SponsoredTopSitesScoreProvider", () => {
       expect(provider._getRecordId()).toBeNull();
     });
   });
-
-  // A raw Remote Settings record that passes validation.
-  const VALID_RECORD = {
-    id: RECORD_ID,
-    targets: { t1: ["example.com"] },
-    lookback_days: 28,
-    recency_halflife_days: 7,
-    trend_days: 30,
-    allowed_targets: 2,
-    decimals: 1,
-    privacy_parameter: 50,
-    repeat_visit_weight: 80,
-    normalization_cap: 150,
-  };
 
   describe("#_loadConfig", () => {
     beforeEach(() => {

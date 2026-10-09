@@ -2,9 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+const { XPCOMUtils } = ChromeUtils.importESModule(
+  "resource://gre/modules/XPCOMUtils.sys.mjs"
+);
+
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  PersistentCache: "resource://newtab/lib/PersistentCache.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
   NewTabUtils: "resource://gre/modules/NewTabUtils.sys.mjs",
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
@@ -16,7 +21,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
 const US_PER_DAY = 24 * 60 * 60 * 1000 * 1000;
 
 // How often scores are recomputed in milliseconds (24 hours).
-const REFRESH_INTERVAL_MS = 24 * 60 * 60 * 1000;
+const RELEASE_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const REMOTE_SETTINGS_COLLECTION = "newtab-sponsored-topsites-scoring";
 
 // The prefix for flags to check when attempting to load the remote settings record.
@@ -24,6 +29,18 @@ const FLAG_PREFIX = "sponsored_top_site_scoring";
 
 // Upper bound on config.privacy_parameter to limit the total privacy loss
 const MAX_PRIVACY_PARAMETER = 1;
+const CACHE_KEY = "sponsored_topsites_scoring_cache";
+const SCORES_CACHE_KEY = "scores";
+
+const PREF_LAST_RELEASE_TIME =
+  "browser.newtabpage.activity-stream.sponsoredTopSitesScoring.lastReleaseTime";
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "LAST_RELEASE_TIME_PREF_VALUE",
+  PREF_LAST_RELEASE_TIME,
+  0
+);
 
 export class SponsoredTopSitesScoreProvider {
   /**
@@ -32,9 +49,9 @@ export class SponsoredTopSitesScoreProvider {
    */
   constructor(getFlags) {
     this._getFlags = getFlags;
-    this._scores = {};
     this._refreshTimer = null;
     this._rs = null;
+    this._cache = new lazy.PersistentCache(CACHE_KEY, false);
   }
 
   /**
@@ -50,7 +67,7 @@ export class SponsoredTopSitesScoreProvider {
     if (!this._refreshTimer) {
       this._refreshTimer = lazy.setInterval(
         () => this._refreshScores(),
-        REFRESH_INTERVAL_MS
+        RELEASE_INTERVAL_MS
       );
     }
     await this._refreshScores();
@@ -66,7 +83,6 @@ export class SponsoredTopSitesScoreProvider {
       this._refreshTimer = null;
     }
     this._rs = null;
-    this._scores = {};
   }
 
   /**
@@ -76,16 +92,33 @@ export class SponsoredTopSitesScoreProvider {
    * @returns {Promise<void>} Resolves once the cached scores are updated.
    */
   async _refreshScores() {
+    // Return early if a full release interval has not elapsed.
+    const now = Math.round(Date.now() / 1000);
+    if (now - this._getLastReleaseTime() < RELEASE_INTERVAL_MS / 1000) {
+      return;
+    }
+
     const config = await this._loadConfig();
     if (!config) {
-      this._scores = {};
+      await this._setScores({});
       return;
     }
 
     const domainDayCounts = await this._getDomainDayCounts(config);
     const scores = this._sponsoredScores(config, domainDayCounts);
     // TODO: post-process the private scores before they are sent to the server.
-    this._scores = this._differentiallyPrivateScores(scores, config);
+    const scoresWithDP = this._differentiallyPrivateScores(scores, config);
+    await this._setScores(scoresWithDP);
+    Services.prefs.setIntPref(PREF_LAST_RELEASE_TIME, now);
+  }
+
+  /**
+   * The timestamp of the last release in seconds.
+   *
+   * @returns {number} The last release time in seconds.
+   */
+  _getLastReleaseTime() {
+    return lazy.LAST_RELEASE_TIME_PREF_VALUE;
   }
 
   /**
@@ -160,12 +193,22 @@ export class SponsoredTopSitesScoreProvider {
   }
 
   /**
-   * Get the currently calculated scores.
+   * Persist the scores.
    *
-   * @returns {object} A map of scores.
+   * @param {object} scores The scores to store.
+   * @returns {Promise<void>} Resolves once the scores are persisted.
    */
-  getScores() {
-    return this._scores;
+  async _setScores(scores) {
+    await this._cache.set(SCORES_CACHE_KEY, scores);
+  }
+
+  /**
+   * Get the currently calculated scores from the cache.
+   *
+   * @returns {Promise<object>} A map of scores.
+   */
+  async getScores() {
+    return (await this._cache.get(SCORES_CACHE_KEY)) ?? {};
   }
 
   /**
