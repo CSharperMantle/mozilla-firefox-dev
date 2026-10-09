@@ -328,7 +328,7 @@ export class MozTabbrowserTabs extends MozElements.TabsBase {
   }
 
   cancelTabGroupPreview() {
-    this.previewPanel?.panelOpener.clear();
+    this.previewPanel?.panelOpener.clear(this.previewPanel.tabGroupPanel);
   }
 
   showTabGroupPreview(group) {
