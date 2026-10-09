@@ -147,7 +147,7 @@ android-fullstack:
         # GeckoView tests (from android-geckoview preset)
         - "^source-test-mozlint eslint$ | rejected-words$ | file-perm$ | file-whitespace$"
         # Miscellaneous Tests
-        - "^test-android !shippable '64 'em-14 'gtest | 'cpp | junit-fis"
+        - "^test-android !shippable '64 'em-14 !zygote 'gtest | 'cpp | 'geckoview-junit"
         # Mochitests
         - "^test-android !shippable !cf !gli !iso      'em-14 'media | 'plain"
         - "^test-android !shippable !cf !gli !iso !swr 'hw 'media 'debug"
@@ -173,7 +173,7 @@ android-geckoview:
         # Lint
         - "^source-test-mozlint android-lints$ | eslint$ | rejected-words$ | file-perm$ | file-whitespace$"
         # Miscellaneous Tests
-        - "^test-android !shippable '64 'em-14 'gtest | 'cpp | junit-fis"
+        - "^test-android !shippable '64 'em-14 !zygote 'gtest | 'cpp | 'geckoview-junit"
         # Mochitests
         - "^test-android !shippable !cf !gli !iso      'em-14 'media | 'plain"
         - "^test-android !shippable !cf !gli !iso !swr 'hw 'media 'debug"

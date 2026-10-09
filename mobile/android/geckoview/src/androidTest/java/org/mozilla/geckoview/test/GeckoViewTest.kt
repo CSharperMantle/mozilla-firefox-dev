@@ -286,35 +286,21 @@ class GeckoViewTest : BaseSessionTest() {
         val isLoadedActive = sessionRule.getActive(mainSession)
         assertFalse("The session was set to inactive.", isLoadedActive)
 
-        if (env.isFission) {
-            assertTrue("A process switch did occur for fission, so the PIDs are different.", initialPid != loadedPid)
+        assertTrue("A process switch did occur for fission, so the PIDs are different.", initialPid != loadedPid)
 
-            // Note that higher oom score means less priority
-            assertTrue(
-                "The initial oom score adj has more priority than the loaded oom score because it was backgrounded.",
-                loadedOomScoreAdj > initialOomScoreAdj,
-            )
-            assertTrue(
-                "The initial oom score adj indicates higher priority because it started in the foreground.",
-                initialOomScoreAdj == 0,
-            )
-            assertTrue(
-                "The loaded oom score adj indicates lower priority because it is backgrounded.",
-                loadedOomScoreAdj == 900,
-            )
-        } else {
-            assertTrue("A process switch did not occur.", initialPid == loadedPid)
-
-            // setActive(false) occurred on this PID, give time for it to settle.
-            // When it reaches 900, this indicates the pid is backgrounded.
-            UiThreadUtils.waitForCondition(
-                {
-                    getContentProcessesOomScoreAdj(listOf(loadedPid)).first() == 900
-                },
-                env.defaultTimeoutMillis,
-            )
-            assertTrue("The loaded oom score indicates low priority.", true)
-        }
+        // Note that higher oom score means less priority
+        assertTrue(
+            "The initial oom score adj has more priority than the loaded oom score because it was backgrounded.",
+            loadedOomScoreAdj > initialOomScoreAdj,
+        )
+        assertTrue(
+            "The initial oom score adj indicates higher priority because it started in the foreground.",
+            initialOomScoreAdj == 0,
+        )
+        assertTrue(
+            "The loaded oom score adj indicates lower priority because it is backgrounded.",
+            loadedOomScoreAdj == 900,
+        )
     }
 
     private fun visit(
