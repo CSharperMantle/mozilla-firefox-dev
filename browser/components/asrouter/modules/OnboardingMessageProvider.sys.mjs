@@ -3638,7 +3638,7 @@ export const OnboardingMessageProvider = {
       "browser.shell.checkDefaultBrowser",
       false
     );
-    let isDefault = await lazy.ShellService.isDefaultBrowser();
+    let isDefault = await lazy.ShellService.isDefaultBrowserAsync();
     return checkDefault && !isDefault;
   },
 

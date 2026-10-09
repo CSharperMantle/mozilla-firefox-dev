@@ -793,7 +793,7 @@ add_task(async function check_recentSearchCount() {
 });
 
 add_task(async function checkisDefaultBrowser() {
-  const expected = ShellService.isDefaultBrowser();
+  const expected = await ShellService.isDefaultBrowserAsync();
   const result = await ASRouterTargeting.Environment.isDefaultBrowser;
   is(typeof result, "boolean", "isDefaultBrowser should be a boolean value");
   is(
@@ -2579,7 +2579,7 @@ add_task(async function check_totalSearches() {
 });
 
 add_task(async function checkisDefaultBrowserUncached() {
-  const expected = ShellService.isDefaultBrowser();
+  const expected = await ShellService.isDefaultBrowserAsync();
   const result = await ASRouterTargeting.Environment.isDefaultBrowserUncached;
   is(
     typeof result,

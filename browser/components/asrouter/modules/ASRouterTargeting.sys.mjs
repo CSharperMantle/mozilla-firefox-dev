@@ -440,7 +440,7 @@ export const QueryCache = {
       ShellService
     ),
     isDefaultBrowser: new CachedTargetingGetter(
-      "isDefaultBrowser",
+      "isDefaultBrowserAsync",
       null,
       FRECENT_SITES_UPDATE_INTERVAL,
       ShellService
@@ -958,7 +958,7 @@ const TargetingGetters = {
     return QueryCache.getters.isDefaultBrowser.get().catch(() => null);
   },
   get isDefaultBrowserUncached() {
-    return ShellService.isDefaultBrowser();
+    return ShellService.isDefaultBrowserAsync();
   },
   get hasAttemptedSetDefault() {
     return ShellService.attemptedSetDefaultThisSession;
