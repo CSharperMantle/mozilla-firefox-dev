@@ -46,7 +46,6 @@ fail-if = [
   "os == 'linux' && os_version == '22.04' && arch == 'x86_64' && display == 'wayland'",
   "os == 'linux' && os_version == '24.04' && arch == 'x86_64' && display == 'x11'",
   "os == 'mac' && os_version == '10.15' && arch == 'x86_64'",
-  "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && !nightly_build",
 ]
 
 ["test_2_conformance2__attribs__gl-vertex-attrib-i-render.html"]
@@ -321,7 +320,6 @@ fail-if = [
 fail-if = [
   "os == 'linux' && os_version == '22.04' && arch == 'x86_64' && display == 'wayland'",
   "os == 'mac' && os_version == '10.15' && arch == 'x86_64'",
-  "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && !nightly_build",
 ]
 
 ["test_2_conformance2__rendering__blitframebuffer-multisampled-readbuffer.html"]
@@ -401,7 +399,6 @@ fail-if = [
 fail-if = [
   "os == 'android' && os_version == '14' && arch == 'aarch64'",
   "os == 'mac' && os_version == '10.15' && arch == 'x86_64'",
-  "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && !nightly_build",
 ]
 
 ["test_2_conformance2__rendering__framebuffer-texture-changing-base-level.html"]
@@ -513,7 +510,7 @@ skip-if = [
   "os == 'android' && os_version == '14' && arch == 'aarch64'",
   "os == 'linux' && os_version == '22.04' && arch == 'x86_64' && display == 'wayland'",
   "os == 'linux' && os_version == '24.04' && arch == 'x86_64' && display == 'x11'",
-  "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && debug && nightly_build",
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && debug",
   "os == 'win' && os_version == '11.26200'",
 ]
 
@@ -564,7 +561,6 @@ fail-if = [
 ["test_2_conformance2__textures__misc__tex-base-level-bug.html"]
 fail-if = [
   "os == 'mac' && os_version == '10.15' && arch == 'x86_64'",
-  "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && !nightly_build",
 ]  # macosx1014 due to 1563418
 
 ["test_2_conformance2__textures__misc__tex-image-10bpc.html"]
@@ -588,14 +584,13 @@ skip-if = [
 ["test_2_conformance2__textures__misc__tex-input-validation.html"]
 skip-if = [
   "os == 'android' && os_version == '14' && arch == 'aarch64'",
-  "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && debug && nightly_build",
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && debug",
   "os == 'win' && os_version == '11.26200'",
 ]
 
 ["test_2_conformance2__textures__misc__tex-mipmap-levels.html"]
 fail-if = [
   "os == 'mac' && os_version == '10.15' && arch == 'x86_64'",
-  "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && !nightly_build",
   "os == 'win' && os_version == '11.26200'",
 ]
 
@@ -629,11 +624,9 @@ fail-if = [
 ["test_2_conformance2__textures__misc__tex-unpack-params.html"]
 skip-if = [
   "os == 'mac' && os_version == '10.15' && arch == 'x86_64' && debug",
-  "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && debug && !nightly_build", # Bug 2034604
 ]
 fail-if = [
   "os == 'mac' && os_version == '10.15' && arch == 'x86_64'",
-  "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && !nightly_build",
 ]
 
 ["test_2_conformance2__textures__misc__texel-fetch-undefined.html"]

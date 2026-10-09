@@ -156,6 +156,3 @@ fail-if = [
 ]
 
 ["test_2_conformance2__glsl3__vector-dynamic-indexing.html"]
-fail-if = [
-  "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && !nightly_build", # Bug 2076727
-]

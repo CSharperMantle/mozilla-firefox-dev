@@ -20446,9 +20446,7 @@
 
 - name: webgl.disable-angle
   type: RelaxedAtomicBool
-#if defined(XP_WIN)
-  value: false
-#elif defined(XP_MACOSX) && defined(NIGHTLY_BUILD)
+#if defined(XP_WIN) || defined(XP_MACOSX)
   value: false
 #else
   value: true

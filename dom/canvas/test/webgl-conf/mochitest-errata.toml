@@ -40,7 +40,6 @@ fail-if = [
   "os == 'linux' && os_version == '22.04' && arch == 'x86_64' && display == 'wayland'",
   "os == 'linux' && os_version == '24.04' && arch == 'x86_64' && display == 'x11'",
   "os == 'mac' && os_version == '10.15' && arch == 'x86_64'",
-  "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && !nightly_build",
 ]
 
 ["generated/test_2_conformance2__context__context-attributes-depth-stencil-antialias-obeyed.html"]
@@ -196,11 +195,6 @@ fail-if = [
   "os == 'mac' && os_version == '10.15' && arch == 'x86_64'",
 ]
 
-["generated/test_2_conformance2__glsl3__vector-dynamic-indexing.html"]
-fail-if = [
-  "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && !nightly_build", # Bug 2076727
-]
-
 ["generated/test_2_conformance2__misc__expando-loss-2.html"]
 skip-if = [
   "os == 'android' && os_version == '14' && arch == 'aarch64'",
@@ -267,7 +261,6 @@ fail-if = [
 fail-if = [
   "os == 'linux' && os_version == '22.04' && arch == 'x86_64' && display == 'wayland'",
   "os == 'mac' && os_version == '10.15' && arch == 'x86_64'",
-  "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && !nightly_build",
 ]
 
 ["generated/test_2_conformance2__rendering__blitframebuffer-multisampled-readbuffer.html"]
@@ -317,7 +310,6 @@ fail-if = [
 fail-if = [
   "os == 'android' && os_version == '14' && arch == 'aarch64'",
   "os == 'mac' && os_version == '10.15' && arch == 'x86_64'",
-  "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && !nightly_build",
 ]
 
 ########################################################################
@@ -886,7 +878,7 @@ skip-if = [
   "os == 'android' && os_version == '14' && arch == 'aarch64'",
   "os == 'linux' && os_version == '22.04' && arch == 'x86_64' && display == 'wayland'",
   "os == 'linux' && os_version == '24.04' && arch == 'x86_64' && display == 'x11'",
-  "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && debug && nightly_build",
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && debug",
   "os == 'win' && os_version == '11.26200'",
 ]
 
@@ -924,7 +916,6 @@ fail-if = [
 ["generated/test_2_conformance2__textures__misc__tex-base-level-bug.html"]
 fail-if = [
   "os == 'mac' && os_version == '10.15' && arch == 'x86_64'",
-  "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && !nightly_build",
 ]  # macosx1014 due to 1563418
 
 ["generated/test_2_conformance2__textures__misc__tex-image-10bpc.html"]
@@ -945,14 +936,13 @@ skip-if = [
 ["generated/test_2_conformance2__textures__misc__tex-input-validation.html"]
 skip-if = [
   "os == 'android' && os_version == '14' && arch == 'aarch64'",
-  "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && debug && nightly_build",
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && debug",
   "os == 'win' && os_version == '11.26200'",
 ]
 
 ["generated/test_2_conformance2__textures__misc__tex-mipmap-levels.html"]
 fail-if = [
   "os == 'mac' && os_version == '10.15' && arch == 'x86_64'",
-  "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && !nightly_build",
   "os == 'win' && os_version == '11.26200'",
 ]
 
@@ -978,11 +968,9 @@ fail-if = [
 ["generated/test_2_conformance2__textures__misc__tex-unpack-params.html"]
 skip-if = [
   "os == 'mac' && os_version == '10.15' && arch == 'x86_64' && debug",
-  "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && debug && !nightly_build", # Bug 2034604
 ]
 fail-if = [
   "os == 'mac' && os_version == '10.15' && arch == 'x86_64'",
-  "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && !nightly_build",
 ]
 
 ["generated/test_2_conformance2__textures__svg_image__tex-2d-rgb10_a2-rgba-unsigned_int_2_10_10_10_rev.html"]
@@ -1293,7 +1281,6 @@ skip-if = [
 ["generated/test_2_conformance__glsl__misc__fragcolor-fragdata-invariant.html"]
 fail-if = [
   "os == 'mac' && os_version == '10.15' && arch == 'x86_64'",
-  "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && !nightly_build",
 ] # [unexpected fragment shader compile status] (expected: true) Declaring both gl_FragColor and gl_FragData invariant should succeed.
 
 ########################################################################
@@ -1326,7 +1313,7 @@ fail-if = [
 ]
 skip-if = [
   "os == 'android' && os_version == '14' && arch == 'aarch64' && debug",
-  "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && debug && nightly_build",
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && debug",
   "os == 'win' && os_version == '11.26200' && debug",
 ]
 
@@ -1706,7 +1693,6 @@ skip-if = [
 # [unexpected fragment shader compile status] (expected: true) Declaring both gl_FragColor and gl_FragData invariant should succeed.
 fail-if = [
   "os == 'mac' && os_version == '10.15' && arch == 'x86_64'",
-  "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && !nightly_build",
 ]
 
 ########################################################################
