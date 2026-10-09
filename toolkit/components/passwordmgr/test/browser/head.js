@@ -4,6 +4,9 @@ var { LoginTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/LoginTestUtils.sys.mjs"
 );
 
+const { TelemetryTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/TelemetryTestUtils.sys.mjs"
+);
 const { PromptTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/PromptTestUtils.sys.mjs"
 );
@@ -14,6 +17,7 @@ add_setup(async function common_initialize() {
       ["signon.rememberSignons", true],
       ["signon.testOnlyUserHasInteractedByPrefValue", true],
       ["signon.testOnlyUserHasInteractedWithDocument", true],
+      ["toolkit.telemetry.ipcBatchTimeout", 0],
     ],
   });
   if (LoginHelper.relatedRealmsEnabled) {
@@ -42,6 +46,7 @@ registerCleanupFunction(
     LoginTestUtils.clearData();
     LoginTestUtils.resetGeneratedPasswordsCache();
     clearHttpAuths();
+    Services.telemetry.clearEvents();
 
     let recipeParent = LoginTestUtils.recipes.getRecipeParent();
     if (!recipeParent) {

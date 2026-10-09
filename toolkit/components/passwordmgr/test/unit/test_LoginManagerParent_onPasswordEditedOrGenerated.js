@@ -133,6 +133,34 @@ async function stubGeneratedPasswordForBrowsingContextId(id) {
   };
 }
 
+function checkEditTelemetryRecorded(expectedCount, msg) {
+  info("Check that expected telemetry event was recorded");
+  const snapshot = Services.telemetry.snapshotEvents(
+    Ci.nsITelemetry.DATASET_PRERELEASE_CHANNELS,
+    false
+  );
+  let resultsCount = 0;
+  if ("parent" in snapshot) {
+    const telemetryProps = Object.freeze({
+      category: "pwmgr",
+      method: "filled_field_edited",
+      object: "generatedpassword",
+    });
+    const results = snapshot.parent.filter(
+      ([_time, category, method, object]) =>
+        category === telemetryProps.category &&
+        method === telemetryProps.method &&
+        object === telemetryProps.object
+    );
+    resultsCount = results.length;
+  }
+  equal(
+    resultsCount,
+    expectedCount,
+    "Check count of pwmgr.filled_field_edited for generatedpassword: " + msg
+  );
+}
+
 async function startTestConditions(contextId) {
   LMP.useBrowsingContext(contextId);
 
@@ -179,7 +207,6 @@ add_setup(async () => {
 });
 
 add_task(async function test_onPasswordEditedOrGenerated_generatedPassword() {
-  Services.fog.testResetFOG();
   await startTestConditions(99);
   let { generatedPassword } =
     await stubGeneratedPasswordForBrowsingContextId(99);
@@ -301,21 +328,17 @@ add_task(async function test_onPasswordEditedOrGenerated_generatedPassword() {
     "Should have 1 saved login still"
   );
 
-  equal(
-    1,
-    Glean.pwmgr.filledFieldEditedGeneratedpassword.testGetValue().length,
-    "Check count of pwmgr.filled_field_edited_generatedpassword: with auto-save"
-  );
+  checkEditTelemetryRecorded(1, "with auto-save");
 
   LoginManagerParent._browsingContextGlobal.get.restore();
   restorePrompter();
   LoginManagerParent.getGeneratedPasswordsByPrincipalOrigin().clear();
   await Services.logins.removeAllUserFacingLoginsAsync();
+  Services.telemetry.clearEvents();
 });
 
 add_task(
   async function test_onPasswordEditedOrGenerated_editToEmpty_generatedPassword() {
-    Services.fog.testResetFOG();
     await startTestConditions(99);
     let { generatedPassword } =
       await stubGeneratedPasswordForBrowsingContextId(99);
@@ -393,16 +416,13 @@ add_task(
       "Cached password shouldn't be updated"
     );
 
-    equal(
-      null,
-      Glean.pwmgr.filledFieldEditedGeneratedpassword.testGetValue(),
-      "Check count of pwmgr.filled_field_edited_generatedpassword: Blanking doesn't count as an edit"
-    );
+    checkEditTelemetryRecorded(0, "Blanking doesn't count as an edit");
 
     LoginManagerParent._browsingContextGlobal.get.restore();
     restorePrompter();
     LoginManagerParent.getGeneratedPasswordsByPrincipalOrigin().clear();
     await Services.logins.removeAllUserFacingLoginsAsync();
+    Services.telemetry.clearEvents();
   }
 );
 
@@ -574,6 +594,7 @@ add_task(async function test_addUsernameBeforeAutoSaveEdit() {
   restorePrompter();
   LoginManagerParent.getGeneratedPasswordsByPrincipalOrigin().clear();
   await Services.logins.removeAllUserFacingLoginsAsync();
+  Services.telemetry.clearEvents();
 });
 
 add_task(async function test_editUsernameOfFilledSavedLogin() {
@@ -705,6 +726,7 @@ add_task(async function test_editUsernameOfFilledSavedLogin() {
   restorePrompter();
   LoginManagerParent.getGeneratedPasswordsByPrincipalOrigin().clear();
   await Services.logins.removeAllUserFacingLoginsAsync();
+  Services.telemetry.clearEvents();
 });
 
 add_task(
@@ -748,7 +770,6 @@ add_task(
 
 add_task(
   async function test_onPasswordEditedOrGenerated_generatedPassword_withSavedEmptyUsername() {
-    Services.fog.testResetFOG();
     await startTestConditions(99);
     let login0Props = Object.assign({}, loginTemplate, {
       username: "",
@@ -824,23 +845,19 @@ add_task(
     Assert.ok(logins[0].equals(expected), "Ensure no changes");
     equal(logins.length, 1, "Should have 1 saved login still");
 
-    equal(
-      1,
-      Glean.pwmgr.filledFieldEditedGeneratedpassword.testGetValue().length,
-      "Check count of pwmgr.filled_field_edited_generatedpassword: Updating cache, not storage (no auto-save)"
-    );
+    checkEditTelemetryRecorded(1, "Updating cache, not storage (no auto-save)");
 
     LoginManagerParent._browsingContextGlobal.get.restore();
     restorePrompter();
     LoginManagerParent.getGeneratedPasswordsByPrincipalOrigin().clear();
     await Services.logins.removeAllUserFacingLoginsAsync();
+    Services.telemetry.clearEvents();
   }
 );
 
 add_task(
   async function test_onPasswordEditedOrGenerated_generatedPassword_withSavedEmptyUsernameAndUsernameValue() {
     // Save as the above task but with a non-empty username field value.
-    Services.fog.testResetFOG();
     await startTestConditions(99);
     let login0Props = Object.assign({}, loginTemplate, {
       username: "",
@@ -942,16 +959,16 @@ add_task(
     Assert.ok(logins[0].equals(expected), "Ensure no changes");
     equal(logins.length, 1, "Should have 1 saved login still");
 
-    equal(
+    checkEditTelemetryRecorded(
       1,
-      Glean.pwmgr.filledFieldEditedGeneratedpassword.testGetValue().length,
-      "Check count of pwmgr.filled_field_edited_generatedpassword: Updating cache, not storage (no auto-save) with username in field"
+      "Updating cache, not storage (no auto-save) with username in field"
     );
 
     LoginManagerParent._browsingContextGlobal.get.restore();
     restorePrompter();
     LoginManagerParent.getGeneratedPasswordsByPrincipalOrigin().clear();
     await Services.logins.removeAllUserFacingLoginsAsync();
+    Services.telemetry.clearEvents();
   }
 );
 

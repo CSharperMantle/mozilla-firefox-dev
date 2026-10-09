@@ -797,6 +797,15 @@ async function loadFormIntoWindow(origin, html, win, expectedCount = 1, task) {
   await processedPromise;
 }
 
+async function getTelemetryEvents(options) {
+  let events = await PWMGR_COMMON_PARENT.sendQuery(
+    "getTelemetryEvents",
+    options
+  );
+  info("CONTENT: getTelemetryEvents gotResult: " + JSON.stringify(events));
+  return events;
+}
+
 function loadRecipes(recipes) {
   info("Loading recipes");
   return PWMGR_COMMON_PARENT.sendQuery("loadRecipes", recipes);
@@ -1052,6 +1061,9 @@ SimpleTest.registerCleanupFunction(() => {
         note.remove();
       }
     }
+
+    // Clear events last in case the above cleanup records events.
+    Services.telemetry.clearEvents();
   });
 });
 

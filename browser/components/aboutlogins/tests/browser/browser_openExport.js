@@ -8,6 +8,10 @@
  * Test the export logins file picker appears.
  */
 
+let { TelemetryTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/TelemetryTestUtils.sys.mjs"
+);
+
 let { MockFilePicker } = SpecialPowers;
 
 add_setup(async function () {
@@ -19,7 +23,14 @@ add_setup(async function () {
     timePasswordChanged: new Date("2025-02-05").getTime(),
   });
   await Services.logins.addLoginAsync(exampleLogin);
-  Services.fog.testResetFOG();
+  await TestUtils.waitForCondition(() => {
+    Services.telemetry.clearEvents();
+    let events = Services.telemetry.snapshotEvents(
+      Ci.nsITelemetry.DATASET_PRERELEASE_CHANNELS,
+      true
+    ).content;
+    return !events || !events.length;
+  }, "Waiting for content telemetry events to get cleared");
 
   MockFilePicker.init();
   MockFilePicker.useAnyFile();
@@ -75,11 +86,12 @@ add_task(async function test_open_export() {
         browser
       );
 
-      await Services.fog.testFlushAllChildren();
-      Assert.equal(
-        Glean.pwmgr.mgmtMenuItemUsedExport.testGetValue().length,
-        1,
-        "One export event"
+      // First event is for opening about:logins
+      await LoginTestUtils.telemetry.waitForEventCount(2);
+      TelemetryTestUtils.assertEvents(
+        [["pwmgr", "mgmt_menu_item_used", "export"]],
+        { category: "pwmgr", method: "mgmt_menu_item_used" },
+        { process: "content" }
       );
 
       info("Clicking confirm button");
@@ -123,16 +135,24 @@ add_task(async function test_open_export() {
       Assert.ok(true, "Export file picker opened");
 
       info("Waiting for the export to complete");
-      await TestUtils.waitForCondition(() => {
-        return (
-          Glean.pwmgr.reauthenticateOsAuth.testGetValue()?.length == 1 &&
-          Glean.pwmgr.mgmtMenuItemUsedExportComplete.testGetValue()?.length == 1
-        );
-      }, "Waiting for the export to complete.");
-      Assert.equal(
-        Glean.pwmgr.reauthenticateOsAuth.testGetValue()[0].extra.value,
-        osReAuthPromise ? "success" : "success_unsupported_platform",
-        "Reauthenticate event reports expected success reason"
+      let expectedEvents = [
+        [
+          "pwmgr",
+          "reauthenticate",
+          "os_auth",
+          osReAuthPromise ? "success" : "success_unsupported_platform",
+        ],
+        ["pwmgr", "mgmt_menu_item_used", "export_complete"],
+      ];
+      await LoginTestUtils.telemetry.waitForEventCount(
+        expectedEvents.length,
+        "parent"
+      );
+
+      TelemetryTestUtils.assertEvents(
+        expectedEvents,
+        { category: "pwmgr", method: /(reauthenticate|mgmt_menu_item_used)/ },
+        { process: "parent" }
       );
     }
   );

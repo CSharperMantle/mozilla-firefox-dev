@@ -3,6 +3,10 @@
 
 requestLongerTimeout(2);
 
+const { TelemetryTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/TelemetryTestUtils.sys.mjs"
+);
+
 EXPECTED_BREACH = {
   AddedDate: "2018-12-20T23:56:26Z",
   BreachDate: "2018-12-16",
@@ -31,7 +35,14 @@ add_setup(async function () {
   VULNERABLE_TEST_LOGIN2 = await addLogin(VULNERABLE_TEST_LOGIN2);
   TEST_LOGIN3 = await addLogin(TEST_LOGIN3);
 
-  Services.fog.testResetFOG();
+  await TestUtils.waitForCondition(() => {
+    Services.telemetry.clearEvents();
+    let events = Services.telemetry.snapshotEvents(
+      Ci.nsITelemetry.DATASET_PRERELEASE_CHANNELS,
+      true
+    ).content;
+    return !events || !events.length;
+  }, "Waiting for telemetry events to get cleared");
 
   await BrowserTestUtils.openNewForegroundTab({
     gBrowser,
@@ -51,29 +62,14 @@ add_task(async function test_telemetry_events() {
     );
     loginListItem.click();
   });
-  await Services.fog.testFlushAllChildren();
-  Assert.equal(
-    Glean.pwmgr.openManagementDirect.testGetValue().length,
-    1,
-    "One open event"
-  );
-  Assert.equal(
-    Glean.pwmgr.selectExistingLogin.testGetValue().length,
-    1,
-    "One select event"
-  );
+  await LoginTestUtils.telemetry.waitForEventCount(2);
 
   await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function () {
     let loginItem = content.document.querySelector("login-item");
     let copyButton = loginItem.shadowRoot.querySelector("copy-username-button");
     copyButton.click();
   });
-  await Services.fog.testFlushAllChildren();
-  Assert.equal(
-    Glean.pwmgr.copyUsername.testGetValue().length,
-    1,
-    "One copy event"
-  );
+  await LoginTestUtils.telemetry.waitForEventCount(3);
 
   if (OSKeyStoreTestUtils.canTestOSKeyStoreLogin()) {
     let reauthObserved = Promise.resolve();
@@ -88,17 +84,14 @@ add_task(async function test_telemetry_events() {
       copyButton.click();
     });
     await reauthObserved;
-    // When reauth is observed an extra event will be recorded
+    // When reauth is observed an extra telemetry event will be recorded
     // for the reauth, hence the event count increasing by 2 here, and later
     // in the test as well.
-    await Services.fog.testFlushAllChildren();
-    await TestUtils.waitForCondition(() => {
-      return (
-        Glean.pwmgr.reauthenticateOsAuth.testGetValue()?.length == 1 &&
-        Glean.pwmgr.copyPassword.testGetValue()?.length == 1
-      );
-    }, "Wait for two pwmgr events.");
+    await LoginTestUtils.telemetry.waitForEventCount(5);
   }
+  let nextTelemetryEventCount = OSKeyStoreTestUtils.canTestOSKeyStoreLogin()
+    ? 6
+    : 4;
 
   let promiseNewTab = BrowserTestUtils.waitForNewTab(
     gBrowser,
@@ -112,12 +105,7 @@ add_task(async function test_telemetry_events() {
   let newTab = await promiseNewTab;
   Assert.ok(true, "New tab opened to " + TEST_LOGIN3.origin);
   BrowserTestUtils.removeTab(newTab);
-  await Services.fog.testFlushAllChildren();
-  Assert.equal(
-    Glean.pwmgr.openSiteExistingLogin.testGetValue().length,
-    1,
-    "One open event"
-  );
+  await LoginTestUtils.telemetry.waitForEventCount(nextTelemetryEventCount++);
 
   // Show the password
   if (OSKeyStoreTestUtils.canTestOSKeyStoreLogin()) {
@@ -127,6 +115,7 @@ add_task(async function test_telemetry_events() {
         loginResult: true,
       });
     }
+    nextTelemetryEventCount++; // An extra event is observed for the reauth event.
     await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function () {
       let loginItem = content.document.querySelector("login-item");
       let revealCheckbox = loginItem.shadowRoot.querySelector(
@@ -135,12 +124,7 @@ add_task(async function test_telemetry_events() {
       revealCheckbox.click();
     });
     await reauthObserved;
-    await Services.fog.testFlushAllChildren();
-    Assert.equal(
-      Glean.pwmgr.showPassword.testGetValue().length,
-      1,
-      "One show event"
-    );
+    await LoginTestUtils.telemetry.waitForEventCount(nextTelemetryEventCount++);
 
     // Hide the password
     await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function () {
@@ -150,26 +134,17 @@ add_task(async function test_telemetry_events() {
       );
       revealCheckbox.click();
     });
-    await Services.fog.testFlushAllChildren();
-    Assert.equal(
-      Glean.pwmgr.hidePassword.testGetValue().length,
-      1,
-      "One hide event"
-    );
+    await LoginTestUtils.telemetry.waitForEventCount(nextTelemetryEventCount++);
 
     // Don't force the auth timeout here to check that `auth_skipped: true` is set as
     // in `extra`.
+    nextTelemetryEventCount++; // An extra event is observed for the reauth event.
     await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function () {
       let loginItem = content.document.querySelector("login-item");
       let editButton = loginItem.shadowRoot.querySelector("edit-button");
       editButton.click();
     });
-    await Services.fog.testFlushAllChildren();
-    Assert.equal(
-      Glean.pwmgr.editExistingLogin.testGetValue().length,
-      1,
-      "One edit event"
-    );
+    await LoginTestUtils.telemetry.waitForEventCount(nextTelemetryEventCount++);
 
     await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function () {
       let loginItem = content.document.querySelector("login-item");
@@ -183,16 +158,8 @@ add_task(async function test_telemetry_events() {
       );
       saveButton.click();
     });
-    await Services.fog.testFlushAllChildren();
-    Assert.equal(
-      Glean.pwmgr.saveExistingLogin.testGetValue().length,
-      1,
-      "One save event"
-    );
+    await LoginTestUtils.telemetry.waitForEventCount(nextTelemetryEventCount++);
   }
-
-  // TODO: We have to sleep a bit here or else the following delete errors with "No matching logins".
-  await new Promise(resolve => setTimeout(resolve, 100)); // eslint-disable-line mozilla/no-arbitrary-setTimeout
 
   await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function () {
     let loginItem = content.document.querySelector("login-item");
@@ -205,12 +172,7 @@ add_task(async function test_telemetry_events() {
       confirmDeleteDialog.shadowRoot.querySelector(".confirm-button");
     confirmDeleteButton.click();
   });
-  await Services.fog.testFlushAllChildren();
-  Assert.equal(
-    Glean.pwmgr.deleteExistingLogin.testGetValue().length,
-    1,
-    "One delete event"
-  );
+  await LoginTestUtils.telemetry.waitForEventCount(nextTelemetryEventCount++);
 
   await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function () {
     let newLoginButton = content.document
@@ -218,24 +180,14 @@ add_task(async function test_telemetry_events() {
       .shadowRoot.querySelector("create-login-button");
     newLoginButton.click();
   });
-  await Services.fog.testFlushAllChildren();
-  Assert.equal(
-    Glean.pwmgr.newNewLogin.testGetValue().length,
-    1,
-    "One new event"
-  );
+  await LoginTestUtils.telemetry.waitForEventCount(nextTelemetryEventCount++);
 
   await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function () {
     let loginItem = content.document.querySelector("login-item");
     let cancelButton = loginItem.shadowRoot.querySelector(".cancel-button");
     cancelButton.click();
   });
-  await Services.fog.testFlushAllChildren();
-  Assert.equal(
-    Glean.pwmgr.cancelNewLogin.testGetValue().length,
-    1,
-    "One cancel event"
-  );
+  await LoginTestUtils.telemetry.waitForEventCount(nextTelemetryEventCount++);
 
   await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function () {
     let loginList = content.document.querySelector("login-list");
@@ -244,24 +196,14 @@ add_task(async function test_telemetry_events() {
     );
     loginListItem.click();
   });
-  await Services.fog.testFlushAllChildren();
-  Assert.equal(
-    Glean.pwmgr.selectExistingLogin.testGetValue().length,
-    2,
-    "Two select events"
-  );
+  await LoginTestUtils.telemetry.waitForEventCount(nextTelemetryEventCount++);
 
   await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function () {
     let loginItem = content.document.querySelector("login-item");
     let copyButton = loginItem.shadowRoot.querySelector("copy-username-button");
     copyButton.click();
   });
-  await Services.fog.testFlushAllChildren();
-  Assert.equal(
-    Glean.pwmgr.copyUsername.testGetValue().length,
-    2,
-    "Two copy events"
-  );
+  await LoginTestUtils.telemetry.waitForEventCount(nextTelemetryEventCount++);
 
   await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function () {
     let loginItem = content.document.querySelector("login-item");
@@ -274,12 +216,7 @@ add_task(async function test_telemetry_events() {
       confirmDeleteDialog.shadowRoot.querySelector(".confirm-button");
     confirmDeleteButton.click();
   });
-  await Services.fog.testFlushAllChildren();
-  Assert.equal(
-    Glean.pwmgr.deleteExistingLogin.testGetValue().length,
-    2,
-    "Two delete events"
-  );
+  await LoginTestUtils.telemetry.waitForEventCount(nextTelemetryEventCount++);
 
   await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function () {
     let loginSort = content.document
@@ -288,8 +225,7 @@ add_task(async function test_telemetry_events() {
     loginSort.value = "last-used";
     loginSort.dispatchEvent(new content.Event("change", { bubbles: true }));
   });
-  await Services.fog.testFlushAllChildren();
-  Assert.equal(Glean.pwmgr.sortList.testGetValue().length, 1, "One sort event");
+  await LoginTestUtils.telemetry.waitForEventCount(nextTelemetryEventCount++);
   registerCleanupFunction(() => {
     Services.prefs.clearUserPref("signon.management.page.sort");
   });
@@ -300,10 +236,38 @@ add_task(async function test_telemetry_events() {
     const input = loginFilter.shadowRoot.querySelector("input");
     input.setUserInput("test");
   });
-  await Services.fog.testFlushAllChildren();
-  Assert.equal(
-    Glean.pwmgr.filterList.testGetValue().length,
-    1,
-    "One filter event"
+  await LoginTestUtils.telemetry.waitForEventCount(nextTelemetryEventCount++);
+
+  const testOSAuth = OSKeyStoreTestUtils.canTestOSKeyStoreLogin();
+  let expectedEvents = [
+    [true, "pwmgr", "open_management", "direct"],
+    [true, "pwmgr", "select", "existing_login", null, { breached: "true" }],
+    [true, "pwmgr", "copy", "username", null, { breached: "true" }],
+    [testOSAuth, "pwmgr", "reauthenticate", "os_auth", "success"],
+    [testOSAuth, "pwmgr", "copy", "password", null, { breached: "true" }],
+    [true, "pwmgr", "open_site", "existing_login", null, { breached: "true" }],
+    [testOSAuth, "pwmgr", "reauthenticate", "os_auth", "success"],
+    [testOSAuth, "pwmgr", "show", "password", null, { breached: "true" }],
+    [testOSAuth, "pwmgr", "hide", "password", null, { breached: "true" }],
+    [testOSAuth, "pwmgr", "reauthenticate", "os_auth", "success_no_prompt"],
+    [testOSAuth, "pwmgr", "edit", "existing_login", null, { breached: "true" }],
+    [testOSAuth, "pwmgr", "save", "existing_login", null, { breached: "true" }],
+    [true, "pwmgr", "delete", "existing_login", null, { breached: "true" }],
+    [true, "pwmgr", "new", "new_login"],
+    [true, "pwmgr", "cancel", "new_login"],
+    [true, "pwmgr", "select", "existing_login", null, { vulnerable: "true" }],
+    [true, "pwmgr", "copy", "username", null, { vulnerable: "true" }],
+    [true, "pwmgr", "delete", "existing_login", null, { vulnerable: "true" }],
+    [true, "pwmgr", "sort", "list"],
+    [true, "pwmgr", "filter", "list"],
+  ];
+  expectedEvents = expectedEvents
+    .filter(event => event[0])
+    .map(event => event.slice(1));
+
+  TelemetryTestUtils.assertEvents(
+    expectedEvents,
+    { category: "pwmgr" },
+    { clear: true, process: "content" }
   );
 });

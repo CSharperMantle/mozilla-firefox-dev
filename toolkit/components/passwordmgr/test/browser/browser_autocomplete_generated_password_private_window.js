@@ -5,7 +5,11 @@ const FORM_PAGE_PATH =
 const passwordInputSelector = "#form-basic-password";
 
 add_setup(async function () {
-  Services.fog.testResetFOG();
+  Services.telemetry.clearEvents();
+  TelemetryTestUtils.assertEvents([], {
+    category: "pwmgr",
+    method: "autocomplete_shown",
+  });
 });
 
 add_task(async function test_autocomplete_new_password_popup_item_visible() {
@@ -59,10 +63,9 @@ add_task(async function test_autocomplete_new_password_popup_item_visible() {
 
       await TestUtils.waitForTick();
 
-      Assert.equal(
-        Glean.pwmgr.autocompleteShownGeneratedpassword.testGetValue().length,
-        1,
-        "One shown event"
+      TelemetryTestUtils.assertEvents(
+        [["pwmgr", "autocomplete_shown", "generatedpassword"]],
+        { category: "pwmgr", method: "autocomplete_shown" }
       );
 
       await closePopup(popup);

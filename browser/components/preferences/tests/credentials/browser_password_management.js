@@ -1,7 +1,13 @@
 "use strict";
 
+const { LoginTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/LoginTestUtils.sys.mjs"
+);
+const { TelemetryTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/TelemetryTestUtils.sys.mjs"
+);
+
 add_setup(async function () {
-  Services.fog.testResetFOG();
   await SpecialPowers.pushPrefEnv({
     set: [["toolkit.osKeyStore.unofficialBuildOnlyLogin", ""]],
   });
@@ -34,11 +40,11 @@ add_task(async function test_openPasswordManagement() {
   ok(tab, "Tab opened");
 
   // check telemetry events while we are in here
-  await Services.fog.testFlushAllChildren();
-  Assert.equal(
-    Glean.pwmgr.openManagementPreferences.testGetValue().length,
-    1,
-    "One open event"
+  await LoginTestUtils.telemetry.waitForEventCount(1);
+  TelemetryTestUtils.assertEvents(
+    [["pwmgr", "open_management", "preferences"]],
+    { category: "pwmgr", method: "open_management" },
+    { clear: true, process: "content" }
   );
 
   BrowserTestUtils.removeTab(tab);
