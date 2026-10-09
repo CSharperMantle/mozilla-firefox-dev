@@ -571,11 +571,15 @@ export default class SidebarMain extends MozLitElement {
             this.unpinExtension();
             break;
           case "sidebar-context-menu-hide-sidebar":
-            window.SidebarController._maybeAnimate(() => {
-              window.SidebarController.hide({ dismissPanel: false });
-              window.SidebarController._state.updateVisibility(false);
-              window.SidebarController.updateToolbarButton();
-            });
+            if (
+              window.SidebarController._animationEnabled &&
+              !window.gReduceMotion
+            ) {
+              window.SidebarController._animateSidebarContainer();
+            }
+            window.SidebarController.hide({ dismissPanel: false });
+            window.SidebarController._state.updateVisibility(false);
+            window.SidebarController.updateToolbarButton();
             break;
           case "sidebar-context-menu-enable-vertical-tabs":
             await window.SidebarController.toggleVerticalTabs();

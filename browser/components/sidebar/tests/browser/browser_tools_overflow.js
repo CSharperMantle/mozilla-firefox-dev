@@ -296,11 +296,13 @@ add_task(async function test_overflow_menu_with_keyboard() {
   );
   info("Press Space key.");
   EventUtils.synthesizeKey(" ", {});
-  await TestUtils.waitForCondition(
-    () => SidebarController.currentID === "viewCustomizeSidebar",
-    "Waiting for the customize panel to be shown."
+  await BrowserTestUtils.waitForMutationCondition(
+    overflowButton,
+    { attributes: true },
+    () => {
+      return SidebarController.currentID === "viewCustomizeSidebar";
+    }
   );
-  await SidebarController.waitUntilStable();
 
   ok(true, "Customize panel is shown.");
 
