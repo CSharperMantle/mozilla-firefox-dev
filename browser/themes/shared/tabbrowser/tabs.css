@@ -82,6 +82,10 @@
 
     &[uidensity="compact"] {
       --tab-margin-block: 4px;
+
+      @media -moz-pref("sidebar.verticalTabs") {
+        --tab-margin-block: 2px;
+      }
     }
   }
 
@@ -2883,6 +2887,13 @@ tab-group {
    */
   --tab-padding-block-start: 3px;
   --tab-padding-block-end: 2px;
+
+  @media -moz-pref("browser.nova.enabled") {
+    :root[uidensity="compact"] & {
+      --tab-padding-block-start: 0px;
+      --tab-padding-block-end: 0px;
+    }
+  }
 
   min-height: 0;
   display: flex;
