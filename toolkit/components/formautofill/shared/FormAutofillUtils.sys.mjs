@@ -1654,6 +1654,13 @@ XPCOMUtils.defineLazyPreferenceGetter(
   2 * 60 * 1000
 );
 
+XPCOMUtils.defineLazyPreferenceGetter(
+  FormAutofillUtils,
+  "useHeuristicsForOther",
+  "extensions.formautofill.useml.useHeuristicsForOther",
+  false
+);
+
 // Field types the ML model is not trusted with, parsed from the comma
 // separated pref. They are classified by the regexp-based heuristics instead.
 XPCOMUtils.defineLazyPreferenceGetter(

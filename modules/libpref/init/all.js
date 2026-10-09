@@ -4079,6 +4079,10 @@ pref("extensions.formautofill.useml.timeoutMS", 120000);
 // Controlled by the autofill-ml-ignore-field-types Nimbus feature.
 pref("extensions.formautofill.useml.ignoreFieldTypes", "");
 
+// If ML identifies a field as 'other' or cannot identify a field,
+// use the heuristics value instead if assigned.
+pref("extensions.formautofill.useml.useHeuristicsForOther", false);
+
 // Optional AutoFill tokenizer features, as a JSON array of feature keys that
 // change a field's exported mlData:
 //   "select_option"    - "<first>...<last>" option-range token for a <select>.

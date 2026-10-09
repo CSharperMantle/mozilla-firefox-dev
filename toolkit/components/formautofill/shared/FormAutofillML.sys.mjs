@@ -285,27 +285,29 @@ export class FormAutofillML {
   /**
    * Apply the model's predictions to `fields`, positionally.
    *
-   * Fields already labeled by the heuristics keep their assignment; the ML model
-   * only fills in the ones still missing a fieldName. Predictions for the field
-   * types the model is not trusted with are dropped like the "other" sentinel,
-   * since the regexp heuristics have already had their say on those.
+   * If ML identifies a field, it overrides the existing value assigned by
+   * heuristics, if any. The preference behind 'useHeuristicsForOther'
+   * controls whether the model overrides the heuristics when it does not
+   * identify a field. Predictions for the field types the model is not
+   * trusted with are dropped like the "other" sentinel, since the regexp
+   * heuristics have already had their say on those.
    *
    * @param {object[]} fields The field details that were classified.
    * @param {object[]} results One `{ label }` per entry in `fields`.
    */
-  #applyResults(fields, results) {
+  applyResults(fields, results) {
     for (let r = 0; r < results.length; r++) {
       const fd = fields[r];
       const fieldName = results[r].label;
-      if (
-        fieldName &&
-        fieldName != "other" &&
-        !FormAutofillUtils.mlIgnoreFieldTypes.includes(fieldName)
-      ) {
+      if (fieldName && fieldName != "other") {
+        if (!FormAutofillUtils.mlIgnoreFieldTypes.includes(fieldName)) {
+          fd.fieldName = fieldName;
+          fd.reason = "ml";
+        }
+      } else if (!FormAutofillUtils.useHeuristicsForOther) {
         fd.fieldName = fieldName;
+        fd.reason = "ml";
       }
-
-      fd.reason = "ml";
     }
   }
 
@@ -337,7 +339,7 @@ export class FormAutofillML {
       options: { pooling: "mean", normalize: true },
     });
 
-    this.#applyResults(mlFields, results);
+    this.applyResults(mlFields, results);
     return true;
   }
 
@@ -423,7 +425,7 @@ export class FormAutofillML {
     // `.output`.
     const scores = await headEngine.run({ args: [rows] });
 
-    this.#applyResults(mlFields, scores?.output ?? scores);
+    this.applyResults(mlFields, scores?.output ?? scores);
 
     return true;
   }
