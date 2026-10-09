@@ -114,10 +114,10 @@ nsMenuBarX* nsMenuUtilsX::GetHiddenWindowMenuBar() {
   if (gfxPlatform::IsHeadless()) {
     return nullptr;
   }
-  nsIWidget* hiddenWindowWidgetNoCOMPtr = nsCocoaUtils::GetHiddenWindowWidget();
-  if (hiddenWindowWidgetNoCOMPtr) {
-    return static_cast<nsCocoaWindow*>(hiddenWindowWidgetNoCOMPtr)
-        ->GetMenuBar();
+  nsCOMPtr<nsIWidget> hiddenWindowWidget =
+      nsCocoaUtils::GetHiddenWindowWidget();
+  if (hiddenWindowWidget) {
+    return static_cast<nsCocoaWindow*>(hiddenWindowWidget.get())->GetMenuBar();
   }
   return nullptr;
 }
