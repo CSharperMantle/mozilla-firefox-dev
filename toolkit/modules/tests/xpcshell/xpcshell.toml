@@ -22,6 +22,8 @@ tags = "os_integration"
 ["test_BinarySearch.js"]
 
 ["test_BrowserUtils.js"]
+
+["test_BrowserUtils_callModulesFromCategory.js"]
 support-files = [
   "my_catman_1.sys.mjs",
   "my_catman_2.sys.mjs",

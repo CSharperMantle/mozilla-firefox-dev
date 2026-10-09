@@ -83,6 +83,7 @@ ChromeUtils.defineLazyGetter(lazy, "CatManListenerManager", () => {
               return obj[method](...args);
             };
             fn._descriptiveName = value;
+            fn._module = module;
             return fn;
           } catch (ex) {
             console.error(
@@ -107,6 +108,65 @@ ChromeUtils.defineLazyGetter(lazy, "CatManListenerManager", () => {
   Services.obs.addObserver(CatManListenerManager, "xpcom-category-cleared");
   return CatManListenerManager;
 });
+
+// The module URI schemes that category entries declared in .manifest files
+// use, and the dotted identifier shape of their `object.method` consumers
+// and of error names. Entries registered at runtime, e.g. through the
+// experimental WebExtension API, can name an arbitrary URI or object, which
+// is reported as UNREPORTABLE_VALUE instead of being recorded as-is.
+const REPORTABLE_MODULE_SCHEMES = ["moz-src://", "resource://", "chrome://"];
+const REPORTABLE_IDENTIFIER = /^[A-Za-z_$][\w$]*(\.[A-Za-z_$][\w$]*)*$/;
+const UNREPORTABLE_VALUE = "other";
+
+/**
+ * The name of the error a category consumer threw.
+ *
+ * @param {any} ex
+ *        The value the consumer threw.
+ * @returns {string}
+ *        A JS error or DOMException name such as "TypeError", the
+ *        `NS_ERROR_*` name if the consumer threw an XPCOM exception or a bare
+ *        nsresult, or "" for a thrown value that has neither.
+ */
+function consumerErrorName(ex) {
+  if (DOMException.isInstance(ex)) {
+    return ex.name;
+  }
+  if (ex instanceof Ci.nsIException) {
+    return ChromeUtils.getXPCOMErrorName(ex.result);
+  }
+  if (typeof ex == "number") {
+    return ChromeUtils.getXPCOMErrorName(ex);
+  }
+  return typeof ex?.name == "string" ? ex.name : "";
+}
+
+/**
+ * Report a category consumer that threw to telemetry.
+ *
+ * @param {string} categoryName
+ *        The category the failing consumer is registered in.
+ * @param {Function} fn
+ *        The failing consumer's listener, as built by
+ *        CatManListenerManager.getListeners.
+ * @param {any} ex
+ *        The value the consumer threw.
+ */
+function reportCategoryConsumerError(categoryName, fn, ex) {
+  Glean.browserUtils.categoryConsumerResult.get(categoryName, "failure").add(1);
+  let reportableIdentifier = value =>
+    !value || REPORTABLE_IDENTIFIER.test(value) ? value : UNREPORTABLE_VALUE;
+  Glean.browserUtils.categoryDispatchError.record({
+    category: categoryName,
+    module: REPORTABLE_MODULE_SCHEMES.some(scheme =>
+      fn._module.startsWith(scheme)
+    )
+      ? fn._module
+      : UNREPORTABLE_VALUE,
+    consumer: reportableIdentifier(fn._descriptiveName),
+    errorName: reportableIdentifier(consumerErrorName(ex)),
+  });
+}
 
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
@@ -766,11 +826,15 @@ export var BrowserUtils = {
       let startTime = profilerMarker ? ChromeUtils.now() : 0;
       try {
         await fn(jsGlobal, ...args);
+        Glean.browserUtils.categoryConsumerResult
+          .get(categoryName, "success")
+          .add(1);
       } catch (ex) {
         console.error(
           `Error in processing ${categoryName} for ${fn._descriptiveName}`
         );
         console.error(ex);
+        reportCategoryConsumerError(categoryName, fn, ex);
         try {
           await failureHandler?.(ex);
         } catch (nestedEx) {
