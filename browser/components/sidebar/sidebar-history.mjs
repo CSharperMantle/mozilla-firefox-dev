@@ -336,11 +336,19 @@ export class SidebarHistory extends SidebarPage {
   }
 
   onKeyDown(e) {
-    if (
-      (e.code === "Delete" || e.code === "Backspace") &&
-      e.composedTarget.localName === "sidebar-tab-row"
-    ) {
+    if (e.code === "Delete" || e.code === "Backspace") {
+      const row = e
+        .composedPath()
+        .find(el => el.localName === "sidebar-tab-row");
+      if (!row) {
+        return;
+      }
+
       e.preventDefault();
+      if (this.isMultipleRowsSelected) {
+        this.#deleteMultipleFromHistory().catch(console.error);
+        return;
+      }
       this.triggerNode = e.composedTarget;
       this.controller.deleteFromHistory().catch(console.error);
     }
