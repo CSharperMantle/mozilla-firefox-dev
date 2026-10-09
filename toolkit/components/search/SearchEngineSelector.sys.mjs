@@ -42,14 +42,18 @@ export class SearchEngineSelector {
    *   A listener for configuration update changes.
    */
   constructor(listener) {
+    this.#changeListener = listener;
+
     this.#remoteConfig = lazy.RemoteSettings(lazy.SearchUtils.SETTINGS_KEY);
+    this.#boundOnConfigurationUpdated = this._onConfigurationUpdated.bind(this);
+
+    // Although this is not used for search-config-v3, we still set it up to allow
+    // dynamic switching between v2 and v3.
     this.#remoteConfigOverrides = lazy.RemoteSettings(
       lazy.SearchUtils.SETTINGS_OVERRIDES_KEY
     );
-    this.#boundOnConfigurationUpdated = this._onConfigurationUpdated.bind(this);
     this.#boundOnConfigurationOverridesUpdated =
       this._onConfigurationOverridesUpdated.bind(this);
-    this.#changeListener = listener;
   }
 
   /**
@@ -91,10 +95,18 @@ export class SearchEngineSelector {
       return this.#getConfigurationPromise;
     }
 
-    this.#getConfigurationPromise = Promise.all([
-      this.#getConfiguration(),
-      this.#getConfigurationOverrides(),
-    ]);
+    if (lazy.SearchUtils.configV3FeatureGate) {
+      this.#getConfigurationPromise = Promise.all([
+        this.#getConfiguration(),
+        // Return an empty list for the overrides as they aren't in use for v3.
+        Promise.resolve([]),
+      ]);
+    } else {
+      this.#getConfigurationPromise = Promise.all([
+        this.#getConfiguration(),
+        this.#getConfigurationOverrides(),
+      ]);
+    }
     let remoteSettingsData = await this.#getConfigurationPromise;
     this.#configuration = remoteSettingsData[0];
     this.#getConfigurationPromise = null;
@@ -121,10 +133,11 @@ export class SearchEngineSelector {
     this.#selector.setSearchConfig(
       JSON.stringify({ data: this.#configuration })
     );
-    this.#selector.setConfigOverrides(
-      JSON.stringify({ data: remoteSettingsData[1] })
-    );
-
+    if (!lazy.SearchUtils.configV3FeatureGate) {
+      this.#selector.setConfigOverrides(
+        JSON.stringify({ data: remoteSettingsData[1] })
+      );
+    }
     return this.#configuration;
   }
 
@@ -269,6 +282,8 @@ export class SearchEngineSelector {
   /**
    * The remote settings client for handling the search configuration overrides
    * collection.
+   *
+   * @type {?ReturnType<typeof lazy.RemoteSettings>}
    */
   #remoteConfigOverrides;
 
