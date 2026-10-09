@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { SettingChangedEvent } from "./events.mjs";
+import { callbacks } from "./inventory.mjs";
 
 /**
  * @import { Toolbox } from "../framework/toolbox.js"
@@ -34,9 +35,14 @@ export class SettingsPanel {
 
   /** @param {SettingChangedEvent} event */
   #onSettingChanged = event => {
-    if (event.updateToolboxButtonsVisibility) {
-      this.toolbox?.updateToolboxButtonsVisibility();
+    if (!isCallbackName(event.action)) {
+      throw new Error(`Unknown settings callback "${event.action}".`);
     }
+    if (!this.toolbox) {
+      // the panel might have been destroyed already
+      return;
+    }
+    callbacks[event.action]({ toolbox: this.toolbox });
   };
 
   destroy() {
@@ -44,4 +50,12 @@ export class SettingsPanel {
     this.element = null;
     this.toolbox = null;
   }
+}
+
+/**
+ * @param {string} action
+ * @returns {action is keyof typeof callbacks}
+ */
+function isCallbackName(action) {
+  return Object.hasOwn(callbacks, action);
 }

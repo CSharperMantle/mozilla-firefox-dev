@@ -11,6 +11,7 @@ add_task(async function () {
   const tab = await addTab("about:blank");
   const toolbox = await openToolboxForTab(tab, "options");
   const panel = toolbox.getCurrentPanel();
+  await panel.element.updateComplete;
   const checkbox = panel.element.shadowRoot.querySelector("#rulers-setting");
   ok(checkbox, "The checkbox exists");
   await checkbox.updateComplete;

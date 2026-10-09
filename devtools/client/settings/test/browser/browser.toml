@@ -6,4 +6,6 @@ support-files = [
   "!/devtools/client/shared/test/shared-head.js",
 ]
 
+["browser_settings_preference_bindings.js"]
+
 ["browser_settings_rulers.js"]

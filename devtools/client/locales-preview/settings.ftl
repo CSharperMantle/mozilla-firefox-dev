@@ -8,3 +8,8 @@ devtools-settings-title = DevTools Settings
 # toolbar. That button toggles rulers along the edges of the page.
 devtools-settings-toolbox-rulers =
     .label = Show rulers button (in toolbox)
+
+# Label for a checkbox that shows or hides a button in the DevTools toolbox
+# toolbar. That button takes a screenshot of the page.
+devtools-settings-toolbox-screenshot =
+    .label = Show screenshot button (in toolbox)
