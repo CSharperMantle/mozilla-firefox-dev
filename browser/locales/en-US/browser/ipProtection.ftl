@@ -375,6 +375,32 @@ ip-protection-exceptions-dialog-window =
   .title = Manage website settings
 ip-protection-exclusions-desc = Use VPN for all websites except ones on this list. Add a website here or by opening VPN.
 
+ip-protection-site-rule-window =
+  .title = Set rule
+ip-protection-site-rule-dialog =
+  .buttonlabelaccept = Set
+  .buttonaccesskeyaccept = S
+# VPN status refers to a state of 'always on' or 'always off' applied to a site
+ip-protection-site-rule-intro = Enter a site, then select its VPN status.
+# "ex:" is short for "example".
+ip-protection-site-rule-website-field =
+  .label = Website
+  .placeholder = ex: acme.com
+# VPN status refers to a state of 'always on' or 'always off' applied to a site
+ip-protection-site-rule-status-field =
+  .label = VPN status
+ip-protection-site-rule-status-on =
+  .label = Always on
+ip-protection-site-rule-status-off =
+  .label = Always off
+# Shown below the website field when what was typed is not a website address.
+ip-protection-site-rule-invalid-error = Enter a valid website address.
+# Shown below the website field when the typed website already has a rule.
+ip-protection-site-rule-duplicate-error = This site already has a rule.
+# Shown at the top of the dialog when the rule could not be saved.
+ip-protection-site-rule-save-error =
+  .message = Error creating rule. Please try again.
+
 ## IP Protection Bandwidth
 
 ip-protection-bandwidth-header-1 = Monthly data limit
