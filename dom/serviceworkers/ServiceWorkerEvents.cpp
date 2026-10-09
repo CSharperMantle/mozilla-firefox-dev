@@ -690,7 +690,7 @@ void RespondWithHandler::ResolvedCallback(JSContext* aCx,
     MOZ_ALWAYS_SUCCEEDS(responseURI->GetSpec(responseURL));
   }
 
-  UniquePtr<RespondWithClosure> closure = std::make_unique<RespondWithClosure>(
+  auto closure = std::make_unique<RespondWithClosure>(
       mInterceptedChannel, mRegistration, mRequestURL, mRespondWithScriptSpec,
       mRespondWithLineNumber, mRespondWithColumnNumber);
 

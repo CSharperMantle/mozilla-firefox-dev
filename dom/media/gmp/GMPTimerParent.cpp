@@ -35,7 +35,7 @@ mozilla::ipc::IPCResult GMPTimerParent::RecvSetTimer(
   }
 
   nsresult rv;
-  UniquePtr<Context> ctx = std::make_unique<Context>();
+  auto ctx = std::make_unique<Context>();
 
   rv = NS_NewTimerWithFuncCallback(
       getter_AddRefs(ctx->mTimer), &GMPTimerParent::GMPTimerExpired, ctx.get(),

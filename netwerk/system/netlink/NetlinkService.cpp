@@ -756,7 +756,7 @@ void NetlinkService::OnLinkMessage(struct nlmsghdr* aNlh) {
   LOG(("NetlinkService::OnLinkMessage [type=%s]",
        aNlh->nlmsg_type == RTM_NEWLINK ? "new" : "del"));
 
-  UniquePtr<NetlinkLink> link = std::make_unique<NetlinkLink>();
+  auto link = std::make_unique<NetlinkLink>();
   if (!link->Init(aNlh)) {
     return;
   }
@@ -807,7 +807,7 @@ void NetlinkService::OnAddrMessage(struct nlmsghdr* aNlh) {
   LOG(("NetlinkService::OnAddrMessage [type=%s]",
        aNlh->nlmsg_type == RTM_NEWADDR ? "new" : "del"));
 
-  UniquePtr<NetlinkAddress> address = std::make_unique<NetlinkAddress>();
+  auto address = std::make_unique<NetlinkAddress>();
   if (!address->Init(aNlh)) {
     return;
   }
@@ -899,7 +899,7 @@ void NetlinkService::OnRouteMessage(struct nlmsghdr* aNlh) {
   LOG(("NetlinkService::OnRouteMessage [type=%s]",
        aNlh->nlmsg_type == RTM_NEWROUTE ? "new" : "del"));
 
-  UniquePtr<NetlinkRoute> route = std::make_unique<NetlinkRoute>();
+  auto route = std::make_unique<NetlinkRoute>();
   if (!route->Init(aNlh)) {
     return;
   }
@@ -997,7 +997,7 @@ void NetlinkService::OnNeighborMessage(struct nlmsghdr* aNlh) {
   LOG(("NetlinkService::OnNeighborMessage [type=%s]",
        aNlh->nlmsg_type == RTM_NEWNEIGH ? "new" : "del"));
 
-  UniquePtr<NetlinkNeighbor> neigh = std::make_unique<NetlinkNeighbor>();
+  auto neigh = std::make_unique<NetlinkNeighbor>();
   if (!neigh->Init(aNlh)) {
     return;
   }

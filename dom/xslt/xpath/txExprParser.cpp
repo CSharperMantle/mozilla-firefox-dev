@@ -379,7 +379,7 @@ nsresult txExprParser::createFilterOrStep(txExprLexer& lexer,
   }
 
   if (lexer.peek()->mType == Token::L_BRACKET) {
-    UniquePtr<FilterExpr> filterExpr = std::make_unique<FilterExpr>(expr.get());
+    auto filterExpr = std::make_unique<FilterExpr>(expr.get());
 
     (void)expr.release();
 
@@ -640,7 +640,7 @@ nsresult txExprParser::createPathExpr(txExprLexer& lexer,
   }
 
   // We have a PathExpr containing several steps
-  UniquePtr<PathExpr> pathExpr = std::make_unique<PathExpr>();
+  auto pathExpr = std::make_unique<PathExpr>();
   pathExpr->addExpr(expr.release(), PathExpr::RELATIVE_OP);
 
   // this is ugly
@@ -687,7 +687,7 @@ nsresult txExprParser::createUnionExpr(txExprLexer& lexer,
     return NS_OK;
   }
 
-  UniquePtr<UnionExpr> unionExpr = std::make_unique<UnionExpr>();
+  auto unionExpr = std::make_unique<UnionExpr>();
   unionExpr->addExpr(expr.release());
 
   while (lexer.peek()->mType == Token::UNION_OP) {

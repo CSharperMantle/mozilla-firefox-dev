@@ -216,7 +216,7 @@ nsresult VariableLengthPrefixSet::SetPrefixes(AddPrefixArray& aAddPrefixes,
   }
   completions.Sort();
 
-  UniquePtr<nsCString> completionStr = std::make_unique<nsCString>();
+  auto completionStr = std::make_unique<nsCString>();
   completionStr->SetCapacity(completions.Length() * COMPLETE_SIZE);
   for (size_t i = 0; i < completions.Length(); i++) {
     const char* buf = reinterpret_cast<const char*>(completions[i].buf);
@@ -299,7 +299,7 @@ nsresult VariableLengthPrefixSet::GetPrefixes(PrefixStringMap& aPrefixMap) {
 
   size_t count = array.Length();
   if (count) {
-    UniquePtr<nsCString> prefixes = std::make_unique<nsCString>();
+    auto prefixes = std::make_unique<nsCString>();
     if (!prefixes->SetLength(PREFIX_SIZE_FIXED * count, fallible)) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
@@ -456,7 +456,7 @@ nsresult VariableLengthPrefixSet::LoadPrefixes(nsCOMPtr<nsIInputStream>& in) {
     NS_ENSURE_TRUE(stringLength % prefixSize == 0, NS_ERROR_FILE_CORRUPTED);
     uint32_t prefixCount = stringLength / prefixSize;
 
-    UniquePtr<nsCString> vlPrefixes = std::make_unique<nsCString>();
+    auto vlPrefixes = std::make_unique<nsCString>();
     if (!vlPrefixes->SetLength(stringLength, fallible)) {
       return NS_ERROR_OUT_OF_MEMORY;
     }

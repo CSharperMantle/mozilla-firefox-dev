@@ -620,7 +620,7 @@ int DataChannelConnectionUsrsctp::SendSctpPacket(const uint8_t* buffer,
     }
   }
 
-  std::unique_ptr<MediaPacket> packet = std::make_unique<MediaPacket>();
+  auto packet = std::make_unique<MediaPacket>();
   packet->SetType(MediaPacket::SCTP);
   packet->Copy(static_cast<const uint8_t*>(buffer), length);
 

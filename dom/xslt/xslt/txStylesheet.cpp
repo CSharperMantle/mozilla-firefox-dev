@@ -313,7 +313,7 @@ nsresult txStylesheet::doneCompiling() {
   }
 
   if (!mDecimalFormats.get(txExpandedName())) {
-    UniquePtr<txDecimalFormat> format = std::make_unique<txDecimalFormat>();
+    auto format = std::make_unique<txDecimalFormat>();
     rv = mDecimalFormats.add(txExpandedName(), format.get());
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -484,7 +484,7 @@ nsresult txStylesheet::addGlobalVariable(txVariableItem* aVariable) {
   if (mGlobalVariables.get(aVariable->mName)) {
     return NS_OK;
   }
-  UniquePtr<GlobalVariable> var = std::make_unique<GlobalVariable>(
+  auto var = std::make_unique<GlobalVariable>(
       std::move(aVariable->mValue), std::move(aVariable->mFirstInstruction),
       aVariable->mIsParam);
   nsresult rv = mGlobalVariables.add(aVariable->mName, var.get());

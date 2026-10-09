@@ -1400,7 +1400,7 @@ bool SkeletonState::DecodeFisbone(ogg_packet* aPacket) {
   int64_t msgLength = aPacket->bytes - checked_fields_pos.value();
   char* msgProbe = (char*)aPacket->packet + checked_fields_pos.value();
   char* msgHead = msgProbe;
-  UniquePtr<MessageField> field = std::make_unique<MessageField>();
+  auto field = std::make_unique<MessageField>();
 
   const static FieldPatternType kFieldTypeMaps[] = {
       {"Content-Type:", eContentType},

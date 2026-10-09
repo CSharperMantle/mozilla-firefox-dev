@@ -460,7 +460,7 @@ void ConvolverNode::SetBuffer(JSContext* aCx, AudioBuffer* aBuffer,
     const size_t MaxFFTSize = 32768;
 
     bool allocationFailure = false;
-    UniquePtr<WebCore::Reverb> reverb = std::make_unique<WebCore::Reverb>(
+    auto reverb = std::make_unique<WebCore::Reverb>(
         data, MaxFFTSize, !Context()->IsOffline(), mNormalize,
         aBuffer->SampleRate(), &allocationFailure);
     if (!allocationFailure) {

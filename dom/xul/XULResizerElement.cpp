@@ -326,7 +326,7 @@ void XULResizerElement::MaybePersistOriginalSize(nsIContent* aContent,
     return;
   }
 
-  UniquePtr<SizeInfo> sizeInfo = std::make_unique<SizeInfo>(aSizeInfo);
+  auto sizeInfo = std::make_unique<SizeInfo>(aSizeInfo);
   rv = aContent->SetProperty(
       nsGkAtoms::_moz_original_size, sizeInfo.get(),
       nsINode::DeleteProperty<XULResizerElement::SizeInfo>);

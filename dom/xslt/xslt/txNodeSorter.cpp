@@ -42,7 +42,7 @@ nsresult txNodeSorter::addSortElement(Expr* aSelectExpr, Expr* aLangExpr,
                                       Expr* aDataTypeExpr, Expr* aOrderExpr,
                                       Expr* aCaseOrderExpr,
                                       txIEvalContext* aContext) {
-  UniquePtr<SortKey> key = std::make_unique<SortKey>();
+  auto key = std::make_unique<SortKey>();
   nsresult rv = NS_OK;
 
   // Select

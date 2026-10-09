@@ -338,7 +338,7 @@ extern ffi::WGPUBufferMapClosure wgpu_parent_build_buffer_map_closure(
     ffi::WGPUHostMap aMode, uint64_t aOffset, uint64_t aSize) {
   auto* parent = static_cast<WebGPUParent*>(aParent);
 
-  std::unique_ptr<WebGPUParent::MapRequest> request =
+  auto request =
       std::make_unique<WebGPUParent::MapRequest>(WebGPUParent::MapRequest{
           parent, aDeviceId, aBufferId, aMode, aOffset, aSize});
 
@@ -354,9 +354,8 @@ wgpu_parent_build_submitted_work_done_closure(WGPUWebGPUParentPtr aParent,
                                               WGPUQueueId aQueueId) {
   auto* parent = static_cast<WebGPUParent*>(aParent);
 
-  std::unique_ptr<WebGPUParent::OnSubmittedWorkDoneRequest> request =
-      std::make_unique<WebGPUParent::OnSubmittedWorkDoneRequest>(
-          WebGPUParent::OnSubmittedWorkDoneRequest{parent, aQueueId});
+  auto request = std::make_unique<WebGPUParent::OnSubmittedWorkDoneRequest>(
+      WebGPUParent::OnSubmittedWorkDoneRequest{parent, aQueueId});
 
   ffi::WGPUSubmittedWorkDoneClosure closure = {
       &WebGPUParent::OnSubmittedWorkDoneCallback,
