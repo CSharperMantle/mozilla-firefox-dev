@@ -4,6 +4,8 @@
 
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
 import { html, nothing } from "chrome://global/content/vendor/lit.all.mjs";
+// eslint-disable-next-line import/no-unassigned-import
+import "chrome://browser/content/widgets/moz-widget-header.mjs";
 
 const WIDGET_SANDBOX =
   "allow-forms allow-same-origin allow-scripts allow-popups allow-popups-to-escape-sandbox";
@@ -20,9 +22,11 @@ const FRAME_SLOT = "frame";
  * @property {string} widgetId - The widget's registered ID.
  * @property {string} title - The widget's accessible name, taken off the host element.
  * @property {string} size - `small`, `medium`, or `large`. Defaults to `large`.
+ * @property {boolean} padded - Insets the header and content.
  * @property {string} src - A widget document URL.
  * @property {string} remoteType - The remote type a `<browser>` frame loads in.
  * @property {number} browsingContextGroupId - The browsing context group a `<browser>` frame's initial load joins.
+ * @slot header - A `moz-widget-header` shown above the content.
  * @slot default - Widget content used when `src` is not set.
  */
 export class MozWidget extends MozLitElement {
@@ -32,6 +36,7 @@ export class MozWidget extends MozLitElement {
     remoteType: { attribute: "remote-type" },
     browsingContextGroupId: { type: Number, attribute: "group-id" },
     size: { reflect: true },
+    padded: { type: Boolean, reflect: true },
     src: { reflect: true },
   };
 
@@ -43,6 +48,7 @@ export class MozWidget extends MozLitElement {
     this.widgetId = null;
     this.title = null;
     this.size = null;
+    this.padded = false;
     this.src = null;
     this.remoteType = null;
     this.browsingContextGroupId = null;
@@ -146,13 +152,14 @@ export class MozWidget extends MozLitElement {
 
   render() {
     const usesIframe = this.src && !this.#browser;
-    const label = (!usesIframe && this.title) || nothing;
+    const label = this.title && !usesIframe ? this.title : nothing;
     return html`
       <link
         rel="stylesheet"
         href="chrome://browser/content/widgets/moz-widget.css"
       />
       <article class="widget" aria-label=${label}>
+        <slot name="header"></slot>
         <div class="widget-content">${this.#renderContent()}</div>
       </article>
     `;

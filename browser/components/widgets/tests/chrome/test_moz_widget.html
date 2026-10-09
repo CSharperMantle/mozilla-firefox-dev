@@ -69,7 +69,7 @@
         await widget.updateComplete;
 
         ok(!widget.frame, "no frame");
-        ok(widget.shadowRoot.querySelector("slot"), "slot");
+        ok(widget.shadowRoot.querySelector("slot:not([name])"), "default slot");
         is(
           widget.shadowRoot.querySelector(".widget").getAttribute("aria-label"),
           "Test widget",

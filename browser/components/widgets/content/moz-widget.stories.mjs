@@ -13,6 +13,11 @@ export default {
     fluent: `
 moz-widget-title =
   .title = Localized widget
+moz-widget-back-button =
+  .title = Back
+  .aria-label = Back
+moz-widget-units-button =
+  .label = Units
     `,
   },
   argTypes: {
@@ -22,6 +27,10 @@ moz-widget-title =
     },
     l10nId: {
       options: [undefined, "moz-widget-title"],
+      control: { type: "select" },
+    },
+    badge: {
+      options: [undefined, "new"],
       control: { type: "select" },
     },
   },
@@ -37,39 +46,99 @@ const WIDGET_DOCUMENT = `data:text/html,${encodeURIComponent(`
   </body>
 `)}`;
 
-const Template = ({ size, widgetId, l10nId }) => html`
-  <moz-widget
-    size=${size}
-    widget-id=${widgetId}
-    data-l10n-id=${ifDefined(l10nId)}
-  >
-    <section style="padding: 1rem;">
-      <h3>Example widget</h3>
-      <p>Any HTML can go in the default slot.</p>
-    </section>
-  </moz-widget>
-`;
+const headerTemplate = ({ headerTitle, badge, backButton, trailingButton }) =>
+  headerTitle || badge || backButton || trailingButton
+    ? html`<moz-widget-header slot="header" title=${ifDefined(headerTitle)}>
+        ${backButton
+          ? html`<moz-button
+              slot="leading"
+              type="ghost"
+              size="small"
+              iconsrc="chrome://global/skin/icons/arrow-left.svg"
+              data-l10n-id="moz-widget-back-button"
+            ></moz-button>`
+          : ""}
+        ${badge
+          ? html`<moz-badge slot="leading" type=${badge}></moz-badge>`
+          : ""}
+        ${trailingButton
+          ? html`<moz-button
+              slot="trailing"
+              size="small"
+              iconsrc="chrome://global/skin/icons/arrow-down-12.svg"
+              iconposition="end"
+              data-l10n-id="moz-widget-units-button"
+            ></moz-button>`
+          : ""}
+      </moz-widget-header>`
+    : "";
 
-const FramedTemplate = ({ size, widgetId, title, l10nId, src }) => html`
+const Template = ({ size, widgetId, title, l10nId, padded, ...header }) => html`
   <moz-widget
     size=${size}
     widget-id=${widgetId}
     title=${title}
     data-l10n-id=${ifDefined(l10nId)}
+    ?padded=${padded}
+  >
+    ${headerTemplate(header)}
+    <section style="padding: 1rem;">
+      <p>Any HTML can go in the default slot.</p>
+    </section>
+  </moz-widget>
+`;
+
+const FramedTemplate = ({
+  size,
+  widgetId,
+  title,
+  l10nId,
+  padded,
+  src,
+  ...header
+}) => html`
+  <moz-widget
+    size=${size}
+    widget-id=${widgetId}
+    title=${title}
+    data-l10n-id=${ifDefined(l10nId)}
+    ?padded=${padded}
     src=${src}
-  ></moz-widget>
+  >
+    ${headerTemplate(header)}
+  </moz-widget>
 `;
 
 export const Default = Template.bind({});
 Default.args = {
   size: "medium",
   widgetId: "example",
+  title: "Example widget",
+  headerTitle: "Example widget",
+  badge: undefined,
+  backButton: false,
+  trailingButton: false,
+  padded: false,
 };
 
 export const Framed = FramedTemplate.bind({});
 Framed.args = {
-  size: "medium",
-  widgetId: "example",
+  ...Default.args,
   title: "Framed widget",
+  headerTitle: "Framed widget",
   src: WIDGET_DOCUMENT,
+};
+
+export const Padded = FramedTemplate.bind({});
+Padded.args = {
+  ...Framed.args,
+  padded: true,
+};
+
+export const HeaderActions = Template.bind({});
+HeaderActions.args = {
+  ...Default.args,
+  badge: "new",
+  backButton: true,
+  trailingButton: true,
 };

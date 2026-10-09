@@ -42,6 +42,10 @@
   min-block-size: 0;
 }
 
+::slotted([slot="header"]) {
+  flex: 0 0 auto;
+}
+
 .widget-content {
   flex: 1 1 auto;
   min-block-size: 0;
@@ -53,6 +57,22 @@ iframe,
   inline-size: 100%;
   block-size: 100%;
   border: 0;
+}
+
+:host([padded]) {
+  .widget {
+    gap: var(--space-medium);
+    padding: var(--space-medium);
+  }
+
+  ::slotted([slot="header"]) {
+    --widget-header-padding: 0;
+  }
+
+  iframe,
+  ::slotted(browser) {
+    border-radius: var(--border-radius-medium);
+  }
 }
 
 @media (forced-colors: active) {
