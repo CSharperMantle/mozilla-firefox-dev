@@ -2490,7 +2490,7 @@ void nsRefreshDriver::Tick(VsyncId aId, TimeStamp aNowTime,
                         //
                         // [1]:
                         // https://drafts.csswg.org/web-animations-1/#update-animations-and-send-events
-                        nsAutoMicroTask mt;
+                        nsAutoMicroTaskForDocument mt(&aDoc);
                         UpdateAndReduceAnimations(aDoc);
                       }
                       if (RefPtr pc = aDoc.GetPresContext()) {

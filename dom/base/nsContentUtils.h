@@ -133,6 +133,7 @@ class PropertyDescriptor;
 }  // namespace JS
 
 namespace mozilla {
+class CycleCollectedJSContext;
 class Dispatcher;
 class EditorBase;
 class ErrorResult;
@@ -4074,6 +4075,20 @@ class MOZ_STACK_CLASS nsAutoScriptBlockerSuppressNodeRemoved
   ~nsAutoScriptBlockerSuppressNodeRemoved() {
     --nsContentUtils::sDOMNodeRemovedSuppressCount;
   }
+};
+
+// Like nsAutoMicroTask, but doesn't perform a checkpoint for a document
+// without an inner window (e.g. an SVG image): such documents can't run
+// script, so a checkpoint from them would only run other documents'
+// microtasks.
+class MOZ_STACK_CLASS nsAutoMicroTaskForDocument {
+ public:
+  explicit nsAutoMicroTaskForDocument(const mozilla::dom::Document* aDocument);
+  MOZ_CAN_RUN_SCRIPT ~nsAutoMicroTaskForDocument();
+
+ private:
+  // Null when the checkpoint is skipped.
+  mozilla::CycleCollectedJSContext* const mContext;
 };
 
 namespace mozilla::dom {
