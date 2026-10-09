@@ -11,6 +11,7 @@ tree without a build. Keeping the aggregation here stops the two from drifting.
 
 import collections
 import os
+import re
 
 import mozpack.path as mozpath
 import yaml
@@ -21,6 +22,8 @@ from mozbuild.frontend.data import (
     DeclaredLicenseNotice,
     LicenseError,
 )
+
+MARKDOWN_BREAK = re.compile(r"<br\s*/?>$", re.MULTILINE)
 
 CoveringManifest = collections.namedtuple(
     "CoveringManifest", ("path", "license", "license_file")
@@ -242,6 +245,9 @@ class LicenseCollection:
             notice["html"] = text_path.endswith(".html")
             with open(text_path, encoding="utf-8") as fh:
                 notice["text"] = fh.read()
+            # A Markdown hard line break would show as a literal tag in <pre>.
+            if text_path.endswith(".md"):
+                notice["text"] = MARKDOWN_BREAK.sub("", notice["text"])
             notice["paths"] = sorted(self._coverage.get(license_id, ()))
             licenses.append(notice)
         return licenses

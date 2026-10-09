@@ -102,6 +102,18 @@ class TestLicenseCollection(unittest.TestCase):
         collection.add(self.notice("mpl", text=self.html))
         self.assertTrue(collection.records()[0]["html"])
 
+    def test_markdown_line_breaks_are_dropped(self):
+        markdown = mozpath.join(self.tmpdir, "LICENSE.md")
+        with open(markdown, "w") as fh:
+            fh.write("Copyright A.<br>\nCopyright B. <br/>\nKeep <br> inline\n")
+        collection = LicenseCollection()
+        collection.add(self.notice("libjpeg", text=markdown))
+        record = collection.records()[0]
+        self.assertFalse(record["html"])
+        self.assertEqual(
+            record["text"], "Copyright A.\nCopyright B. \nKeep <br> inline\n"
+        )
+
     def test_non_license_object_is_ignored(self):
         self.assertFalse(LicenseCollection().add(object()))
 
