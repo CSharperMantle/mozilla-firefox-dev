@@ -12,7 +12,6 @@
     "lib/InferredPersonalizationFeed.sys.mjs",
     "lib/NewTabAttributionService.sys.mjs",
     "lib/NewTabContentPing.sys.mjs",
-    "lib/NewTabInit.sys.mjs",
     "lib/PrefsFeed.sys.mjs",
     "lib/RemoteRenderer.sys.mjs",
     "lib/SmartShortcutsRanker/RankShortcuts.mjs",
