@@ -32,6 +32,8 @@ support-files = [
   "../../../schema/search-config-overrides-v2-ui-schema.json",
   "../../../schema/search-config-v2-schema.json",
   "../../../schema/search-config-v2-ui-schema.json",
+  "../../../schema/search-config-v3-schema.json",
+  "../../../schema/search-config-v3-ui-schema.json",
   "../../../schema/search-default-override-allowlist-schema.json",
   "../../../schema/search-default-override-allowlist-ui-schema.json",
 ]
