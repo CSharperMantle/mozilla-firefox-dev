@@ -43,7 +43,6 @@ async function test_sidebar_button(x, y) {
   let initialSidebarHiddenState = sidebarContainer.hidden;
 
   EventUtils.synthesizeMouseAtPoint(x, y, {}, window);
-  await SidebarController.waitUntilStable();
   is(
     sidebarContainer.hidden,
     !initialSidebarHiddenState,
@@ -52,7 +51,6 @@ async function test_sidebar_button(x, y) {
 
   // Ensure sidebar is put back into original state for following tests
   EventUtils.synthesizeMouseAtPoint(x, y, {}, window);
-  await SidebarController.waitUntilStable();
   is(
     sidebarContainer.hidden,
     initialSidebarHiddenState,

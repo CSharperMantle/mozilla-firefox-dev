@@ -76,7 +76,6 @@ add_task(async function test_extension_sidebar_actions() {
     SidebarController.browser.contentWindow
   );
   await promiseClosed;
-  await SidebarController.waitUntilStable();
 
   await SidebarTestUtils.ensureLauncherVisible(window);
 

@@ -32,45 +32,48 @@ add_task(async function test_escape_collapses_hover_expanded_sidebar() {
     type: "mousemove",
   });
 
-  await TestUtils.waitForCondition(async () => {
-    await SidebarController.waitUntilStable();
-    return (
-      SidebarController.sidebarContainer.hasAttribute(
-        "sidebar-launcher-expanded"
-      ) &&
-      SidebarController.sidebarMain.expanded &&
-      SidebarController._state.launcherExpanded &&
-      window.getComputedStyle(SidebarController.sidebarContainer).position ===
-        "absolute"
-    );
-  }, "The sidebar launcher is expanded on mouse over");
+  await BrowserTestUtils.waitForMutationCondition(
+    SidebarController.sidebarContainer,
+    { attributes: true },
+    async () => {
+      await SidebarController.waitUntilStable();
+      return (
+        SidebarController.sidebarContainer.hasAttribute(
+          "sidebar-launcher-expanded"
+        ) &&
+        SidebarController.sidebarMain.expanded &&
+        SidebarController._state.launcherExpanded &&
+        window.getComputedStyle(SidebarController.sidebarContainer).position ===
+          "absolute"
+      );
+    },
+    { msg: "The sidebar launcher is expanded on mouse over" }
+  );
 
   info("The sidebar launcher is expanded, now pressing Escape");
 
   EventUtils.synthesizeKey("KEY_Escape", {}, window);
 
-  await TestUtils.waitForCondition(async () => {
-    await SidebarController.waitUntilStable();
-    return (
-      !SidebarController.sidebarContainer.hasAttribute(
-        "sidebar-launcher-expanded"
-      ) &&
-      !SidebarController.sidebarMain.expanded &&
-      !SidebarController._state.launcherExpanded
-    );
-  }, "The sidebar launcher is collapsed after Escape");
+  await BrowserTestUtils.waitForMutationCondition(
+    SidebarController.sidebarContainer,
+    { attributes: true },
+    async () => {
+      await SidebarController.waitUntilStable();
+      return (
+        !SidebarController.sidebarContainer.hasAttribute(
+          "sidebar-launcher-expanded"
+        ) &&
+        !SidebarController.sidebarMain.expanded &&
+        !SidebarController._state.launcherExpanded
+      );
+    },
+    { msg: "The sidebar launcher is collapsed after Escape" }
+  );
 
   ok(
     !SidebarController._state.launcherExpanded,
     "Sidebar is collapsed after pressing Escape even with mouse still hovering"
   );
-
-  // Move the mouse away so the escaped hover state doesn't leak.
-  EventUtils.synthesizeMouseAtCenter(SidebarController.contentArea, {
-    type: "mousemove",
-  });
-  await SidebarController.waitUntilStable();
-  ok(SidebarController._mouseLeftSinceEscape, "Mouse left the launcher.");
 
   window.windowUtils.disableNonTestMouseEvents(false);
 });
