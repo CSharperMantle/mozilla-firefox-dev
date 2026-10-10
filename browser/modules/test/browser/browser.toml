@@ -51,14 +51,6 @@ https_first_disabled = true
 ["browser_SitePermissions_tab_urls.js"]
 https_first_disabled = true
 
-["browser_TabUnloader.js"]
-support-files = [
-  "file_webrtc.html",
-  "../../../components/tabbrowser/test/browser/tabs/dummy_page.html",
-  "../../../components/tabbrowser/test/browser/tabs/file_mediaPlayback.html",
-  "../../../base/content/test/browser-general/audio.ogg",
-]
-
 ["browser_Telemetry_numberOfSiteOrigins.js"]
 support-files = ["contain_iframe.html"]
 
@@ -105,8 +97,6 @@ https_first_disabled = true
 ["browser_aswebauth_session.js"]
 run-if = ["os == 'mac'"]
 support-files = ["browser_aswebauth_form.sjs"]
-
-["browser_preloading_tab_moving.js"]
 
 ["browser_taskbar_preview.js"]
 run-if = [

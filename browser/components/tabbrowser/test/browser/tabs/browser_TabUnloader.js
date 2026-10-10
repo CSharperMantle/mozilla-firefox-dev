@@ -5,7 +5,8 @@ const { TabUnloader } = ChromeUtils.importESModule(
   "moz-src:///browser/components/tabbrowser/TabUnloader.sys.mjs"
 );
 
-const BASE_URL = "https://example.com/browser/browser/modules/test/browser/";
+const BASE_URL =
+  "https://example.com/browser/browser/components/tabbrowser/test/browser/tabs/";
 
 async function play(tab) {
   let browser = tab.linkedBrowser;

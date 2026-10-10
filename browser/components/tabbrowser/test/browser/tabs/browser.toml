@@ -16,6 +16,9 @@ prefs = [
 
 ["browser_1936752_lock_tab_sizing.js"]
 
+["browser_TabUnloader.js"]
+support-files = ["file_webrtc.html"]
+
 ["browser_addAdjacentNewTab.js"]
 tags = "vertical-tabs"
 
@@ -393,6 +396,8 @@ tags = "vertical-tabs"
 tags = "vertical-tabs"
 
 ["browser_preloadedBrowser_zoom.js"]
+
+["browser_preloading_tab_moving.js"]
 
 ["browser_privilegedmozilla_process_pref.js"]
 https_first_disabled = true
