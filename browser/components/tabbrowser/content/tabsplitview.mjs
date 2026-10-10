@@ -61,6 +61,14 @@ export class MozTabSplitViewWrapper extends MozXULElement {
 
   #storedPanelWidths = new WeakMap();
 
+  constructor() {
+    super();
+
+    // Assigned by the tab strip.
+    /** @type {number} */
+    this.elementIndex;
+  }
+
   /**
    * @returns {boolean}
    */

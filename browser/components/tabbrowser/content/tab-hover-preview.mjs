@@ -141,7 +141,7 @@ export default class TabHoverPanelSet {
    * Panels linger briefly to allow the mouse to travel between the anchor and
    * panel; passing `force` skips that delay.
    *
-   * @param {MozTabbrowserTab|MozTabbrowserTabGroup|null} tabOrGroup - The tab or group to activate the panel on.
+   * @param {MozTabbrowserTab|MozTabbrowserTabGroup|null} [tabOrGroup] - The tab or group to activate the panel on.
    * @param {bool} [options.force] - If true, force immediate deactivation of the panels.
    */
   deactivate(tabOrGroup, { force = false } = {}) {
@@ -1214,7 +1214,7 @@ class TabPreviewPanelTimedFunction {
   /** @type {function(): void | null} */
   #target;
 
-  /** @type {TabPanel} */
+  /** @type {HoverPanel} */
   #from;
 
   constructor(zeroDelayTime, win) {
@@ -1254,7 +1254,7 @@ class TabPreviewPanelTimedFunction {
    *
    * @param {function(): void | null} target
    *   The function to execute
-   * @param {TabPanel} from
+   * @param {HoverPanel} from
    *   The calling panel
    */
   execute(target, from) {
@@ -1281,7 +1281,7 @@ class TabPreviewPanelTimedFunction {
    * Clear the timer, if it is active, for example when a user moves off a panel.
    * This has the effect of suppressing the delayed function execution.
    *
-   * @param {TabPanel} from
+   * @param {HoverPanel} from
    *   The calling panel. This must be the same as the panel that most recently
    *   called `execute`. If it is not, the call will be ignored. This is
    *   necessary to prevent, e.g., the tab hover panel from inadvertently
