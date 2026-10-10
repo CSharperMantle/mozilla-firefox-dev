@@ -200,6 +200,7 @@ add_task(async function test_launcher_edge_reveals_sidebar() {
     set: [["sidebar.position_start", false]],
   });
   await window.promiseDocumentFlushed(() => {});
+  await SidebarController.waitUntilStable();
   Assert.greater(watchedEdge(), 0, "Watched edge follows the launcher");
   await SpecialPowers.popPrefEnv();
 

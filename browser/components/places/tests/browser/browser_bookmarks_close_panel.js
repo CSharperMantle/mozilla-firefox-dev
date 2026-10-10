@@ -28,6 +28,7 @@ add_task(async function test_close_bookmarks_panel() {
   ok(!sidebarBox.hidden, "The sidebar is shown");
 
   sidebar.contentDocument.getElementById("sidebar-panel-close").click();
+  await SidebarController.waitUntilStable();
   ok(sidebarBox.hidden, "The sidebar should be hidden");
 });
 
