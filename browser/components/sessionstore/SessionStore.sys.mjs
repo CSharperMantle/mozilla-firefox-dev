@@ -4641,20 +4641,21 @@ class _SessionStore {
    */
   #resolveClosedDataSource(aSource) {
     let winData;
+    let options = /** @type {ClosedDataSourceOptions} */ (aSource);
     if (aSource instanceof Ci.nsIDOMWindow) {
       winData = this.#getWindowStateData(aSource);
-    } else if (aSource.sourceWindow instanceof Ci.nsIDOMWindow) {
-      winData = this.#getWindowStateData(aSource.sourceWindow);
-    } else if (typeof aSource.sourceClosedId == "number") {
-      winData = this.#getClosedWindowDataByClosedId(aSource.sourceClosedId);
+    } else if (options.sourceWindow instanceof Ci.nsIDOMWindow) {
+      winData = this.#getWindowStateData(options.sourceWindow);
+    } else if (typeof options.sourceClosedId == "number") {
+      winData = this.#getClosedWindowDataByClosedId(options.sourceClosedId);
       if (!winData) {
         throw Components.Exception(
           "No such closed window",
           Cr.NS_ERROR_INVALID_ARG
         );
       }
-    } else if (typeof aSource.sourceWindowId == "string") {
-      let win = this.getWindowById(aSource.sourceWindowId);
+    } else if (typeof options.sourceWindowId == "string") {
+      let win = this.getWindowById(options.sourceWindowId);
       winData = this.#getWindowStateData(win);
     } else {
       throw Components.Exception(
