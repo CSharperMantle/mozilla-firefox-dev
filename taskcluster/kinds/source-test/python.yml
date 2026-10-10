@@ -180,6 +180,7 @@ mozbase:
     when:
         files-changed:
             - 'testing/mozbase/**'
+            - 'tools/rb/**'
 
 mozharness:
     description: mozharness integration tests
