@@ -40,7 +40,7 @@ function writeJsonUtf16(fileName, obj) {
 async function runReport(
   dataFile,
   installType,
-  { clearTS, setTS, assertRejects, expectExtra, expectTS }
+  { clearTS, setTS, assertRejects, expectExtra, expectTS, msixPrefixes }
 ) {
   // Setup timestamp
   if (clearTS) {
@@ -59,8 +59,13 @@ async function runReport(
       BrowserUsageTelemetry.reportInstallationTelemetry(dataFile),
       assertRejects
     );
-  } else {
+  } else if (!msixPrefixes) {
     await BrowserUsageTelemetry.reportInstallationTelemetry(dataFile);
+  } else {
+    await BrowserUsageTelemetry.reportInstallationTelemetry(
+      dataFile,
+      msixPrefixes
+    );
   }
 
   // Check events
@@ -112,6 +117,8 @@ add_task(condition, async function testInstallationTelemetryMSIX() {
     silent: "false",
     default_path: "true",
     install_existed: "false",
+    other_inst: "false",
+    other_msix_inst: "false",
     profdir_existed: "false",
   };
 
@@ -156,6 +163,8 @@ add_task(condition, async function testInstallationTelemetry() {
     build_id: "123",
     admin_user: "true",
     install_existed: "false",
+    other_inst: "false",
+    other_msix_inst: "false",
     profdir_existed: "false",
   };
 
@@ -196,6 +205,8 @@ add_task(condition, async function testInstallationTelemetry() {
     build_id: "123",
     admin_user: "false",
     install_existed: "true",
+    other_inst: "false",
+    other_msix_inst: "false",
     profdir_existed: "true",
     silent: "false",
     from_msi: "false",
@@ -215,6 +226,10 @@ add_task(condition, async function testInstallationTelemetry() {
   // New timestamp and a check to make sure we can find installed MSIX packages
   // by overriding the prefixes a bit further down.
   fullData.install_timestamp = "2";
+  // This check only works on Windows
+  if (AppConstants.platform == "win") {
+    fullExtra.other_msix_inst = "true";
+  }
   await writeJsonUtf16(dataFilePath, fullData);
   await runReport(dataFile, "full", {
     expectExtra: fullExtra,
