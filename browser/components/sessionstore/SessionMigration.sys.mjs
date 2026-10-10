@@ -12,7 +12,7 @@ const lazy = XPCOMUtils.declareLazy({
     "moz-src:///browser/components/sessionstore/TabGroupState.sys.mjs",
 });
 
-var SessionMigrationInternal = {
+export class SessionMigration {
   /**
    * Convert the original session restore state into a minimal state. It will
    * only contain:
@@ -28,7 +28,7 @@ var SessionMigrationInternal = {
    * The complete state is then wrapped into the "about:welcomeback" page as
    * form field info to be restored when restoring the state.
    */
-  convertState(aStateObj) {
+  static #convertState(aStateObj) {
     let state = {
       selectedWindow: aStateObj.selectedWindow,
       _closedWindows: [],
@@ -98,11 +98,11 @@ var SessionMigrationInternal = {
       windows: [{ tabs: [{ entries: [entry], formdata }] }],
       savedGroups,
     };
-  },
+  }
   /**
    * Asynchronously read session restore state (JSON) from a path
    */
-  readState(aPath) {
+  static #readState(aPath) {
     // Always pass decrypt: it is a no-op on unencrypted files (IOUtils
     // checks the magic number and skips decryption), so this handles
     // both encrypted and plaintext source profiles.
@@ -110,11 +110,11 @@ var SessionMigrationInternal = {
       decompress: true,
       decrypt: "sessionstore",
     });
-  },
+  }
   /**
    * Asynchronously write session restore state as JSON to a path
    */
-  writeState(aPath, aState) {
+  static #writeState(aPath, aState) {
     let encrypt =
       Services.prefs.getBoolPref(
         "browser.sessionstore.encryption.available",
@@ -131,22 +131,17 @@ var SessionMigrationInternal = {
       tmpPath: `${aPath}.tmp`,
       encrypt,
     });
-  },
-};
-
-export var SessionMigration = {
+  }
   /**
    * Migrate a limited set of session data from one path to another.
    */
-  migrate(aFromPath, aToPath) {
-    return (async function () {
-      let inState = await SessionMigrationInternal.readState(aFromPath);
-      let outState = SessionMigrationInternal.convertState(inState);
-      // Unfortunately, we can't use SessionStore's own SessionFile to
-      // write out the data because it has a dependency on the profile dir
-      // being known. When the migration runs, there is no guarantee that
-      // that's true.
-      await SessionMigrationInternal.writeState(aToPath, outState);
-    })();
-  },
-};
+  static async migrate(aFromPath, aToPath) {
+    let inState = await SessionMigration.#readState(aFromPath);
+    let outState = SessionMigration.#convertState(inState);
+    // Unfortunately, we can't use SessionStore's own SessionFile to
+    // write out the data because it has a dependency on the profile dir
+    // being known. When the migration runs, there is no guarantee that
+    // that's true.
+    await SessionMigration.#writeState(aToPath, outState);
+  }
+}
