@@ -1451,6 +1451,7 @@ export class AIChatContent extends MozLitElement {
     return html`<aitab-tool-ui
       .state=${msg.toolUIData.properties?.state ?? "creating"}
       .title=${msg.toolUIData.properties?.title ?? ""}
+      .viewerURL=${msg.toolUIData.properties?.viewerURL ?? ""}
       @aitab-open-request=${event =>
         this.#dispatchToolUIUpdate({
           messageId: msg.messageId,

@@ -158,6 +158,17 @@ async function clickReadyAITabAction(browser, buttonIndex) {
   });
 }
 
+async function clickCompletedAITabTitle(browser) {
+  const chatBrowser = await getAichatBrowser(browser);
+  await SpecialPowers.spawn(chatBrowser, [], async () => {
+    const chatContent = content.document.querySelector("ai-chat-content");
+    const card = chatContent.shadowRoot.querySelector("aitab-tool-ui");
+    await card.wrappedJSObject.updateComplete;
+    const link = card.shadowRoot.querySelector("a.title");
+    content.setTimeout(() => link.click());
+  });
+}
+
 describe("AITab ToolUI", () => {
   let win;
   let mockEngine;
@@ -359,6 +370,70 @@ describe("AITab ToolUI", () => {
       Assert.notEqual(newTab, chatTab);
       Assert.equal(win.gBrowser.selectedTab, newTab);
       Assert.equal(newTab.linkedBrowser.currentURI.spec, viewerURL);
+    });
+
+    it("opens a new tab from the completed title when the page is closed", async () => {
+      const opened = BrowserTestUtils.waitForNewTab(
+        win.gBrowser,
+        viewerURL,
+        true
+      );
+      await clickReadyAITabAction(
+        chatTab.linkedBrowser,
+        OPEN_NEW_TAB_BUTTON_INDEX
+      );
+      const pageTab = await opened;
+
+      await BrowserTestUtils.switchTab(win.gBrowser, chatTab);
+      await waitForAITabCardState(chatTab.linkedBrowser, "complete");
+      BrowserTestUtils.removeTab(pageTab);
+
+      const reopened = BrowserTestUtils.waitForNewTab(
+        win.gBrowser,
+        viewerURL,
+        true
+      );
+      await clickCompletedAITabTitle(chatTab.linkedBrowser);
+      const newTab = await reopened;
+
+      Assert.equal(win.gBrowser.tabs.length, initialTabCount + 1);
+      Assert.equal(win.gBrowser.selectedTab, newTab);
+    });
+
+    it("focuses the matching tab from the completed title when the page is open", async () => {
+      const opened = BrowserTestUtils.waitForNewTab(
+        win.gBrowser,
+        viewerURL,
+        true
+      );
+      await clickReadyAITabAction(
+        chatTab.linkedBrowser,
+        OPEN_NEW_TAB_BUTTON_INDEX
+      );
+      const pageTab = await opened;
+
+      await BrowserTestUtils.switchTab(win.gBrowser, chatTab);
+      await waitForAITabCardState(chatTab.linkedBrowser, "complete");
+      const selected = BrowserTestUtils.waitForEvent(
+        win.gBrowser.tabContainer,
+        "TabSelect",
+        false,
+        event => event.target === pageTab
+      );
+
+      await clickCompletedAITabTitle(chatTab.linkedBrowser);
+      await selected;
+
+      Assert.equal(
+        win.gBrowser.tabs.length,
+        initialTabCount + 1,
+        "No duplicate page tab is opened"
+      );
+      Assert.equal(
+        win.gBrowser.selectedTab,
+        pageTab,
+        "The existing tab is focused"
+      );
     });
   });
 

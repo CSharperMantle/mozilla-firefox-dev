@@ -4,6 +4,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+import { isSmartPageURL } from "chrome://browser/content/aiwindow/modules/TrustedInternalURLs.mjs";
+
 /**
  * @import { ChatConversation } from "moz-src:///browser/components/aiwindow/ui/modules/ChatConversation.sys.mjs"
  * @import { ChatMessage } from "moz-src:///browser/components/aiwindow/ui/modules/ChatMessage.sys.mjs"
@@ -1229,50 +1231,62 @@ export class ToolUI {
    * @returns {boolean} Whether opening the AITab was successful
    */
   static #handleOpenAITab({ message, updateData, conversation, window, mode }) {
+    let openedLink = false;
+
     const { openTarget } = updateData ?? {};
     const viewerURL = message.toolUIData?.properties?.viewerURL;
     const parsedURL = URL.parse(viewerURL);
     if (
       message.toolUIData?.uiType !== UI_TYPES.AITAB ||
-      message.toolUIData.properties?.state !== "choose" ||
+      !["choose", "complete"].includes(message.toolUIData.properties?.state) ||
       (openTarget !== "current" && openTarget !== "new") ||
       parsedURL?.protocol !== "about:" ||
       parsedURL.pathname !== "smartpage" ||
       !parsedURL.searchParams.get("page") ||
       !window?.gBrowser
     ) {
-      return false;
+      return openedLink;
     }
 
     try {
-      const { userContextId } =
-        window.gBrowser.selectedBrowser.browsingContext.originAttributes;
+      if (
+        isSmartPageURL(parsedURL) &&
+        lazy.URILoadingHelper.switchToTabHavingURI(window, viewerURL, false, {})
+      ) {
+        openedLink = true;
+      } else {
+        const { userContextId } =
+          window.gBrowser.selectedBrowser.browsingContext.originAttributes;
 
-      lazy.URILoadingHelper.openTrustedLinkIn(
-        window,
-        viewerURL,
-        openTarget === "current" ? "current" : "tab",
-        { userContextId, forceForeground: true }
-      );
+        lazy.URILoadingHelper.openTrustedLinkIn(
+          window,
+          viewerURL,
+          openTarget === "current" ? "current" : "tab",
+          { userContextId, forceForeground: true }
+        );
+        openedLink = true;
+      }
     } catch (error) {
       lazy.console.error(`Error opening AITab URL: ${error}`);
 
-      return false;
+      return openedLink;
     }
 
-    Glean.smartWindow.linkClick.record({
-      location: mode,
-      chat_id: conversation.id,
-      message_seq: conversation.messageCount,
-    });
-    lazy.SmartWindowTelemetry.recordUriLoad();
-    conversation.updateToolUI(
-      message,
-      { properties: { state: "complete" } },
-      UI_TYPES.AITAB
-    );
+    if (openedLink) {
+      Glean.smartWindow.linkClick.record({
+        location: mode,
+        chat_id: conversation.id,
+        message_seq: conversation.messageCount,
+      });
+      lazy.SmartWindowTelemetry.recordUriLoad();
+      conversation.updateToolUI(
+        message,
+        { properties: { state: "complete", viewerURL } },
+        UI_TYPES.AITAB
+      );
+    }
 
-    return true;
+    return openedLink;
   }
 
   /**
