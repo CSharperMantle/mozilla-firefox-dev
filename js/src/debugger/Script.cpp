@@ -6,6 +6,8 @@
 #include "mozilla/Span.h"    // for Span
 #include "mozilla/Vector.h"  // for Vector
 
+#include <cmath>     // for ldexp, trunc
+#include <limits>    // for numeric_limits
 #include <stddef.h>  // for ptrdiff_t
 #include <stdint.h>  // for uint32_t, UINT32_MAX, SIZE_MAX, int32_t
 
@@ -557,19 +559,19 @@ bool DebuggerScript::CallData::getChildScripts() {
 
 static bool ScriptOffset(JSContext* cx, const Value& v, size_t* offsetp) {
   double d;
-  size_t off;
 
   bool ok = v.isNumber();
   if (ok) {
     d = v.toNumber();
-    off = size_t(d);
   }
-  if (!ok || off != d) {
+  if (!ok || d < 0 ||
+      d >= std::ldexp(1.0, std::numeric_limits<size_t>::digits) ||
+      d != std::trunc(d)) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                               JSMSG_DEBUG_BAD_OFFSET);
     return false;
   }
-  *offsetp = off;
+  *offsetp = static_cast<size_t>(d);
   return true;
 }
 
