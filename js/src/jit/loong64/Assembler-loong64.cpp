@@ -504,10 +504,34 @@ InstImm AssemblerLOONG64::getBranchCode(JumpOrCall jumpOrCall) {
 }
 
 InstImm AssemblerLOONG64::getBranchCode(Register rj, Register rd, Condition c) {
-  // beq, bne
-  MOZ_ASSERT(c == AssemblerLOONG64::Equal || c == AssemblerLOONG64::NotEqual);
-  return InstImm(c == AssemblerLOONG64::Equal ? op_beq : op_bne, BOffImm16(0),
-                 rj, rd);
+  switch (c) {
+    case AssemblerLOONG64::Equal:
+      return InstImm(op_beq, BOffImm16(0), rj, rd);
+    case AssemblerLOONG64::NotEqual:
+      return InstImm(op_bne, BOffImm16(0), rj, rd);
+    case AssemblerLOONG64::Above:
+      // LHS >u RHS -> RHS <u LHS
+      return InstImm(op_bltu, BOffImm16(0), rd, rj);
+    case AssemblerLOONG64::AboveOrEqual:
+      return InstImm(op_bgeu, BOffImm16(0), rj, rd);
+    case AssemblerLOONG64::Below:
+      return InstImm(op_bltu, BOffImm16(0), rj, rd);
+    case AssemblerLOONG64::BelowOrEqual:
+      // LHS <=u RHS -> RHS >=u LHS
+      return InstImm(op_bgeu, BOffImm16(0), rd, rj);
+    case AssemblerLOONG64::GreaterThan:
+      // LHS >s RHS -> RHS <s LHS
+      return InstImm(op_blt, BOffImm16(0), rd, rj);
+    case AssemblerLOONG64::GreaterThanOrEqual:
+      return InstImm(op_bge, BOffImm16(0), rj, rd);
+    case AssemblerLOONG64::LessThan:
+      return InstImm(op_blt, BOffImm16(0), rj, rd);
+    case AssemblerLOONG64::LessThanOrEqual:
+      // LHS <=s RHS -> RHS >=s LHS
+      return InstImm(op_bge, BOffImm16(0), rd, rj);
+    default:
+      MOZ_CRASH("Condition not supported.");
+  }
 }
 
 InstImm AssemblerLOONG64::getBranchCode(Register rj, Condition c) {

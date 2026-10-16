@@ -1415,11 +1415,14 @@ class AssemblerLOONG64 : public AssemblerShared {
   BufferOffset as_jirl(Register rd, Register rj, BOffImm16 off);
   BufferOffset as_jirl(Register rd, Register rj, BOffImm16 off, LabelDoc doc);
 
-  InstImm getBranchCode(JumpOrCall jumpOrCall);  // b, bl
-  InstImm getBranchCode(Register rd, Register rj,
-                        Condition c);  // beq, bne, bge, bgeu, blt, bltu
-  InstImm getBranchCode(Register rj, Condition c);  // beqz, bnez
-  InstImm getBranchCode(FPConditionBit cj);         // bceqz, bcnez
+  // For b, bl
+  InstImm getBranchCode(JumpOrCall jumpOrCall);
+  // For beq, bne, bge, bgeu, blt, bltu
+  InstImm getBranchCode(Register rj, Register rd, Condition c);
+  // For beq $zero, bne $zero, blt $zero, bge $zero
+  InstImm getBranchCode(Register rj, Condition c);
+  // For bceqz, bcnez
+  InstImm getBranchCode(FPConditionBit cj);
 
   // Arithmetic instructions
   BufferOffset as_add_w(Register rd, Register rj, Register rk);
