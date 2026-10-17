@@ -2502,11 +2502,7 @@ FaultingCodeRange MacroAssemblerLOONG64::wasmLoadImpl(
         as_ldx_d(scratch, memoryBase, ptr);
         as_vreplgr2vr_d(output.fpu(), scratch);
       } else if (access.isWidenSimd128Load()) {
-        UseScratchRegisterScope temps(asMasm());
-        const Register scratch = temps.Acquire();
-        fcr = FaultingCodeRange(currentOffset());
-        as_ldx_d(scratch, memoryBase, ptr);
-        asMasm().moveGPR64ToDouble(Register64(scratch), output.fpu());
+        as_fldx_d(output.fpu(), memoryBase, ptr);
         switch (access.widenSimdOp()) {
           case wasm::SimdOp::V128Load8x8S:
             asMasm().widenLowInt8x16(output.fpu(), output.fpu());
@@ -2588,10 +2584,7 @@ FaultingCodeRange MacroAssemblerLOONG64::wasmLoadImpl(
         fcr = ma_load(scratch, address, SizeDouble);
         as_vreplgr2vr_d(output.fpu(), scratch);
       } else if (access.isWidenSimd128Load()) {
-        UseScratchRegisterScope temps(asMasm());
-        const Register scratch = temps.Acquire();
-        fcr = ma_load(scratch, address, SizeDouble);
-        asMasm().moveGPR64ToDouble(Register64(scratch), output.fpu());
+        fcr = ma_fld_d(output.fpu(), address);
         switch (access.widenSimdOp()) {
           case wasm::SimdOp::V128Load8x8S:
             asMasm().widenLowInt8x16(output.fpu(), output.fpu());
