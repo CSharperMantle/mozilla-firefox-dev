@@ -2965,6 +2965,31 @@ BufferOffset AssemblerLOONG64::as_vmsknz_b(FloatRegister vd, FloatRegister vj) {
   return emit(InstReg(op_vmsknz_b, vj, vd).encode());
 }
 
+BufferOffset AssemblerLOONG64::as_vsetnez_v(FPConditionBit cd,
+                                            FloatRegister vj) {
+  return emit(InstReg(op_vsetnez_v, vj, cd).encode());
+}
+
+BufferOffset AssemblerLOONG64::as_vsetallnez_b(FPConditionBit cd,
+                                               FloatRegister vj) {
+  return emit(InstReg(op_vsetallnez_b, vj, cd).encode());
+}
+
+BufferOffset AssemblerLOONG64::as_vsetallnez_h(FPConditionBit cd,
+                                               FloatRegister vj) {
+  return emit(InstReg(op_vsetallnez_h, vj, cd).encode());
+}
+
+BufferOffset AssemblerLOONG64::as_vsetallnez_w(FPConditionBit cd,
+                                               FloatRegister vj) {
+  return emit(InstReg(op_vsetallnez_w, vj, cd).encode());
+}
+
+BufferOffset AssemblerLOONG64::as_vsetallnez_d(FPConditionBit cd,
+                                               FloatRegister vj) {
+  return emit(InstReg(op_vsetallnez_d, vj, cd).encode());
+}
+
 BufferOffset AssemblerLOONG64::as_vfsqrt_s(FloatRegister vd, FloatRegister vj) {
   return emit(InstReg(op_vfsqrt_s, vj, vd).encode());
 }

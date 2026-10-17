@@ -896,6 +896,11 @@ enum OpcodeField {
   op_vmskltz_d = 0x1ca713U << 10,
   op_vmskgez_b = 0x1ca714U << 10,
   op_vmsknz_b = 0x1ca718U << 10,
+  op_vsetnez_v = 0x1ca727U << 10,
+  op_vsetallnez_b = 0x1ca72cU << 10,
+  op_vsetallnez_h = 0x1ca72dU << 10,
+  op_vsetallnez_w = 0x1ca72eU << 10,
+  op_vsetallnez_d = 0x1ca72fU << 10,
   op_vfsqrt_s = 0x1ca739U << 10,
   op_vfsqrt_d = 0x1ca73aU << 10,
   op_vfrecip_s = 0x1ca73dU << 10,
@@ -2064,6 +2069,11 @@ class AssemblerLOONG64 : public AssemblerShared {
   BufferOffset as_vmskltz_d(FloatRegister vd, FloatRegister vj);
   BufferOffset as_vmskgez_b(FloatRegister vd, FloatRegister vj);
   BufferOffset as_vmsknz_b(FloatRegister vd, FloatRegister vj);
+  BufferOffset as_vsetnez_v(FPConditionBit cd, FloatRegister vj);
+  BufferOffset as_vsetallnez_b(FPConditionBit cd, FloatRegister vj);
+  BufferOffset as_vsetallnez_h(FPConditionBit cd, FloatRegister vj);
+  BufferOffset as_vsetallnez_w(FPConditionBit cd, FloatRegister vj);
+  BufferOffset as_vsetallnez_d(FPConditionBit cd, FloatRegister vj);
   BufferOffset as_vfsqrt_s(FloatRegister vd, FloatRegister vj);
   BufferOffset as_vfsqrt_d(FloatRegister vd, FloatRegister vj);
   BufferOffset as_vfrecip_s(FloatRegister vd, FloatRegister vj);
@@ -2386,7 +2396,9 @@ class InstReg : public Instruction {
   }
   InstReg(OpcodeField op, FloatRegister fj, AssemblerLOONG64::FPConditionBit cd)
       : Instruction(op | FJ(fj) | cd) {
-    MOZ_ASSERT(op == op_movfr2cf);
+    MOZ_ASSERT(op == op_movfr2cf || op == op_vsetnez_v ||
+               op == op_vsetallnez_b || op == op_vsetallnez_h ||
+               op == op_vsetallnez_w || op == op_vsetallnez_d);
   }
   InstReg(OpcodeField op, AssemblerLOONG64::FPConditionBit cj, FloatRegister fd)
       : Instruction(op | (cj << CJShift) | FD(fd)) {
