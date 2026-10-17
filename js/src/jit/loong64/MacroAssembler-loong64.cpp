@@ -139,7 +139,7 @@ void MacroAssemblerLOONG64Compat::convertDoubleToInt32(FloatRegister src,
   as_bstrpick_d(scratch, scratch, CauseBitPos + CauseBitCount - 1, CauseBitPos);
   as_andi(scratch, scratch,
           CauseIOrVMask);  // masking for Inexact and Invalid flag.
-  ma_b(scratch, zero, fail, Assembler::NotEqual);
+  ma_b(scratch, scratch, fail, Assembler::NonZero);
 }
 
 void MacroAssemblerLOONG64Compat::convertDoubleToPtr(FloatRegister src,
@@ -161,7 +161,7 @@ void MacroAssemblerLOONG64Compat::convertDoubleToPtr(FloatRegister src,
   as_bstrpick_d(scratch, scratch, CauseBitPos + CauseBitCount - 1, CauseBitPos);
   as_andi(scratch, scratch,
           CauseIOrVMask);  // masking for Inexact and Invalid flag.
-  ma_b(scratch, zero, fail, Assembler::NotEqual);
+  ma_b(scratch, scratch, fail, Assembler::NonZero);
 }
 
 // Checks whether a float32 is representable as a 32-bit integer. If so, the
@@ -184,7 +184,7 @@ void MacroAssemblerLOONG64Compat::convertFloat32ToInt32(
   MOZ_ASSERT(CauseBitPos < 32);
   as_bstrpick_w(scratch, scratch, CauseBitPos + CauseBitCount - 1, CauseBitPos);
   as_andi(scratch, scratch, CauseIOrVMask);
-  ma_b(scratch, zero, fail, Assembler::NotEqual);
+  ma_b(scratch, scratch, fail, Assembler::NonZero);
 }
 
 void MacroAssemblerLOONG64Compat::convertFloat32ToDouble(FloatRegister src,
@@ -1473,7 +1473,7 @@ void MacroAssemblerLOONG64::ma_liPatchable(Register dest, Imm32 imm) {
 void MacroAssemblerLOONG64::ma_fmovz(FloatFormat fmt, FloatRegister fd,
                                      FloatRegister fj, Register rk) {
   Label done;
-  ma_b(rk, zero, &done, Assembler::NotEqual);
+  ma_b(rk, rk, &done, Assembler::NonZero);
   if (fmt == SingleFloat) {
     as_fmov_s(fd, fj);
   } else {
@@ -1485,7 +1485,7 @@ void MacroAssemblerLOONG64::ma_fmovz(FloatFormat fmt, FloatRegister fd,
 void MacroAssemblerLOONG64::ma_fmovn(FloatFormat fmt, FloatRegister fd,
                                      FloatRegister fj, Register rk) {
   Label done;
-  ma_b(rk, zero, &done, Assembler::Equal);
+  ma_b(rk, rk, &done, Assembler::Zero);
   if (fmt == SingleFloat) {
     as_fmov_s(fd, fj);
   } else {
@@ -2305,7 +2305,7 @@ void MacroAssemblerLOONG64::minMaxDouble(FloatRegister srcDest,
       as_movfr2gr_d(scratch, srcDest);
       // If the result is non-zero, the job is done.
       as_bstrpick_d(scratch, scratch, 62, 0);
-      ma_b(scratch, zero, &done, Assembler::NotEqual, ShortJump);
+      ma_b(scratch, scratch, &done, Assembler::NonZero, ShortJump);
     }
 
     {
@@ -2371,7 +2371,7 @@ void MacroAssemblerLOONG64::minMaxFloat32(FloatRegister srcDest,
       as_movfr2gr_s(scratch, srcDest);
       // If the result is non-zero, the job is done.
       as_bstrpick_w(scratch, scratch, 30, 0);
-      ma_b(scratch, zero, &done, Assembler::NotEqual, ShortJump);
+      ma_b(scratch, scratch, &done, Assembler::NonZero, ShortJump);
     }
 
     {
@@ -3596,8 +3596,8 @@ void MacroAssembler::branchPtrInNurseryChunk(Condition cond, Register ptr,
   MOZ_ASSERT(temp != InvalidReg);
 
   ma_and(temp, ptr, Imm32(int32_t(~gc::ChunkMask)));
-  branchPtr(InvertCondition(cond), Address(temp, gc::ChunkStoreBufferOffset),
-            zero, label);
+  loadPtr(Address(temp, gc::ChunkStoreBufferOffset), temp);
+  branchPtr(InvertCondition(cond), temp, Imm32(0), label);
 }
 
 void MacroAssembler::branchValueIsNurseryCell(Condition cond,
@@ -3624,7 +3624,7 @@ void MacroAssembler::branchValueIsNurseryCellImpl(Condition cond,
 
   getGCThingValueChunk(value, temp);
   loadPtr(Address(temp, gc::ChunkStoreBufferOffset), temp);
-  branchPtr(InvertCondition(cond), temp, zero, label);
+  branchPtr(InvertCondition(cond), temp, Imm32(0), label);
 
   bind(&done);
 }
@@ -3851,7 +3851,7 @@ void MacroAssembler::wasmTruncateDoubleToUInt64(
   as_sltui(scratch, output, 1);
   as_or(scratch2, scratch2, scratch);
 
-  ma_b(scratch2, zero, oolEntry, Assembler::NotEqual);
+  ma_b(scratch2, scratch2, oolEntry, Assembler::NonZero);
 
   bind(&done);
 
@@ -3895,7 +3895,7 @@ void MacroAssembler::wasmTruncateFloat32ToUInt64(
   as_sltui(scratch, output, 1);
   as_or(scratch2, scratch2, scratch);
 
-  ma_b(scratch2, zero, oolEntry, Assembler::NotEqual);
+  ma_b(scratch2, scratch2, oolEntry, Assembler::NonZero);
 
   bind(&done);
 
@@ -3916,7 +3916,7 @@ void MacroAssembler::wasmTruncateDoubleToInt64(
   as_movfcsr2gr(scratch);
   moveFromDouble(fpscratch, output.reg);
   as_bstrpick_d(scratch, scratch, Assembler::CauseV, Assembler::CauseV);
-  ma_b(scratch, zero, oolEntry, Assembler::NotEqual);
+  ma_b(scratch, scratch, oolEntry, Assembler::NonZero);
 
   if (isSaturating) {
     bind(oolRejoin);
@@ -3935,7 +3935,7 @@ void MacroAssembler::wasmTruncateFloat32ToInt64(
   as_movfcsr2gr(scratch);
   moveFromDouble(fpscratch, output.reg);
   as_bstrpick_d(scratch, scratch, Assembler::CauseV, Assembler::CauseV);
-  ma_b(scratch, zero, oolEntry, Assembler::NotEqual);
+  ma_b(scratch, scratch, oolEntry, Assembler::NonZero);
 
   if (isSaturating) {
     bind(oolRejoin);
@@ -5340,12 +5340,12 @@ void MacroAssembler::floorFloat32ToInt32(FloatRegister src, Register dest,
 
   // We have to check for -0 and NaN when the result is zero.
   Label notZero;
-  ma_b(dest, zero, &notZero, Assembler::NotEqual, ShortJump);
+  ma_b(dest, dest, &notZero, Assembler::NonZero, ShortJump);
   {
     // If any of the two most significant bits is set, |src| is -0 or NaN.
     moveFromFloat32(src, dest);
     as_srli_w(dest, dest, 30);
-    branch32(Assembler::NotEqual, dest, zero, fail);
+    branch32(Assembler::NotEqual, dest, Imm32(0), fail);
   }
   bind(&notZero);
 }
@@ -5369,12 +5369,12 @@ void MacroAssembler::floorDoubleToInt32(FloatRegister src, Register dest,
 
   // We have to check for -0 and NaN when the result is zero.
   Label notZero;
-  ma_b(dest, zero, &notZero, Assembler::NotEqual, ShortJump);
+  ma_b(dest, dest, &notZero, Assembler::NonZero, ShortJump);
   {
     // If any of the two most significant bits is set, |src| is negative or NaN.
     moveFromDouble(src, dest);
     as_srli_d(dest, dest, 62);
-    branchPtr(Assembler::NotEqual, dest, zero, fail);
+    branchPtr(Assembler::NotEqual, dest, Imm32(0), fail);
   }
   bind(&notZero);
 }
@@ -5398,11 +5398,11 @@ void MacroAssembler::ceilFloat32ToInt32(FloatRegister src, Register dest,
 
   // We have to check for (-1, -0] and NaN when the result is zero.
   Label notZero;
-  ma_b(dest, zero, &notZero, Assembler::NotEqual, ShortJump);
+  ma_b(dest, dest, &notZero, Assembler::NonZero, ShortJump);
   {
     // If binary value is not zero, the input was not 0, so we bail.
     moveFromFloat32(src, dest);
-    branch32(Assembler::NotEqual, dest, zero, fail);
+    branch32(Assembler::NotEqual, dest, Imm32(0), fail);
   }
   bind(&notZero);
 }
@@ -5426,11 +5426,11 @@ void MacroAssembler::ceilDoubleToInt32(FloatRegister src, Register dest,
 
   // We have to check for (-1, -0] and NaN when the result is zero.
   Label notZero;
-  ma_b(dest, zero, &notZero, Assembler::NotEqual, ShortJump);
+  ma_b(dest, dest, &notZero, Assembler::NonZero, ShortJump);
   {
     // If binary value is not zero, the input was not 0, so we bail.
     moveFromDouble(src, dest);
-    branchPtr(Assembler::NotEqual, dest, zero, fail);
+    branchPtr(Assembler::NotEqual, dest, Imm32(0), fail);
   }
   bind(&notZero);
 }
@@ -5450,7 +5450,7 @@ void MacroAssembler::roundFloat32ToInt32(FloatRegister src, Register dest,
   {
     // If binary value is not zero, it is NaN or -0, so we bail.
     moveFromFloat32(src, dest);
-    branch32(Assembler::NotEqual, dest, zero, fail);
+    branch32(Assembler::NotEqual, dest, Imm32(0), fail);
     ma_b(&end, ShortJump);
   }
 
@@ -5501,7 +5501,7 @@ void MacroAssembler::roundDoubleToInt32(FloatRegister src, Register dest,
   {
     // If binary value is not zero, it is NaN or -0, so we bail.
     moveFromDouble(src, dest);
-    branchPtr(Assembler::NotEqual, dest, zero, fail);
+    branchPtr(Assembler::NotEqual, dest, Imm32(0), fail);
     ma_b(&end, ShortJump);
   }
 
@@ -5556,12 +5556,12 @@ void MacroAssembler::truncFloat32ToInt32(FloatRegister src, Register dest,
 
   // We have to check for (-1, -0] and NaN when the result is zero.
   Label notZero;
-  ma_b(dest, zero, &notZero, Assembler::NotEqual, ShortJump);
+  ma_b(dest, dest, &notZero, Assembler::NonZero, ShortJump);
   {
     // If any of the two most significant bits is set, |src| is negative or NaN.
     moveFromFloat32(src, dest);
     as_srli_w(dest, dest, 30);
-    branch32(Assembler::NotEqual, dest, zero, fail);
+    branch32(Assembler::NotEqual, dest, Imm32(0), fail);
   }
   bind(&notZero);
 }
@@ -5585,12 +5585,12 @@ void MacroAssembler::truncDoubleToInt32(FloatRegister src, Register dest,
 
   // We have to check for (-1, -0] and NaN when the result is zero.
   Label notZero;
-  ma_b(dest, zero, &notZero, Assembler::NotEqual, ShortJump);
+  ma_b(dest, dest, &notZero, Assembler::NonZero, ShortJump);
   {
     // If any of the two most significant bits is set, |src| is negative or NaN.
     moveFromDouble(src, dest);
     as_srli_d(dest, dest, 62);
-    branchPtr(Assembler::NotEqual, dest, zero, fail);
+    branchPtr(Assembler::NotEqual, dest, Imm32(0), fail);
   }
   bind(&notZero);
 }

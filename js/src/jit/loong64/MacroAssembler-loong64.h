@@ -1087,7 +1087,7 @@ class MacroAssemblerLOONG64Compat : public MacroAssemblerLOONG64 {
     UseScratchRegisterScope temps(*this);
     Register scratch = temps.Acquire();
     as_andi(scratch, sp, ABIStackAlignment - 1);
-    ma_b(scratch, zero, &aligned, Equal, ShortJump);
+    ma_b(scratch, scratch, &aligned, Zero, ShortJump);
     breakpoint();
     bind(&aligned);
 #endif
