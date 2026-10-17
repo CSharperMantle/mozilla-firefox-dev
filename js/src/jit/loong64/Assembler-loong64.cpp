@@ -565,9 +565,10 @@ InstImm AssemblerLOONG64::getBranchCode(Register rj, Condition c) {
   }
 }
 
-// Code semantics must conform to compareFloatingpoint
-InstImm AssemblerLOONG64::getBranchCode(FPConditionBit cj) {
-  return InstImm(op_bcz, 0, cj, true);  // bcnez
+// Code semantics must conform to compareFloatingPoint
+InstImm AssemblerLOONG64::getBranchCode(FPConditionBit cj, Condition c) {
+  MOZ_ASSERT(c == Zero || c == NonZero);
+  return InstImm(op_bcz, 0, cj, c == NonZero);
 }
 
 // Arithmetic instructions
