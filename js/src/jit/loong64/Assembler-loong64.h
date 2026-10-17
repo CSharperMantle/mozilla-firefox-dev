@@ -2154,6 +2154,13 @@ class AssemblerLOONG64 : public AssemblerShared {
   template <uint32_t Scale>
   static std::optional<int32_t> EncodeVldreplImmediate(int64_t offset);
 
+  // Convert a true offset into VSTELM.[BHDW]'s si8 offset field. For each N,
+  // the instruction stores into address |rj + (si8 << N)|. The template
+  // argument |Scale| equals N.
+  // <https://jia.je/unofficial-loongarch-intrinsics-guide/lsx/memory/#void-__lsx_vstelm_b-__m128i-data-void-addr-imm_n128_127-offset-imm0_15-lane>
+  template <uint32_t Scale>
+  static std::optional<int32_t> EncodeVstelmOffsetImmediate(int64_t offset);
+
   // label operations
   void bind(Label* label, BufferOffset boff = BufferOffset());
   virtual void bind(InstImm* inst, uintptr_t branch, uintptr_t target) = 0;
