@@ -2284,14 +2284,13 @@ class Instruction {
   }
 
   // Extract the one particular bit.
-  uint32_t extractBit(uint32_t bit) { return (encode() >> bit) & 1; }
+  uint32_t extractBit(uint32_t bit) const { return (encode() >> bit) & 1; }
   // Extract a bit field out of the instruction
-  uint32_t extractBitField(uint32_t hi, uint32_t lo) {
+  uint32_t extractBitField(uint32_t hi, uint32_t lo) const {
     return (encode() >> lo) & ((2 << (hi - lo)) - 1);
   }
 
   // Get the next instruction in the instruction stream.
-  // This does neat things like ignoreconstant pools and their guards.
   Instruction* next();
 
   // Sometimes, an api wants a uint32_t (or a pointer to it) rather than
@@ -2385,19 +2384,19 @@ class InstReg : public Instruction {
     MOZ_ASSERT(is_uintN(cond, 5));
   }
 
-  uint32_t extractRK() {
+  uint32_t extractRK() const {
     return extractBitField(RKShift + RKBits - 1, RKShift);
   }
-  uint32_t extractRJ() {
+  uint32_t extractRJ() const {
     return extractBitField(RJShift + RJBits - 1, RJShift);
   }
-  uint32_t extractRD() {
+  uint32_t extractRD() const {
     return extractBitField(RDShift + RDBits - 1, RDShift);
   }
-  uint32_t extractSA2() {
+  uint32_t extractSA2() const {
     return extractBitField(SAShift + SA2Bits - 1, SAShift);
   }
-  uint32_t extractSA3() {
+  uint32_t extractSA3() const {
     return extractBitField(SAShift + SA3Bits - 1, SAShift);
   }
 };
@@ -2405,8 +2404,7 @@ class InstReg : public Instruction {
 // Class for branch, load and store instructions with immediate offset.
 class InstImm : public Instruction {
  public:
-  void extractImm16(BOffImm16* dest);
-  uint32_t genImm(int32_t value, uint32_t value_bits) {
+  static uint32_t genImm(int32_t value, uint32_t value_bits) {
     uint32_t imm = value & Imm5Mask;
     if (value_bits == 6) {
       imm = value & Imm6Mask;
@@ -2415,8 +2413,50 @@ class InstImm : public Instruction {
     } else if (value_bits == 14) {
       imm = value & Imm14Mask;
     }
-
     return imm;
+  }
+
+  // For LSX (128-bit SIMD) immediates.  The immediate always starts at bit
+  // 10; its width varies per instruction format (2RI1 .. 2RI12).
+  static uint32_t genSimdImm(uint32_t value, uint32_t bits) {
+    MOZ_ASSERT(bits >= 1 && bits <= 21);
+    return value & ((uint32_t(1) << bits) - 1);
+  }
+
+  void setOpcode(OpcodeField op, uint32_t opBits) {
+    // opBits not greater than 24.
+    MOZ_ASSERT(opBits < 25);
+    uint32_t OpcodeShift = 32 - opBits;
+    uint32_t OpcodeMask = ((1 << opBits) - 1) << OpcodeShift;
+    data = (data & ~OpcodeMask) | op;
+  }
+  uint32_t extractRK() const {
+    return extractBitField(RKShift + RKBits - 1, RKShift);
+  }
+  uint32_t extractRJ() const {
+    return extractBitField(RJShift + RJBits - 1, RJShift);
+  }
+  void setRJ(uint32_t rj) {
+    data = (data & ~(RJMask << RJShift)) | (rj << RJShift);
+  }
+  uint32_t extractRD() const {
+    return extractBitField(RDShift + RDBits - 1, RDShift);
+  }
+  BOffImm16 extractImm16() const { return BOffImm16(*this); }
+  uint32_t extractImm16Value() const {
+    return extractBitField(Imm16Shift + Imm16Bits - 1, Imm16Shift);
+  }
+  void setBOffImm16(BOffImm16 off) {
+    // Reset immediate field and replace it
+    data = (data & ~BOffImm16Mask) | (off.encode() << Imm16Shift);
+  }
+  void setImm21(int32_t off) {
+    // Reset immediate field and replace it
+    uint32_t low16 = (off >> 2) & Imm16Mask;
+    int32_t high5 = (off >> 18) & Imm5Mask;
+    uint32_t fcc_info = (data >> 5) & 0x1F;
+    data = (data & ~BOffImm26Mask) | (low16 << Imm16Shift) | high5 |
+           (fcc_info << 5);
   }
 
   InstImm(OpcodeField op, int32_t value, Register rj, Register rd,
@@ -2462,7 +2502,6 @@ class InstImm : public Instruction {
       : Instruction(op | (bit15 & Imm15Mask)) {
     MOZ_ASSERT(is_uintN(bit15, 15));
   }
-
   InstImm(OpcodeField op, int32_t bit26, bool jump)
       : Instruction(op | (bit26 & Imm16Mask) << Imm16Shift |
                     (bit26 & Imm26Mask) >> 16) {
@@ -2495,47 +2534,7 @@ class InstImm : public Instruction {
     MOZ_ASSERT(is_intN(si12, 12));
   }
 
-  // For LSX (128-bit SIMD) immediates.  The immediate always starts at bit
-  // 10; its width varies per instruction format (2RI1 .. 2RI12).
-  static uint32_t genSimdImm(uint32_t value, uint32_t bits) {
-    MOZ_ASSERT(bits >= 1 && bits <= 21);
-    return value & ((uint32_t(1) << bits) - 1);
-  }
-
-  void setOpcode(OpcodeField op, uint32_t opBits) {
-    // opBits not greater than 24.
-    MOZ_ASSERT(opBits < 25);
-    uint32_t OpcodeShift = 32 - opBits;
-    uint32_t OpcodeMask = ((1 << opBits) - 1) << OpcodeShift;
-    data = (data & ~OpcodeMask) | op;
-  }
-  uint32_t extractRK() {
-    return extractBitField(RKShift + RKBits - 1, RKShift);
-  }
-  uint32_t extractRJ() {
-    return extractBitField(RJShift + RJBits - 1, RJShift);
-  }
-  void setRJ(uint32_t rj) {
-    data = (data & ~(RJMask << RJShift)) | (rj << RJShift);
-  }
-  uint32_t extractRD() {
-    return extractBitField(RDShift + RDBits - 1, RDShift);
-  }
-  uint32_t extractImm16Value() {
-    return extractBitField(Imm16Shift + Imm16Bits - 1, Imm16Shift);
-  }
-  void setBOffImm16(BOffImm16 off) {
-    // Reset immediate field and replace it
-    data = (data & ~BOffImm16Mask) | (off.encode() << Imm16Shift);
-  }
-  void setImm21(int32_t off) {
-    // Reset immediate field and replace it
-    uint32_t low16 = (off >> 2) & Imm16Mask;
-    int32_t high5 = (off >> 18) & Imm5Mask;
-    uint32_t fcc_info = (data >> 5) & 0x1F;
-    data = (data & ~BOffImm26Mask) | (low16 << Imm16Shift) | high5 |
-           (fcc_info << 5);
-  }
+  // For SIMD
   InstImm(OpcodeField op, uint32_t imm, FloatRegister vj, FloatRegister vd,
           uint32_t imm_bits)
       : Instruction(op | genSimdImm(imm, imm_bits) << RKShift | FJ(vj) |
@@ -2761,7 +2760,7 @@ class InstJump : public Instruction {
            ((off.encode() & Imm16Mask) << Imm16Shift) |
            ((off.encode() >> 16) & 0x3ff);
   }
-  uint32_t extractImm26Value() {
+  uint32_t extractImm26Value() const {
     return extractBitField(Imm26Shift + Imm26Bits - 1, Imm26Shift);
   }
 };

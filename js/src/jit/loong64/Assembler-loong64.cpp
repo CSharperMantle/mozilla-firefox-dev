@@ -136,8 +136,6 @@ Register js::jit::toR(Instruction& i) {
   return Register::FromCode(i.encode() & RegMask);
 }
 
-void InstImm::extractImm16(BOffImm16* dest) { *dest = BOffImm16(*this); }
-
 void AssemblerLOONG64::finish() {
   MOZ_ASSERT(!isFinished);
   isFinished = true;
