@@ -1,5 +1,7 @@
 // |jit-test| skip-if: !wasmSimdEnabled() || !hasDisassembler() || wasmCompileMode() != "ion" || !getBuildConfiguration("loong64"); include:codegen-loong64-test.js
 
+const NopIns = `andi         \\$zero, \\$zero, 0x0`;
+
 // Test encoding of the any_true and all_true operations.
 
 for (const [op, insn] of [
@@ -14,4 +16,19 @@ for (const [op, insn] of [
     "f",
     `${insn} \\$fcc0, \\$vr0
      movcf2gr \\$a0, \\$fcc0`);
+  codegenTestLOONG64_adhoc(
+    `(module (memory 1) (func (export "f") (param i32) (result i32)
+       (if (result i32) (${op} (v128.load (local.get 0)))
+         (then (i32.const 1)) (else (i32.const 2)))))`,
+    "f",
+    `bstrpick\\.d    \\$t6, \\$a0, 0x1f, 0x0
+     vldx            \\$vr0, \\$s7, \\$t6
+     ${insn}         \\$fcc0, \\$vr0
+     bceqz           \\$fcc0, \\d+ -> ${HEX}+
+     bge             \\$zero, \\$zero, \\d+ -> ${HEX}+
+     ${NopIns}
+     addi.w          \\$a0, \\$zero, 1
+     beq             \\$zero, \\$zero, \\d+ -> ${HEX}+
+     ${NopIns}
+     addi.w          \\$a0, \\$zero, 2`);
 }
