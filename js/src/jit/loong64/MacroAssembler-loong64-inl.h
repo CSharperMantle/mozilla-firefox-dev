@@ -3320,42 +3320,28 @@ void MacroAssembler::bitwiseNotAndSimd128(FloatRegister rhs,
 }
 
 void MacroAssembler::anyTrueSimd128(FloatRegister src, Register dest) {
-  ScratchSimd128Scope scratch(*this);
-  as_vmsknz_b(scratch, src);
-  as_vpickve2gr_wu(dest, scratch, 0);
-  cmp32Set(Assembler::NotEqual, dest, Imm32(0), dest);
+  as_vsetnez_v(FCC0, src);
+  as_movcf2gr(dest, FCC0);
 }
 
 void MacroAssembler::allTrueInt8x16(FloatRegister src, Register dest) {
-  ScratchSimd128Scope scratch(*this);
-  as_vslei_bu(scratch, src, 0);
-  as_vmsknz_b(scratch, scratch);
-  as_vpickve2gr_wu(dest, scratch, 0);
-  cmp32Set(Assembler::Equal, dest, Imm32(0), dest);
+  as_vsetallnez_b(FCC0, src);
+  as_movcf2gr(dest, FCC0);
 }
 
 void MacroAssembler::allTrueInt16x8(FloatRegister src, Register dest) {
-  ScratchSimd128Scope scratch(*this);
-  as_vslei_hu(scratch, src, 0);
-  as_vmsknz_b(scratch, scratch);
-  as_vpickve2gr_wu(dest, scratch, 0);
-  cmp32Set(Assembler::Equal, dest, Imm32(0), dest);
+  as_vsetallnez_h(FCC0, src);
+  as_movcf2gr(dest, FCC0);
 }
 
 void MacroAssembler::allTrueInt32x4(FloatRegister src, Register dest) {
-  ScratchSimd128Scope scratch(*this);
-  as_vslei_wu(scratch, src, 0);
-  as_vmsknz_b(scratch, scratch);
-  as_vpickve2gr_wu(dest, scratch, 0);
-  cmp32Set(Assembler::Equal, dest, Imm32(0), dest);
+  as_vsetallnez_w(FCC0, src);
+  as_movcf2gr(dest, FCC0);
 }
 
 void MacroAssembler::allTrueInt64x2(FloatRegister src, Register dest) {
-  ScratchSimd128Scope scratch(*this);
-  as_vslei_du(scratch, src, 0);
-  as_vmsknz_b(scratch, scratch);
-  as_vpickve2gr_wu(dest, scratch, 0);
-  cmp32Set(Assembler::Equal, dest, Imm32(0), dest);
+  as_vsetallnez_d(FCC0, src);
+  as_movcf2gr(dest, FCC0);
 }
 
 void MacroAssembler::compareInt8x16(Assembler::Condition cond,
