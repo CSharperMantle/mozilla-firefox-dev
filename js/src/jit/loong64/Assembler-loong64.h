@@ -1457,7 +1457,7 @@ class AssemblerLOONG64 : public AssemblerShared {
   // For beq $zero, bne $zero, blt $zero, bge $zero
   InstImm getBranchCode(Register rj, Condition c);
   // For bceqz, bcnez
-  InstImm getBranchCode(FPConditionBit cj);
+  InstImm getBranchCode(FPConditionBit cj, Condition c = NonZero);
 
   // Arithmetic instructions
   BufferOffset as_add_w(Register rd, Register rj, Register rk);
