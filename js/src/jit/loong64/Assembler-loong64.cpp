@@ -274,7 +274,15 @@ AssemblerLOONG64::Condition AssemblerLOONG64::SwapCmpOperandsCondition(
 }
 
 BOffImm16::BOffImm16(InstImm inst)
-    : data(inst.extractBitField(Imm16Shift + Imm16Bits - 1, Imm16Shift)) {}
+    : data(inst.extractBitField(Imm16Shift + Imm16Bits - 1, Imm16Shift)) {
+  MOZ_ASSERT(inst.hasBOffImm16());
+}
+
+BOffImm21::BOffImm21(InstImm inst)
+    : data(inst.extractBitField(Imm16Shift + Imm16Bits - 1, Imm16Shift) |
+           (inst.extractBitField(Imm5Bits - 1, 0) << Imm16Bits)) {
+  MOZ_ASSERT(inst.hasBOffImm21());
+}
 
 Instruction* BOffImm16::getDest(Instruction* src) const {
   return &src[(((int32_t)(data << 16)) >> 16) + 1];
@@ -533,16 +541,15 @@ InstImm AssemblerLOONG64::getBranchCode(Register rj, Register rd, Condition c) {
 }
 
 InstImm AssemblerLOONG64::getBranchCode(Register rj, Condition c) {
-  // beq, bne, blt, bge
   switch (c) {
     case AssemblerLOONG64::Equal:
     case AssemblerLOONG64::Zero:
     case AssemblerLOONG64::BelowOrEqual:
-      return InstImm(op_beq, BOffImm16(0), rj, zero);
+      return InstImm(op_beqz, 0, rj, /* NotHasRd= */ true);
     case AssemblerLOONG64::NotEqual:
     case AssemblerLOONG64::NonZero:
     case AssemblerLOONG64::Above:
-      return InstImm(op_bne, BOffImm16(0), rj, zero);
+      return InstImm(op_bnez, 0, rj, /* NotHasRd= */ true);
     case AssemblerLOONG64::GreaterThan:
       return InstImm(op_blt, BOffImm16(0), zero, rj);
     case AssemblerLOONG64::GreaterThanOrEqual:
@@ -4142,44 +4149,45 @@ void AssemblerLOONG64::ToggleToCmp(CodeLocationLabel inst_) {
 // simple.
 Instruction* Instruction::next() { return this + 1; }
 
-InstImm AssemblerLOONG64::invertBranch(InstImm branch, BOffImm16 skipOffset) {
+InstImm AssemblerLOONG64::invertBranch(InstImm branch, int32_t skipOffset) {
   uint32_t rj = 0;
-  OpcodeField opcode = (OpcodeField)((branch.extractBitField(31, 26)) << 26);
+  const OpcodeField opcode =
+      static_cast<OpcodeField>((branch.extractBitField(31, 26)) << 26);
   switch (opcode) {
     case op_beq:
-      branch.setBOffImm16(skipOffset);
+      branch.setBOffImm16(BOffImm16(skipOffset));
       branch.setOpcode(op_bne, 6);
       return branch;
     case op_bne:
-      branch.setBOffImm16(skipOffset);
+      branch.setBOffImm16(BOffImm16(skipOffset));
       branch.setOpcode(op_beq, 6);
       return branch;
     case op_bge:
-      branch.setBOffImm16(skipOffset);
+      branch.setBOffImm16(BOffImm16(skipOffset));
       branch.setOpcode(op_blt, 6);
       return branch;
     case op_bgeu:
-      branch.setBOffImm16(skipOffset);
+      branch.setBOffImm16(BOffImm16(skipOffset));
       branch.setOpcode(op_bltu, 6);
       return branch;
     case op_blt:
-      branch.setBOffImm16(skipOffset);
+      branch.setBOffImm16(BOffImm16(skipOffset));
       branch.setOpcode(op_bge, 6);
       return branch;
     case op_bltu:
-      branch.setBOffImm16(skipOffset);
+      branch.setBOffImm16(BOffImm16(skipOffset));
       branch.setOpcode(op_bgeu, 6);
       return branch;
     case op_beqz:
-      branch.setBOffImm16(skipOffset);
+      branch.setBOffImm21(BOffImm21(skipOffset));
       branch.setOpcode(op_bnez, 6);
       return branch;
     case op_bnez:
-      branch.setBOffImm16(skipOffset);
+      branch.setBOffImm21(BOffImm21(skipOffset));
       branch.setOpcode(op_beqz, 6);
       return branch;
     case op_bcz:
-      branch.setBOffImm16(skipOffset);
+      branch.setBOffImm21(BOffImm21(skipOffset));
       rj = branch.extractRJ();
       if (rj & 0x8) {
         branch.setRJ(rj & 0x17);
@@ -4318,10 +4326,10 @@ void Assembler::bind(InstImm* inst, uintptr_t branch, uintptr_t target) {
   int64_t offset = target - branch;
   InstImm inst_beq = InstImm(op_beq, BOffImm16(0), zero, zero);
 
-  // If encoded offset is 4, then the jump must be short
-  if (BOffImm16(inst[0]).decode() == 4) {
-    MOZ_ASSERT(BOffImm16::IsInRange(offset));
-    inst[0].setBOffImm16(BOffImm16(offset));
+  // If encoded offset is 4, then the jump must be short.
+  if (inst[0].isShortJump() && inst[0].extractShortJumpOffset() == 4) {
+    MOZ_ASSERT(inst[0].isShortJumpInRange(offset));
+    inst[0].setShortJumpOffset(offset);
     inst[1].makeNop();  // because before set INVALID_OFFSET
     return;
   }
@@ -4340,10 +4348,10 @@ void Assembler::bind(InstImm* inst, uintptr_t branch, uintptr_t target) {
     return;
   }
 
-  if (BOffImm16::IsInRange(offset)) {
+  if (inst[0].isShortJumpInRange(offset)) {
     bool conditional = inst[0].encode() != inst_beq.encode();
 
-    inst[0].setBOffImm16(BOffImm16(offset));
+    inst[0].setShortJumpOffset(offset);
     if (conditional) {
       // Skip the trailing nop on the fallthrough path.
       inst[1] = InstImm(op_bge, BOffImm16(2 * sizeof(uint32_t)), zero, zero);
@@ -4359,7 +4367,7 @@ void Assembler::bind(InstImm* inst, uintptr_t branch, uintptr_t target) {
     inst[0] = InstImm(op_pcaddu18i, si20, scratch, false);
     inst[1] = InstImm(op_jirl, BOffImm16(offs16), scratch, zero);
   } else {
-    inst[0] = invertBranch(inst[0], BOffImm16(3 * sizeof(uint32_t)));
+    inst[0] = invertBranch(inst[0], 3 * sizeof(uint32_t));
     Register scratch = temps.Acquire();
     const auto [si20, offs16] = SplitJump36Offset(offset - sizeof(uint32_t));
     inst[1] = InstImm(op_pcaddu18i, si20, scratch, false);

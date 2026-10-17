@@ -1043,6 +1043,36 @@ class BOffImm16 {
   explicit BOffImm16(InstImm inst);
 };
 
+// A BOffImm21 is a 21-bit immediate that is used for beqz, bnez, bceqz, and
+// bcnez.
+class BOffImm21 {
+  uint32_t data;
+
+ public:
+  uint32_t encode() {
+    MOZ_ASSERT(!isInvalid());
+    return data;
+  }
+  int32_t decode() {
+    MOZ_ASSERT(!isInvalid());
+    return (int32_t(data << 11) >> 9);
+  }
+
+  explicit BOffImm21(int offset) : data((offset) >> 2 & Imm21Mask) {
+    MOZ_ASSERT((offset & 0x3) == 0);
+    MOZ_ASSERT(IsInRange(offset));
+  }
+  static bool IsInRange(int offset) {
+    return is_intN(offset, 21 + /* 2'b0 */ 2);
+  }
+  static const uint32_t INVALID = 0x00200000;
+  BOffImm21() : data(INVALID) {}
+
+  bool isInvalid() { return data == INVALID; }
+
+  explicit BOffImm21(InstImm inst);
+};
+
 // A JOffImm26 is a 26 bit immediate that is used for unconditional jumps.
 class JOffImm26 {
   uint32_t data;
@@ -2214,7 +2244,7 @@ class AssemblerLOONG64 : public AssemblerShared {
   }
 
  protected:
-  InstImm invertBranch(InstImm branch, BOffImm16 skipOffset);
+  InstImm invertBranch(InstImm branch, int32_t skipOffset);
   void addPendingJump(BufferOffset src, ImmPtr target, RelocationKind kind) {
     enoughMemory_ &= jumps_.append(RelativePatch(src, target.value, kind));
     if (kind == RelocationKind::JITCODE) {
@@ -2450,13 +2480,59 @@ class InstImm : public Instruction {
     // Reset immediate field and replace it
     data = (data & ~BOffImm16Mask) | (off.encode() << Imm16Shift);
   }
-  void setImm21(int32_t off) {
+  bool hasBOffImm16() const {
+    switch (extractBitField(31, 26)) {
+      case static_cast<uint32_t>(op_beq) >> 26:
+      case static_cast<uint32_t>(op_bne) >> 26:
+      case static_cast<uint32_t>(op_blt) >> 26:
+      case static_cast<uint32_t>(op_bge) >> 26:
+      case static_cast<uint32_t>(op_bltu) >> 26:
+      case static_cast<uint32_t>(op_bgeu) >> 26:
+      case static_cast<uint32_t>(op_jirl) >> 26:
+        return true;
+      default:
+        return false;
+    }
+  }
+  void setBOffImm21(BOffImm21 off) {
     // Reset immediate field and replace it
-    uint32_t low16 = (off >> 2) & Imm16Mask;
-    int32_t high5 = (off >> 18) & Imm5Mask;
+    uint32_t value = off.encode();
     uint32_t fcc_info = (data >> 5) & 0x1F;
-    data = (data & ~BOffImm26Mask) | (low16 << Imm16Shift) | high5 |
-           (fcc_info << 5);
+    data = (data & ~BOffImm26Mask) | ((value & Imm16Mask) << Imm16Shift) |
+           (value >> 16) | (fcc_info << 5);
+  }
+  bool hasBOffImm21() const {
+    switch (extractBitField(31, 26)) {
+      case static_cast<uint32_t>(op_beqz) >> 26:
+      case static_cast<uint32_t>(op_bnez) >> 26:
+      case static_cast<uint32_t>(op_bcz) >> 26:
+        return true;
+      default:
+        return false;
+    }
+  }
+  bool isShortJump() const { return hasBOffImm21() || hasBOffImm16(); }
+  bool isShortJumpInRange(int32_t offset) const {
+    if (hasBOffImm21()) {
+      return BOffImm21::IsInRange(offset);
+    }
+    MOZ_ASSERT(hasBOffImm16());
+    return BOffImm16::IsInRange(offset);
+  }
+  int32_t extractShortJumpOffset() const {
+    if (hasBOffImm21()) {
+      return BOffImm21(*this).decode();
+    }
+    MOZ_ASSERT(hasBOffImm16());
+    return BOffImm16(*this).decode();
+  }
+  void setShortJumpOffset(int32_t offset) {
+    if (hasBOffImm21()) {
+      setBOffImm21(BOffImm21(offset));
+      return;
+    }
+    MOZ_ASSERT(hasBOffImm16());
+    setBOffImm16(BOffImm16(offset));
   }
 
   InstImm(OpcodeField op, int32_t value, Register rj, Register rd,
