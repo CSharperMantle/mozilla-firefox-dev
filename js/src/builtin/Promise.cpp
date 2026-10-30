@@ -1279,8 +1279,6 @@ static Realm* GetFunctionRealmIfSimple(JSObject* obj) {
 class MOZ_STACK_CLASS StackPromiseReaction
     : public PromiseReaction<PromiseReactionStackStorage> {
   static constexpr uint32_t InlineFlagsMask = 0xff;
-
- public:
   static constexpr uint32_t InlineHasPromise = 1 << 8;
 
   // Indices into the extra payload of an InlinePromiseReaction MicroTask.
@@ -1292,7 +1290,6 @@ class MOZ_STACK_CLASS StackPromiseReaction
     ExtraCount,
   };
 
- private:
   // Flags and InlineHasPromise must fit in the payload bits without overlap.
   static_assert((REACTION_FLAGS_ALL & ~InlineFlagsMask) == 0);
   static_assert((InlineHasPromise & InlineFlagsMask) == 0);
@@ -1300,6 +1297,19 @@ class MOZ_STACK_CLASS StackPromiseReaction
 
  public:
   explicit StackPromiseReaction(JSContext* cx) : PromiseReaction(cx) {}
+
+  // Read fields of an InlinePromiseReaction MicroTask without unpacking it.
+  static JSObject* maybePromise(const JS::MicroTask& task) {
+    if (!(MicroTaskQueueElement::jsBits(task) & InlineHasPromise)) {
+      return nullptr;
+    }
+    return &MicroTaskQueueElement::value(task).toObject();
+  }
+  static JSObject* incumbentGlobalRepresentative(const JS::MicroTask& task) {
+    return MicroTaskQueueElement::extra(task,
+                                        ExtraIncumbentGlobalRepresentative)
+        .toObjectOrNull();
+  }
 
   // Unpack a reaction from an InlinePromiseReaction MicroTask. Must be called
   // in the realm of the task's object.
@@ -8971,8 +8981,7 @@ JS_PUBLIC_API bool JS::JSMicroTaskRef::maybeGetHostDefinedData(
   if (MicroTaskQueueElement::Kind(task_.kind()) ==
       MicroTaskQueueElement::Kind::InlinePromiseReaction) {
     maybeIncumbentGlobalRepresentative =
-        task_.extra_[StackPromiseReaction::ExtraIncumbentGlobalRepresentative]
-            .toObjectOrNull();
+        StackPromiseReaction::incumbentGlobalRepresentative(task_);
     // Inline reactions never have optional host defined data.
     maybeOptionalHostDefinedData = nullptr;
   } else {
@@ -9050,9 +9059,7 @@ JS_PUBLIC_API JSObject* JS::JSMicroTaskRef::executionGlobal() && {
 JS_PUBLIC_API JSObject* JS::JSMicroTaskRef::maybeGetPromise() && {
   if (MicroTaskQueueElement::Kind(task_.kind()) ==
       MicroTaskQueueElement::Kind::InlinePromiseReaction) {
-    return (task_.jsBits_ & StackPromiseReaction::InlineHasPromise)
-               ? maybeWrappedObject()
-               : nullptr;
+    return StackPromiseReaction::maybePromise(task_);
   }
   JSObject* unwrapped = UncheckedUnwrapToLive(maybeWrappedObject());
   if (!unwrapped) {
