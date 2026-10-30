@@ -1465,7 +1465,7 @@ void LogEntry(NavigationHistoryEntry* aEntry, uint64_t aIndex, uint64_t aTotal,
 }  // namespace
 
 // https://html.spec.whatwg.org/#fire-a-traverse-navigate-event
-bool Navigation::FireTraverseNavigateEvent(
+Navigation::FinalStatus Navigation::FireTraverseNavigateEvent(
     JSContext* aCx, nsDocShellLoadState* aLoadState,
     Maybe<UserNavigationInvolvement> aUserInvolvement) {
   // aDestinationSessionHistoryInfo corresponds to
@@ -1560,11 +1560,11 @@ bool Navigation::FirePushReplaceReloadNavigateEvent(
 
   // Step 8
   return InnerFireNavigateEvent(
-      aCx, aNavigationType, destination,
-      aUserInvolvement.valueOr(UserNavigationInvolvement::None), aSourceElement,
-      aFormDataEntryList, aClassicHistoryAPIState,
-      /* aDownloadRequestFilename */ VoidString(),
-      aApiMethodTrackerForNavigateOrReload);
+             aCx, aNavigationType, destination,
+             aUserInvolvement.valueOr(UserNavigationInvolvement::None),
+             aSourceElement, aFormDataEntryList, aClassicHistoryAPIState,
+             /* aDownloadRequestFilename */ VoidString(),
+             aApiMethodTrackerForNavigateOrReload) == FinalStatus::Continue;
 }
 
 // https://html.spec.whatwg.org/#fire-a-download-request-navigate-event
@@ -1587,10 +1587,11 @@ bool Navigation::FireDownloadRequestNavigateEvent(
                                            /* aIsSameDocument */ false);
 
   // Step 8
-  return InnerFireNavigateEvent(
-      aCx, NavigationType::Push, destination, aUserInvolvement, aSourceElement,
-      /* aFormDataEntryList */ nullptr,
-      /* aClassicHistoryAPIState */ nullptr, aFilename);
+  return InnerFireNavigateEvent(aCx, NavigationType::Push, destination,
+                                aUserInvolvement, aSourceElement,
+                                /* aFormDataEntryList */ nullptr,
+                                /* aClassicHistoryAPIState */ nullptr,
+                                aFilename) == FinalStatus::Continue;
 }
 
 static bool HasHistoryActionActivation(
@@ -1695,7 +1696,7 @@ nsresult Navigation::FireErrorEvent(const nsAString& aName,
 }
 
 // https://html.spec.whatwg.org/#inner-navigate-event-firing-algorithm
-bool Navigation::InnerFireNavigateEvent(
+Navigation::FinalStatus Navigation::InnerFireNavigateEvent(
     JSContext* aCx, NavigationType aNavigationType,
     NavigationDestination* aDestination,
     UserNavigationInvolvement aUserInvolvement, Element* aSourceElement,
@@ -1715,7 +1716,7 @@ bool Navigation::InnerFireNavigateEvent(
     MOZ_DIAGNOSTIC_ASSERT(!aNavigationAPIMethodTracker);
 
     // Step 1.5
-    return true;
+    return FinalStatus::Continue;
   }
 
   RootedDictionary<NavigateEventInit> init(RootingCx());
@@ -1858,7 +1859,7 @@ bool Navigation::InnerFireNavigateEvent(
     }
 
     // Step 28.3
-    return false;
+    return FinalStatus::Prevent;
   }
 
   // Step 29
@@ -1929,7 +1930,9 @@ bool Navigation::InnerFireNavigateEvent(
         scope);
   }
   // Step 32 and 33
-  return event->InterceptionState() == NavigateEvent::InterceptionState::None;
+  return event->InterceptionState() == NavigateEvent::InterceptionState::None
+             ? FinalStatus::Continue
+             : FinalStatus::Intercept;
 }
 
 NavigationHistoryEntry* Navigation::FindNavigationHistoryEntry(

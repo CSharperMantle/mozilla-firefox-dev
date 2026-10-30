@@ -11656,11 +11656,16 @@ nsDocShell::MaybeFireTraversableTraverseHistory(
   if (RefPtr<nsPIDOMWindowInner> activeWindow = GetActiveWindow()) {
     if (RefPtr navigation = activeWindow->Navigation()) {
       if (AutoJSAPI jsapi; jsapi.Init(activeWindow)) {
-        bool shouldContinue = navigation->FireTraverseNavigateEvent(
-            jsapi.cx(), aLoadState, aUserInvolvement);
-
-        if (!shouldContinue) {
-          finalStatus = nsIDocumentViewer::eCanceledByNavigate;
+        switch (navigation->FireTraverseNavigateEvent(jsapi.cx(), aLoadState,
+                                                      aUserInvolvement)) {
+          case Navigation::FinalStatus::Continue:
+            break;
+          case Navigation::FinalStatus::Intercept:
+            finalStatus = nsIDocumentViewer::eInterceptedByNavigate;
+            break;
+          case Navigation::FinalStatus::Prevent:
+            finalStatus = nsIDocumentViewer::eCanceledByNavigate;
+            break;
         }
       }
     }
