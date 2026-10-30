@@ -858,18 +858,6 @@ void nsPresContext::AttachPresShell(mozilla::PresShell* aPresShell) {
   UpdateCharSet(doc->GetDocumentCharacterSet());
 }
 
-Maybe<ColorScheme> nsPresContext::GetOverriddenOrEmbedderColorScheme() const {
-  switch (mOverriddenOrEmbedderColorScheme) {
-    case dom::PrefersColorSchemeOverride::Dark:
-      return Some(ColorScheme::Dark);
-    case dom::PrefersColorSchemeOverride::Light:
-      return Some(ColorScheme::Light);
-    case dom::PrefersColorSchemeOverride::None:
-      break;
-  }
-  return Nothing();
-}
-
 void nsPresContext::SetColorSchemeOverride(
     PrefersColorSchemeOverride aOverride) {
   auto oldScheme = mDocument->PreferredColorScheme();

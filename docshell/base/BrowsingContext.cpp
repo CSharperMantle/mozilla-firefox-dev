@@ -1267,9 +1267,9 @@ void BrowsingContext::SetOpener(BrowsingContext* aOpener) {
     // Inherit color scheme overrides from parent window. This is to inherit the
     // color scheme of dark themed PBM windows in dialogs opened by such
     // windows.
-    auto openerOverride = aOpener->Top()->PrefersColorSchemeOverride();
-    if (openerOverride != PrefersColorSchemeOverride()) {
-      MOZ_ALWAYS_SUCCEEDS(SetPrefersColorSchemeOverride(openerOverride));
+    if (auto* doc = aOpener->GetExtantDocument()) {
+      MOZ_ALWAYS_SUCCEEDS(SetPrefersColorSchemeOverride(
+          doc->GetOverriddenOrEmbedderColorScheme()));
     }
   }
 }
