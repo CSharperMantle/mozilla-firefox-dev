@@ -902,26 +902,26 @@ nsresult SSLTokensCache::Get(const nsACString& aKey, nsTArray<uint8_t>& aToken,
     LOG(("  service not initialized"));
     return NS_ERROR_NOT_INITIALIZED;
   }
-  UniquePtr<TokenCacheRecord> owned =
-      gInstance->GetRecordLocked(aKey, aTokenId);
-  if (!owned) {
-    return NS_ERROR_NOT_AVAILABLE;
+  if (!gInstance->mLoadComplete && gInstance->mDBActive) {
+    LOG(("SSLTokensCache::Get: connection before load complete"));
+    mozilla::glean::network::ssl_token_cache_early_connections.Add(1);
   }
-  nsTArray<uint8_t> payload = DecompressRecord(owned->mCompressedPayload);
-  if (payload.IsEmpty() || !DeserializeRecord(payload, aToken, aResult)) {
-    return NS_ERROR_FAILURE;
+  while (UniquePtr<TokenCacheRecord> owned =
+             gInstance->GetRecordLocked(aKey, aTokenId)) {
+    nsTArray<uint8_t> payload = DecompressRecord(owned->mCompressedPayload);
+    if (!payload.IsEmpty() && DeserializeRecord(payload, aToken, aResult)) {
+      mozilla::glean::network::ssl_token_cache_hits.Get("hit"_ns).Add(1);
+      return NS_OK;
+    }
+    LOG(("  discarding undecodable record [id=%" PRIu64 "]", owned->mId));
   }
-  return NS_OK;
+  mozilla::glean::network::ssl_token_cache_hits.Get("miss"_ns).Add(1);
+  return NS_ERROR_NOT_AVAILABLE;
 }
 
 UniquePtr<SSLTokensCache::TokenCacheRecord> SSLTokensCache::GetRecordLocked(
     const nsACString& aKey, uint64_t* aTokenId) {
   sLock.AssertCurrentThreadOwns();
-
-  if (!mLoadComplete && mDBActive) {
-    LOG(("SSLTokensCache::GetRecordLocked: connection before load complete"));
-    mozilla::glean::network::ssl_token_cache_early_connections.Add(1);
-  }
 
   TokenCacheEntry* cacheEntry = nullptr;
 
@@ -948,7 +948,6 @@ UniquePtr<SSLTokensCache::TokenCacheRecord> SSLTokensCache::GetRecordLocked(
         if (cacheEntry->RecordCount() == 0) {
           mTokenCacheRecords.Remove(aKey);
         }
-        mozilla::glean::network::ssl_token_cache_hits.Get("hit"_ns).Add(1);
         LOG(("SSLTokensCache::GetRecordLocked: hit [key=%s, load_complete=%s]",
              PromiseFlatCString(aKey).get(), mLoadComplete ? "yes" : "no"));
         return owned;
@@ -967,7 +966,6 @@ UniquePtr<SSLTokensCache::TokenCacheRecord> SSLTokensCache::GetRecordLocked(
   }
 
   LOG(("  token not found"));
-  mozilla::glean::network::ssl_token_cache_hits.Get("miss"_ns).Add(1);
   return nullptr;
 }
 
@@ -1661,6 +1659,22 @@ void SSLTokensCache::PutForTest(const nsACString& aKey) {
   rec.expirationTime = PR_Now() + 3600LL * PR_USEC_PER_SEC;
   rec.compressedPayload = std::move(compressed);
   PutFromPersisted(rec, gen, /* aRestored */ false);
+}
+
+// static
+void SSLTokensCache::ReplaceAllRecordsForTest(
+    nsTArray<SSLTokensCacheRecordInfo>&& aRecords) {
+  StaticMutexAutoLock lock(sLock);
+  if (!gInstance) {
+    return;
+  }
+  gInstance->ClearCacheLocked();
+  for (auto& info : aRecords) {
+    auto rec = MakeRecord(info.key, static_cast<PRTime>(info.expirationTime),
+                          info.overridableError, info.restored,
+                          std::move(info.compressedPayload));
+    gInstance->InsertRecordLocked(std::move(rec));
+  }
 }
 
 #endif  // ENABLE_TESTS

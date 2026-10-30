@@ -113,6 +113,8 @@ class SSLTokensCache : public nsIMemoryReporter,
   static uint32_t CountForTest();
   static void PutForTest(const nsACString& aKey);
   static uint32_t CacheSizeForTest();
+  static void ReplaceAllRecordsForTest(
+      nsTArray<SSLTokensCacheRecordInfo>&& aRecords);
 #endif
 
  private:
