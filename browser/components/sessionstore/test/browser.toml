@@ -227,9 +227,6 @@ https_first_disabled = true
 tags = "os_integration"
 
 ["browser_replace_load.js"]
-skip-if = [
-  "true", # Bug 1646894
-]
 
 ["browser_restoreLastActionCorrectOrder.js"]
 
