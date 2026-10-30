@@ -383,6 +383,22 @@ export class MigratorBase {
       }
     };
 
+    let getDurationMetricForResourceType = resourceType => {
+      switch (resourceType) {
+        case lazy.MigrationUtils.resourceTypes.BOOKMARKS:
+          return Glean.browserMigration.bookmarksImportDuration[browserKey];
+        case lazy.MigrationUtils.resourceTypes.HISTORY:
+          return Glean.browserMigration.historyImportDuration[browserKey];
+        case lazy.MigrationUtils.resourceTypes.PASSWORDS:
+          return Glean.browserMigration.loginsImportDuration[browserKey];
+        case lazy.MigrationUtils.resourceTypes.PAYMENT_METHODS:
+          return Glean.browserMigration.cardsImportDuration[browserKey];
+        case lazy.MigrationUtils.resourceTypes.EXTENSIONS:
+          return Glean.browserMigration.extensionsImportDuration[browserKey];
+      }
+      return null;
+    };
+
     // Called either directly or through the bookmarks import callback.
     let doMigrate = async function () {
       let resourcesGroupedByItems = new Map();
@@ -412,9 +428,12 @@ export class MigratorBase {
 
         let itemSuccess = false;
         let allItemResources = [...itemResources];
+        let durationMetric = getDurationMetricForResourceType(migrationType);
         for (let res of itemResources) {
+          let timerId = durationMetric?.start();
           let completeDeferred = Promise.withResolvers();
           let resourceDone = function (aSuccess, details) {
+            durationMetric?.stopAndAccumulate(timerId);
             itemResources.delete(res);
             itemSuccess |= aSuccess;
             if (itemResources.size == 0) {
