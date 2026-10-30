@@ -5,14 +5,14 @@
 import { html, when } from "chrome://global/content/vendor/lit.all.mjs";
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
 
-// eslint-disable-next-line import/no-unassigned-import
+// eslint-disable-next-line import-x/no-unassigned-import
 import "chrome://global/content/elements/moz-input-url.mjs";
-// eslint-disable-next-line import/no-unassigned-import
+// eslint-disable-next-line import-x/no-unassigned-import
 import "chrome://global/content/elements/moz-input-text.mjs";
-// eslint-disable-next-line import/no-unassigned-import
+// eslint-disable-next-line import-x/no-unassigned-import
 import "chrome://global/content/elements/moz-input-password.mjs";
 
-/* eslint-disable-next-line import/no-unassigned-import, mozilla/no-browser-refs-in-toolkit */
+/* eslint-disable-next-line import-x/no-unassigned-import, mozilla/no-browser-refs-in-toolkit */
 import "chrome://browser/content/aboutlogins/components/login-message-popup.mjs";
 
 export class LoginForm extends MozLitElement {

@@ -6,7 +6,7 @@ import { RecommendedSection } from "./recommended-section.mjs";
 
 // NOTE: importing recommended-footer webcomponent because it is used
 // in this webcomponent template.
-// eslint-disable-next-line import/no-unassigned-import
+// eslint-disable-next-line import-x/no-unassigned-import
 import "./recommended-themes-footer.mjs";
 
 const { XPCOMUtils } = ChromeUtils.importESModule(

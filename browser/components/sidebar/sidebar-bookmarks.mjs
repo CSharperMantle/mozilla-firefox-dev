@@ -11,7 +11,7 @@ import {
   navigateToLink,
   escapeHtmlEntities,
 } from "chrome://browser/content/firefoxview/helpers.mjs";
-// eslint-disable-next-line import/no-unassigned-import
+// eslint-disable-next-line import-x/no-unassigned-import
 import "chrome://browser/content/sidebar/sidebar-bookmark-list.mjs";
 
 let XPCOMUtils;

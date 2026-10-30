@@ -5,9 +5,9 @@
 import { html, when } from "chrome://global/content/vendor/lit.all.mjs";
 import { escapeHtmlEntities } from "./helpers.mjs";
 import { ViewPage } from "./viewpage.mjs";
-// eslint-disable-next-line import/no-unassigned-import
+// eslint-disable-next-line import-x/no-unassigned-import
 import "chrome://global/content/elements/moz-button.mjs";
-// eslint-disable-next-line import/no-unassigned-import
+// eslint-disable-next-line import-x/no-unassigned-import
 import "chrome://browser/content/firefoxview/chats-tab-list.mjs";
 
 const lazy = {};

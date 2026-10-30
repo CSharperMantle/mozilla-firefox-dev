@@ -1139,7 +1139,7 @@ export class DevToolsStartup {
     );
     // Ensure loading main devtools module that hooks up into browser UI
     // and initialize all devtools machinery.
-    // eslint-disable-next-line import/no-unassigned-import
+    // eslint-disable-next-line import-x/no-unassigned-import
     require("devtools/client/framework/devtools-browser");
     return require;
   }
