@@ -14,9 +14,7 @@ add_task(async function () {
         /* Invalid values */
         color: orang;
         -a: red;
-        --b: var();
-        /* Invalid at computed-value time, but valid at parse time */
-        --c: var(-a);
+        --b: var(-a);
         /* Override */
         background-color: blue;
         background-color: #f06;
@@ -44,8 +42,7 @@ add_task(async function () {
         },
         { name: "color", value: "orang", valid: false },
         { name: "-a", value: "red", valid: false },
-        { name: "--b", value: "var()", valid: false },
-        { name: "--c", value: "var(-a)" },
+        { name: "--b", value: "var(-a)", valid: false },
         {
           name: "background-color",
           value: "blue",

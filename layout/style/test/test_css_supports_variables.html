@@ -54,10 +54,6 @@ function runTest()
     "(color: var(--a, '",
     "(color: var(--a, '\\",
     "(color: var(--a, \\",
-    "(color: var(1px))",
-    "(color: var(a))",
-    "(color: var(--",
-    "(color: var(--))",
 
     "(--a:var(--b))",
     "(--a: var(--b))",
@@ -95,8 +91,6 @@ function runTest()
     "(--a: '\\",
     "(--a: \\",
     "(--a:)",
-    "(--a: var(1px))",
-    "(--a: var(a))",
   ];
 
   var failingConditions = [
@@ -105,18 +99,24 @@ function runTest()
     "(color: var(--a) !important !important)",
     "(color: var(--a,;))",
     "(color: var(--a);)",
+    "(color: var(1px))",
     "(color: var(--a)))",
     "(color: var(--a) \"\n",
     "(color: var(--a) url(\"\n",
+    "(color: var(a))",
+    "(color: var(--",
+    "(color: var(--))",
 
     "(--a: var(--b,!))",
     "(--a: var(--b,!important))",
     "((--a: var(--b) !important !important))",
     "(--a: var(--b,;))",
     "(--a: var(--b);)",
+    "(--a: var(1px))",
     "(--a: a))",
     "(--a: \"\n",
     "(--a: url(\"\n",
+    "(--a: var(a))",
     "(--: a)",
   ];
 
@@ -152,9 +152,6 @@ function runTest()
     ["color", "var(--a, \\"],
     ["color", "var(--a,)"],
     ["color", "var(--a,/**/)"],
-    ["color", "var(1px)"],
-    ["color", "var(a)"],
-    ["color", "var(--"],
 
     ["--a", " var(--b)"],
     ["--a", "var(--b)"],
@@ -192,8 +189,6 @@ function runTest()
     ["--a ", "'"],
     ["--a ", "'\\"],
     ["--a ", "\\"],
-    ["--a", "var(1px)"],
-    ["--a", "var(b)"],
   ];
 
   var failingDeclarations = [
@@ -201,22 +196,27 @@ function runTest()
     ["color", "var(--a,!important)"],
     ["color", "var(--a,;)"],
     ["color", "var(--a);"],
+    ["color", "var(1px)"],
     ["color", "var(--a))"],
     ["color", "var(--a) \"\n"],
     ["color", "var(--a) url(\"\n"],
     ["color", "var(--a) !important"],
     ["color", "var(--a) !important !important"],
+    ["color", "var(a)"],
+    ["color", "var(--"],
 
     ["--a", "var(--b,!)"],
     ["--a", "var(--b,!important)"],
     ["--a", "var(--b) !important !important"],
     ["--a", "var(--b,;)"],
     ["--a", "var(--b);"],
+    ["--a", "var(1px)"],
     ["(VAR-a", "a"],
     ["--a", "a)"],
     ["--a", "\"\n"],
     ["--a", "url(\"\n"],
     ["--a", "var(--b))"],
+    ["--a", "var(b)"],
     ["--", "a"],
   ];
 
