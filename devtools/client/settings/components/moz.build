@@ -5,7 +5,6 @@
 DevToolsModules(
     "devtools-settings-disable-javascript.mjs",
     "devtools-settings-pref.mjs",
-    "devtools-settings-theme.mjs",
     "devtools-settings.css",
     "devtools-settings.mjs",
 )
