@@ -5,6 +5,7 @@
 #ifndef WEBGL_MEMORY_TRACKER_H_
 #define WEBGL_MEMORY_TRACKER_H_
 
+#include "WebGLMemoryTrackerUsage.h"
 #include "nsIMemoryReporter.h"
 
 namespace mozilla {
@@ -17,6 +18,11 @@ class WebGLMemoryTracker : public nsIMemoryReporter {
   static void EnsureRegistered();
 
  private:
+  static WebGLMemoryTrackerUsage CollectMemoryUsage();
+  static void FinishCollectReports(nsIHandleReportCallback* aHandleReport,
+                                   nsISupports* aData,
+                                   const WebGLMemoryTrackerUsage& aUsage);
+
   virtual ~WebGLMemoryTracker() = default;
 };
 
