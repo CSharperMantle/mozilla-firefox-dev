@@ -21,6 +21,9 @@
 #include <sys/prctl.h>
 #include <sys/socket.h>
 #include <sys/syscall.h>
+#ifdef MOZ_ENABLE_VULKAN_VIDEO
+#  include <sys/timerfd.h>
+#endif
 #include <sys/un.h>
 #include <sys/utsname.h>
 #include <time.h>
@@ -2001,12 +2004,34 @@ class RDDSandboxPolicy final : public SandboxPolicyCommon {
 
   static intptr_t CudaUvmFdTrap(ArgsRef aArgs, void* aux) {
     switch (aArgs.nr) {
-      case __NR_bind:
-        return IsCudaUvmFdBindAddr(
-                   reinterpret_cast<const sockaddr*>(aArgs.args[1]),
-                   static_cast<socklen_t>(aArgs.args[2]))
-                   ? 0
-                   : -EPERM;
+      case __NR_bind: {
+        if (!IsCudaUvmFdBindAddr(
+                reinterpret_cast<const sockaddr*>(aArgs.args[1]),
+                static_cast<socklen_t>(aArgs.args[2]))) {
+          return -EPERM;
+        }
+        const int fd = static_cast<int>(aArgs.args[0]);
+        // FakeSocketTrap leaves a hung-up socketpair half; poll never
+        // sleeps. A live peer would leak an fd per bind and still wake
+        // on POLLOUT. Use an unarmed timerfd (never readable/writable)
+        // and do not publish the cuda-uvmfd name.
+        const int oldFlags = fcntl(fd, F_GETFL);
+        if (oldFlags == -1) {
+          return -errno;
+        }
+        const int tfd = timerfd_create(CLOCK_MONOTONIC, TFD_CLOEXEC);
+        if (tfd < 0) {
+          return -errno;
+        }
+        if (fcntl(tfd, F_SETFL, oldFlags & O_NONBLOCK) != 0 ||
+            dup2(tfd, fd) < 0) {
+          const int err = errno;
+          close(tfd);
+          return -err;
+        }
+        close(tfd);
+        return 0;
+      }
       case __NR_listen:
         return 0;
       case __NR_accept4:
@@ -2073,8 +2098,9 @@ class RDDSandboxPolicy final : public SandboxPolicyCommon {
 #ifdef MOZ_ENABLE_VULKAN_VIDEO
       // GPU drivers may call bind() while probing display sockets; those
       // still get EPERM (bug 2021722). ICDs may also load CUDA, which we
-      // do not need for Vulkan video: stub cuda-uvmfd bind/listen/accept4
-      // so init does not SIGSYS, without enabling a real socket.
+      // do not need for Vulkan video. Replace cuda-uvmfd bind with an
+      // unarmed timerfd so init does not SIGSYS, without a real socket.
+      // listen/accept4 stay stubbed.
       case SYS_BIND:
       case SYS_LISTEN:
       case SYS_ACCEPT4:
