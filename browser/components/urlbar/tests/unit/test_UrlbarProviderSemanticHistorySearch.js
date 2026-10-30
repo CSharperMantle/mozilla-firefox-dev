@@ -14,6 +14,9 @@ ChromeUtils.defineESModuleGetters(lazy, {
 const { UrlbarProviderSemanticHistorySearch } = ChromeUtils.importESModule(
   "moz-src:///browser/components/urlbar/UrlbarProviderSemanticHistorySearch.sys.mjs"
 );
+const { UrlbarTelemetryUtils } = ChromeUtils.importESModule(
+  "chrome://browser/content/urlbar/UrlbarTelemetryUtils.mjs"
+);
 const { getPlacesSemanticHistoryManager } = ChromeUtils.importESModule(
   "resource://gre/modules/PlacesSemanticHistoryManager.sys.mjs"
 );
@@ -271,14 +274,17 @@ add_task(async function test_switchTab() {
         id: 1,
         title: "Test Page 1",
         url: url1,
+        distance: 0.1,
       },
       {
         id: 2,
         title: "Test Page 2",
         url: url2,
+        distance: 0.2,
       },
     ],
   });
+  const expectedDistances = { [url1]: 10, [url2]: 20 };
 
   function AssertSwitchToTabResult(result, url, userContextId, groupId = null) {
     Assert.equal(
@@ -297,6 +303,11 @@ add_task(async function test_switchTab() {
       result.payload.icon,
       UrlbarShared.getIconForUrl(url),
       "Check icon"
+    );
+    Assert.strictEqual(
+      result.payload.semanticDistance,
+      expectedDistances[url],
+      "Check semantic distance"
     );
   }
   function isUrlResult(result, url) {
@@ -459,4 +470,103 @@ add_task(async function test_startQuery_domain_scoped() {
   UrlbarPrefs.clear("suggest.semanticHistory.domainScopedSearch");
   inferStub.restore();
   inferWithDomainStub.restore();
+});
+
+add_task(async function test_semantic_distance_telemetry() {
+  const provider = new UrlbarProviderSemanticHistorySearch();
+  const queryContext = createContext("distance test", { isPrivate: false });
+  let url = "https://example.com/distance";
+  let distance = 0.3;
+  let inferStub = sinon.stub(semanticManager, "infer").callsFake(async () => ({
+    results: [{ id: 1, title: "Distance", url, frecency: 100, distance }],
+  }));
+
+  async function query() {
+    let added = [];
+    await provider.startQuery(queryContext, (_provider, result) => {
+      added.push(result);
+    });
+    Assert.equal(added.length, 1, "One result should be added");
+    return added[0];
+  }
+
+  let result = await query();
+  Assert.strictEqual(
+    result.payload.semanticDistance,
+    30,
+    "Distance is scaled to an integer"
+  );
+
+  distance = 1.5;
+  result = await query();
+  Assert.strictEqual(
+    result.payload.semanticDistance,
+    100,
+    "Distance is clamped to 100"
+  );
+
+  distance = NaN;
+  result = await query();
+  Assert.strictEqual(
+    result.payload.semanticDistance,
+    undefined,
+    "No distance when it is NaN"
+  );
+
+  distance = 0.3;
+  result = await query();
+
+  let other = new UrlbarResult({
+    type: UrlbarShared.RESULT_TYPE.URL,
+    source: UrlbarShared.RESULT_SOURCE.HISTORY,
+    payload: { url: "https://example.com/other", title: "Other" },
+  });
+  let buildEvent = visibleResults =>
+    UrlbarTelemetryUtils.buildEventInfo({
+      method: "abandonment",
+      action: "blur",
+      interaction: "typed",
+      numChars: 13,
+      numWords: 2,
+      searchSource: "urlbar",
+      searchMode: null,
+      visibleResults,
+      viewIsOpen: true,
+      windowMode: "classic",
+    }).eventInfo;
+
+  Assert.equal(
+    buildEvent([other, result, other]).semantic_distances,
+    `,${result.payload.semanticDistance},`,
+    "Distances are aligned with the results"
+  );
+  Assert.ok(
+    !("semantic_distances" in buildEvent([other])),
+    "No semantic_distances without semantic results"
+  );
+
+  let inputFieldEvent = UrlbarTelemetryUtils.buildEventInfo({
+    method: "engagement",
+    action: "enter",
+    interaction: "typed",
+    numChars: 13,
+    numWords: 2,
+    searchSource: "urlbar",
+    searchMode: null,
+    selIndex: -1,
+    visibleResults: [other, result],
+    viewIsOpen: false,
+    windowMode: "classic",
+  }).eventInfo;
+  Assert.equal(
+    inputFieldEvent.selected_result,
+    "input_field",
+    "The input field was confirmed"
+  );
+  Assert.ok(
+    !("semantic_distances" in inputFieldEvent),
+    "No semantic_distances when confirming the input field with a closed view"
+  );
+
+  inferStub.restore();
 });

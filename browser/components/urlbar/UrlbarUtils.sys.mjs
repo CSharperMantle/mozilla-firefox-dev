@@ -1486,6 +1486,9 @@ UrlbarUtils.RESULT_PAYLOAD_SCHEMA = {
       lastVisit: {
         type: "number",
       },
+      semanticDistance: {
+        type: "number",
+      },
       tabGroup: {
         type: "string",
       },
@@ -1652,6 +1655,9 @@ UrlbarUtils.RESULT_PAYLOAD_SCHEMA = {
       },
       requestId: {
         type: "string",
+      },
+      semanticDistance: {
+        type: "number",
       },
       shouldShowUrl: {
         type: "boolean",

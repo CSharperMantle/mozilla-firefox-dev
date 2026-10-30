@@ -225,11 +225,25 @@ export class UrlbarProviderSemanticHistorySearch extends UrlbarProvider {
               Services.urlFormatter.formatURLPref("app.support.baseURL") +
               "awesome-bar-result-menu",
             frecency: res.frecency,
+            semanticDistance: this.#distanceForTelemetry(res.distance),
           },
         });
         addCallback(this, result);
       }
     }
+  }
+
+  /**
+   * Returns the distance formatted for telemetry.
+   *
+   * @param {number} distance The cosine distance from the search string.
+   * @returns {number|undefined} The distance multiplied by 100, rounded to an
+   *   integer and capped at 100, or undefined if it is not a finite number.
+   */
+  #distanceForTelemetry(distance) {
+    return Number.isFinite(distance)
+      ? Math.min(100, Math.round(distance * 100))
+      : undefined;
   }
 
   /**
@@ -276,6 +290,7 @@ export class UrlbarProviderSemanticHistorySearch extends UrlbarProvider {
           userContext: UrlbarUtils.getUserContextData(tabUserContextId),
           tabGroup: tabGroupId,
           lastVisit: res.lastVisit,
+          semanticDistance: this.#distanceForTelemetry(res.distance),
           action: lazy.UrlbarPrefs.get("secondaryActions.switchToTab")
             ? UrlbarUtils.createTabSwitchSecondaryAction(tabUserContextId)
             : undefined,
