@@ -78,7 +78,6 @@ customkeys-file-focus-search = Focus the Search Bar
 
 customkeys-history-reopen-tab = Reopen Last Closed Tab
 customkeys-history-reopen-window = Reopen Last Closed window
-customkeys-history-reopen-tab-current-window = Reopen Last Closed Tab of the Current Window
 
 customkeys-sidebar-toggle = Toggle Sidebar
 
