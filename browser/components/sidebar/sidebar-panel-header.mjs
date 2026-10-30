@@ -29,11 +29,12 @@ export class SidebarPanelHeader extends MozLitElement {
 
   closeSidebarPanel(e) {
     e.preventDefault();
-    // In "hide-launcher" mode there is no launcher to return to, so keep the
-    // panel remembered rather than revealing the launcher.
     window.SidebarController._maybeAnimate(() => {
       window.SidebarController.hide({
         dismissPanel: !window.SidebarController._state.launcherHiddenWithPanel,
+        // If closing this panel with a keyboard, restore focus back to the
+        // launcher button that opened it.
+        restoreFocus: e.detail === 0,
       });
     });
   }

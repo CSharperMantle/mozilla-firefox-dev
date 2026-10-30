@@ -2094,6 +2094,7 @@ var SidebarController = {
       if (triggerNode) {
         updateToggleControlLabel(triggerNode);
       }
+      this._panelTriggerNode = triggerNode;
       this.updateToolbarButton();
       this.dismissSidebarBadge(commandID);
 
@@ -2234,9 +2235,14 @@ var SidebarController = {
    * @param {object} options - Parameter object.
    * @param {DOMNode} options.triggerNode - Node, usually a button, that triggered the
    *                                        hiding of the sidebar.
-   * @param {boolean} options.dismissPanel -Only close the panel or close the whole sidebar (the default.)
+   * @param {boolean} options.dismissPanel - Only close the panel or close the whole sidebar (the default.)
+   * @param {boolean} options.restoreFocus - Return focus to the control that opened the panel.
    */
-  hide({ triggerNode, dismissPanel = this.sidebarRevampEnabled } = {}) {
+  hide({
+    triggerNode,
+    dismissPanel = this.sidebarRevampEnabled,
+    restoreFocus = false,
+  } = {}) {
     if (!this.isOpen) {
       return;
     }
@@ -2277,11 +2283,25 @@ var SidebarController = {
     this._box.hidden = this._splitter.hidden = true;
     this._splitterAriaUpdateTask.arm();
 
-    let selBrowser = gBrowser.selectedBrowser;
-    selBrowser.focus();
+    let isFocusRestored = false;
+    if (restoreFocus) {
+      if (this._panelTriggerNode?.isConnected) {
+        this._panelTriggerNode.focus();
+        isFocusRestored =
+          this._panelTriggerNode.getRootNode().activeElement ===
+          this._panelTriggerNode;
+      }
+      if (!isFocusRestored && this.launcherVisible) {
+        isFocusRestored = this.sidebarMain.focusButtonGroup();
+      }
+    }
+    if (!isFocusRestored) {
+      gBrowser.selectedBrowser.focus();
+    }
     if (triggerNode) {
       updateToggleControlLabel(triggerNode);
     }
+    this._panelTriggerNode = null;
     this.updateToolbarButton();
   },
 
