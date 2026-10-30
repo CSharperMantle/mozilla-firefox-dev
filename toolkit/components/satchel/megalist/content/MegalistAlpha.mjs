@@ -654,6 +654,7 @@ export class MegalistAlpha extends MozLitElement {
           originValue=${this.selectedRecord.origin.href}
           usernameValue=${this.selectedRecord.username.value}
           ?passwordVisible=${!this.selectedRecord.password.concealed}
+          ?perDeviceSyncEnabled=${this.header?.value.perDeviceSyncEnabled}
           .passwordValue=${this.selectedRecord.password.value}
           .onPasswordRevealClick=${() =>
             this.#onPasswordRevealClick(
@@ -783,7 +784,9 @@ export class MegalistAlpha extends MozLitElement {
         ></panel-item>
         <panel-item
           action="remove-all-logins"
-          data-l10n-id="contextual-manager-passwords-command-remove-all"
+          data-l10n-id=${this.header?.value.perDeviceSyncEnabled
+            ? "contextual-manager-passwords-command-delete-all"
+            : "contextual-manager-passwords-command-remove-all"}
           @click=${() => {
             this.#sendCommand("RemoveAll");
             this.#recordToolbarAction("remove_all", "toolbar");
