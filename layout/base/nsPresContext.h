@@ -580,10 +580,7 @@ class nsPresContext : public nsISupports,
   // emulation, or printing.
   //
   // NOTE(emilio): This might be called from an stylo thread.
-  mozilla::dom::PrefersColorSchemeOverride GetOverriddenOrEmbedderColorScheme()
-      const {
-    return mOverriddenOrEmbedderColorScheme;
-  }
+  Maybe<mozilla::ColorScheme> GetOverriddenOrEmbedderColorScheme() const;
 
   /**
    * Recomputes the data dependent on the browsing context, like zoom and text

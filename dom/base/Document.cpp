@@ -21769,8 +21769,7 @@ ColorScheme Document::DefaultColorScheme() const {
   return LookAndFeel::ColorSchemeForStyle(*this, {GetColorSchemeBits()});
 }
 
-PrefersColorSchemeOverride Document::GetOverriddenOrEmbedderColorScheme(
-    IgnoreRFP aIgnoreRFP) const {
+ColorScheme Document::PreferredColorScheme(IgnoreRFP aIgnoreRFP) const {
   nsPresContext* pc = GetPresContext();
   const bool printing = pc && pc->Medium() == nsGkAtoms::print;
   if (auto flags = StyleColorSchemeFlags{GetColorSchemeBits()};
@@ -21781,33 +21780,25 @@ PrefersColorSchemeOverride Document::GetOverriddenOrEmbedderColorScheme(
     const bool supportsLight(flags & StyleColorSchemeFlags::LIGHT);
     const bool only(flags & StyleColorSchemeFlags::ONLY);
     if (supportsDark != supportsLight && (!printing || only)) {
-      return supportsDark ? PrefersColorSchemeOverride::Dark
-                          : PrefersColorSchemeOverride::Light;
+      return supportsDark ? ColorScheme::Dark : ColorScheme::Light;
     }
   }
 
   if (printing) {
-    return PrefersColorSchemeOverride::Light;
+    return ColorScheme::Light;
   }
 
   if (ShouldResistFingerprinting(RFPTarget::CSSPrefersColorScheme) &&
       aIgnoreRFP == IgnoreRFP::No) {
-    return PrefersColorSchemeOverride::Light;
+    return ColorScheme::Light;
   }
 
-  return pc ? pc->GetOverriddenOrEmbedderColorScheme()
-            : PrefersColorSchemeOverride::None;
-}
-
-ColorScheme Document::PreferredColorScheme(IgnoreRFP aIgnoreRFP) const {
-  switch (GetOverriddenOrEmbedderColorScheme(aIgnoreRFP)) {
-    case PrefersColorSchemeOverride::Dark:
-      return ColorScheme::Dark;
-    case PrefersColorSchemeOverride::Light:
-      return ColorScheme::Light;
-    case PrefersColorSchemeOverride::None:
-      break;
+  if (pc) {
+    if (auto scheme = pc->GetOverriddenOrEmbedderColorScheme()) {
+      return *scheme;
+    }
   }
+
   return PreferenceSheet::PrefsFor(*this).mColorScheme;
 }
 
