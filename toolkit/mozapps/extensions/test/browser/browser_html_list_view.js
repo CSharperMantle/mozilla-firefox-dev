@@ -1138,8 +1138,7 @@ add_task(async function testEmptyMessage() {
       `Empty addons message hidden on list view type ${test.type}`
     );
 
-    // Technically this would be always hidden unless browser.nova.enabled is
-    // set to true.
+    // Always hidden while there are enabled/disabled add-ons.
     is_element_hidden(
       emptyStatePromo,
       `Empty addons promo hidden on list view type ${test.type}`
@@ -1156,47 +1155,40 @@ add_task(async function testEmptyMessage() {
     }
 
     // Message should now be displayed
-    if (Services.prefs.getBoolPref("browser.nova.enabled")) {
-      switch (test.type) {
-        case "extension":
-          is_element_visible(
-            emptyStatePromo,
-            `Empty addons promo visible on list view type ${test.type}`
-          );
-          break;
-        case "theme": // eslint-disable-line no-fallthrough
-        // NOTE: Given that built-in themes are being preinstalled by default,
-        // is it really worth to have an promo to show for an unlikely empty
-        // theme list view?
-        case "plugin": // eslint-disable-line no-fallthrough
-        case "locale": // eslint-disable-line no-fallthrough
-        case "dictionary":
-          // NOTE: plugin, locale and dictionary category buttons should only
-          // be shown when there are addons of this type installed (or being
-          // installed) is it really worth to show a promo for the empty state
-          // of these lists?
-          //
-          // TODO(Bug 2050920): determine what to show for locale and dictionary
-          // types, because unlike plugins we do have AMO pages to direct users
-          // to.
-          todo(
-            false,
-            "Should we keep the old empty message or add new strings for " +
-              "per-type message and button label to set on the promo?"
-          );
-          is_element_hidden(
-            emptyStatePromo,
-            `Empty addons promo hidden on non empty list view type ${test.type}`
-          );
-          break;
-        default:
-          ok(false, `Unexpected list view type ${test.type}`);
-      }
-    } else {
-      is_element_visible(
-        message,
-        `Empty addons message visible on list view type ${test.type}`
-      );
+    switch (test.type) {
+      case "extension":
+        is_element_visible(
+          emptyStatePromo,
+          `Empty addons promo visible on list view type ${test.type}`
+        );
+        break;
+      case "theme": // eslint-disable-line no-fallthrough
+      // NOTE: Given that built-in themes are being preinstalled by default,
+      // is it really worth to have an promo to show for an unlikely empty
+      // theme list view?
+      case "plugin": // eslint-disable-line no-fallthrough
+      case "locale": // eslint-disable-line no-fallthrough
+      case "dictionary":
+        // NOTE: plugin, locale and dictionary category buttons should only
+        // be shown when there are addons of this type installed (or being
+        // installed) is it really worth to show a promo for the empty state
+        // of these lists?
+        //
+        // TODO(Bug 2050920): determine what to show for locale and dictionary
+        // types, because unlike plugins we do have AMO pages to direct users
+        // to.
+        todo(
+          false,
+          "Should we keep the old empty message or add new strings for " +
+            "per-type message and button label to set on the promo?"
+        );
+        is_element_hidden(
+          emptyStatePromo,
+          `Empty addons promo hidden on non empty list view type ${test.type}`
+        );
+        break;
+      default:
+        ok(false, `Unexpected list view type ${test.type}`);
     }
 
     await closeView(win);
@@ -1205,10 +1197,7 @@ add_task(async function testEmptyMessage() {
 
 add_task(async function testEmptyPromoButtonUtmContent() {
   await SpecialPowers.pushPrefEnv({
-    set: [
-      ["browser.nova.enabled", true],
-      ["extensions.getAddons.link.url", AMO_TEST_URL],
-    ],
+    set: [["extensions.getAddons.link.url", AMO_TEST_URL]],
   });
 
   let win = await loadInitialView("extension");
