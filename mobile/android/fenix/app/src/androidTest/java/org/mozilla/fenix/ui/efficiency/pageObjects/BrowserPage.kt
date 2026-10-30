@@ -509,9 +509,17 @@ class BrowserPage(composeRule: AndroidComposeTestRule<HomeActivityIntentTestRule
         return this
     }
 
-    /** Click a context-menu item (by content description) from the long-pressed display-mode toolbar. */
-    fun clickDisplayModeToolbarContextMenuItem(contentDescription: String): BrowserPage {
-        mozClick(ToolbarSelectors.DISPLAY_MODE_TOOLBAR_MENU_ITEM(contentDescription))
+    /**
+     * Load [url] by typing into the display-toolbar edit field directly, for use right after a display-mode "Copy"
+     * (which leaves navigateToPage's engineView readiness gate unavailable for ~10s). Mirrors the legacy
+     * enterURLAndEnterToBrowser.
+     */
+    fun loadUrlFromToolbar(url: String): BrowserPage {
+        mozClick(ToolbarSelectors.TOOLBAR_URL_BOX_UIAUTOMATOR2)
+        // mozClear is Immediate, so wait for edit mode before clearing.
+        mozVerify(SearchBarSelectors.TOOLBAR_IN_EDIT_MODE, timeout = waitingTime)
+        mozClearAndEnterText(url, SearchBarSelectors.TOOLBAR_IN_EDIT_MODE)
+        mozPressEnter(SearchBarSelectors.TOOLBAR_IN_EDIT_MODE)
         return this
     }
 

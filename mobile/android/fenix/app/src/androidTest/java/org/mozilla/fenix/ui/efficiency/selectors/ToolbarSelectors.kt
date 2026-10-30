@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.ui.efficiency.selectors
 
+import mozilla.components.compose.browser.toolbar.R as browserToolbarR
 import mozilla.components.compose.browser.toolbar.concept.BrowserToolbarTestTags.ADDRESSBAR_URL_BOX
 import mozilla.components.compose.browser.toolbar.concept.BrowserToolbarTestTags.TABS_COUNTER
 import mozilla.components.feature.summarize.R as summarizeR
@@ -228,15 +229,28 @@ object ToolbarSelectors : SelectorContainer {
             description = "Site information button",
         )
 
-    // An item in the context menu shown after long-pressing the display-mode (browser) URL box, e.g.
-    // "Copy", "Paste", "Paste & Go". Mirrors the legacy clickDisplayModeToolbarContextMenuItem, which
-    // matched these by content description on the Compose toolbar.
-    @Suppress("FunctionName")
-    fun DISPLAY_MODE_TOOLBAR_MENU_ITEM(contentDescription: String = "") =
+    // Items in the context menu shown after long-pressing the display-mode (browser) URL box, matched by content
+    // description on the Compose toolbar. Strings come from the browser-toolbar component (see
+    // PageOriginContextualMenuBuilder); Paste/Paste & Go only appear when the clipboard holds text/a URL.
+    val DISPLAY_MODE_TOOLBAR_COPY =
         Selector(
             strategy = SelectorStrategy.COMPOSE_BY_CONTENT_DESCRIPTION,
-            value = contentDescription,
-            description = "Display-mode toolbar context menu item '$contentDescription'",
+            value = getStringResource(browserToolbarR.string.mozac_browser_toolbar_long_press_popup_copy),
+            description = "Display-mode toolbar 'Copy' menu item",
+        )
+
+    val DISPLAY_MODE_TOOLBAR_PASTE =
+        Selector(
+            strategy = SelectorStrategy.COMPOSE_BY_CONTENT_DESCRIPTION,
+            value = getStringResource(browserToolbarR.string.mozac_browser_toolbar_long_press_popup_paste),
+            description = "Display-mode toolbar 'Paste' menu item",
+        )
+
+    val DISPLAY_MODE_TOOLBAR_PASTE_AND_GO =
+        Selector(
+            strategy = SelectorStrategy.COMPOSE_BY_CONTENT_DESCRIPTION,
+            value = getStringResource(browserToolbarR.string.mozac_browser_toolbar_long_press_popup_paste_and_go),
+            description = "Display-mode toolbar 'Paste & Go' menu item",
         )
 
     @Suppress("FunctionName")
