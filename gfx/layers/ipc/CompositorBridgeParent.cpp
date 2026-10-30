@@ -940,9 +940,13 @@ void CompositorBridgeParent::DisconnectApzcTreeManager(
     return;
   }
 
+  // The tree manager may not be the one registered for its layers id, for
+  // example the dummy one ContentCompositorBridgeParent creates when the layer
+  // tree has no parent compositor.
   CompositorBridgeParent::LayerTreeState& state = iter->second;
-  MOZ_RELEASE_ASSERT(state.mApzcTreeManagerParent == aTreeManager);
-  state.mApzcTreeManagerParent = nullptr;
+  if (state.mApzcTreeManagerParent == aTreeManager) {
+    state.mApzcTreeManagerParent = nullptr;
+  }
 }
 
 mozilla::ipc::IPCResult CompositorBridgeParent::RecvNotifyChildCreated(
