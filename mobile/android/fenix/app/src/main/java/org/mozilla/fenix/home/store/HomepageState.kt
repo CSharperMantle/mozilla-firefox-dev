@@ -4,9 +4,7 @@
 
 package org.mozilla.fenix.home.store
 
-import android.content.res.Configuration
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalWindowInfo
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
@@ -251,10 +249,7 @@ private fun buildHeaderState(settings: Settings): HeaderState {
 private fun buildMiddleSearchState(appState: AppState, settings: Settings) =
     MiddleSearchState(
         searchBarVisible = shouldShowSearchBar(appState = appState),
-        searchBarEnabled =
-            settings.enableHomepageSearchBar &&
-                settings.toolbarPosition == ToolbarPosition.TOP &&
-                LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT,
+        searchBarEnabled = settings.isHomepageMiddleSearchEnabled,
     )
 
 private fun buildPrivateHeaderState(settings: Settings): HeaderState {
