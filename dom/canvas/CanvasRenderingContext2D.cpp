@@ -1077,11 +1077,9 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(CanvasRenderingContext2D)
     ImplCycleCollectionUnlink(state.gradientStyles[Style::STROKE]);
     ImplCycleCollectionUnlink(state.gradientStyles[Style::FILL]);
     if (auto* autoSVGFiltersObserver = state.autoSVGFiltersObserver.get()) {
-      /*
-       * XXXjwatt: I don't think this is doing anything useful.  All we do under
-       * this function is clear a raw C-style (i.e. not strong) pointer.  That's
-       * clearly not helping in breaking any cycles.
-       */
+      // We must take this opportunity to set active to false because
+      // we won't be able to once we unlink the pointer and we don't want
+      // any more callbacks after this point.
       autoSVGFiltersObserver->SetIsActive(false);
     }
     ImplCycleCollectionUnlink(state.autoSVGFiltersObserver);
