@@ -736,4 +736,11 @@ object BrowserPageSelectors : SelectorContainer {
             secondaryValue = getStringResource(promptsR.string.mozac_feature_prompt_login_add_username_headline_2),
             description = "Update username prompt headline",
         )
+
+    val EXTENSIONS_SETTINGS_ENGINE_VIEW =
+        Selector(
+            strategy = SelectorStrategy.UIAUTOMATOR_WITH_RES_ID,
+            value = "addonSettingsEngineView",
+            description = "Extensions settings engine view",
+        )
 }

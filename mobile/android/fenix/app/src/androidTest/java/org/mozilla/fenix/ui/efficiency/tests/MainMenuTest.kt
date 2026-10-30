@@ -21,6 +21,7 @@ import org.mozilla.fenix.helpers.TestAssetHelper.articleSummaryAsset
 import org.mozilla.fenix.helpers.TestAssetHelper.firstForeignWebPageAsset
 import org.mozilla.fenix.helpers.TestAssetHelper.getGenericAsset
 import org.mozilla.fenix.helpers.TestAssetHelper.pdfFormAsset
+import org.mozilla.fenix.helpers.TestAssetHelper.waitingTime
 import org.mozilla.fenix.ui.efficiency.helpers.BaseTest
 import org.mozilla.fenix.ui.efficiency.navigation.NavigationOptions
 import org.mozilla.fenix.ui.efficiency.selectors.AddToHomeScreenSelectors
@@ -659,5 +660,26 @@ class MainMenuTest : BaseTest() {
             )
 
         on.home.navigateToPage().mozVerify(HomeSelectors.HOMEPAGE_VIEW)
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3080157
+    @Critical
+    @Test
+    fun verifyTheExtensionSettingPageAccessedFromTheExtensionsMenuTest() {
+        val genericURL = mockWebServer.getGenericAsset(1)
+        val addonName = "uBlock Origin"
+
+        // Install by name from the add-ons manager, not the random main-menu "recommended" list: uBlock Origin has a
+        // browser-action popup, so clicking its menu entry deterministically opens the settings engine view.
+        on.settingsAddonsManager.navigateToPage().installAddon(addonName)
+        on.home.navigateToPage()
+        on.browserPage
+            .navigateToPage(genericURL.url.toString())
+            .openMainMenu()
+            .mozVerify(MainMenuSelectors.EXTENSIONS_BUTTON_WITH_INSTALLED_EXTENSION(addonName))
+            .mozClick(MainMenuSelectors.EXTENSIONS_BUTTON_WITH_INSTALLED_EXTENSION(addonName))
+            .mozVerify(MainMenuSelectors.INSTALLED_EXTENSION_ITEM(addonName))
+            .mozClick(MainMenuSelectors.INSTALLED_EXTENSION_ITEM(addonName))
+        on.browserPage.mozVerify(BrowserPageSelectors.EXTENSIONS_SETTINGS_ENGINE_VIEW, timeout = waitingTime)
     }
 }
