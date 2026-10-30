@@ -1986,6 +1986,19 @@ static uint64_t MarkEnqueueJobFlow(JSContext* cx) {
   return flowId;
 }
 
+template <typename MakeTask>
+static bool EnqueueJob(JSContext* cx, MakeTask&& makeTask) {
+  // Only check if we need to use the debug queue when we're not on main thread.
+  // This can GC, so build the MicroTask afterwards.
+  bool useDebugQueue = !cx->runtime()->isMainRuntime() &&
+                       cx->jobQueue->useDebugQueue(cx->global());
+  JS::MicroTask task = makeTask();
+  if (MOZ_UNLIKELY(useDebugQueue)) {
+    return cx->microTaskQueues->enqueueDebugMicroTask(cx, task);
+  }
+  return cx->microTaskQueues->enqueueRegularMicroTask(cx, task);
+}
+
 static bool EnqueueJob(JSContext* cx, MicroTaskQueueElement::Kind kind,
                        JSObject* job) {
   MOZ_ASSERT(cx->realm());
@@ -2007,13 +2020,9 @@ static bool EnqueueJob(JSContext* cx, MicroTaskQueueElement::Kind kind,
 
   // We need to root this job because useDebugQueue can GC.
   RootedObject rootedJob(cx, job);
-  if (MOZ_UNLIKELY(cx->jobQueue->useDebugQueue(cx->global()))) {
-    return cx->microTaskQueues->enqueueDebugMicroTask(cx, kind,
-                                                      ObjectValue(*rootedJob));
-  }
-
-  return cx->microTaskQueues->enqueueRegularMicroTask(cx, kind,
-                                                      ObjectValue(*rootedJob));
+  return EnqueueJob(cx, [&] {
+    return MicroTaskQueueElement::MakeMicroTask(kind, ObjectValue(*rootedJob));
+  });
 }
 
 // This traces the paths in EnqueuePromiseReactionJobCrossRealm where you'd
@@ -2351,18 +2360,9 @@ static bool CanUseSameRealmEnqueue(JSContext* cx, HandleObject reactionObj,
 
   uint64_t flowId = MarkEnqueueJobFlow(cx);
 
-  // Only check if we need to use the debug queue when we're not on main thread.
-  // This can GC, so build the MicroTask afterwards.
-  bool useDebugQueue = !cx->runtime()->isMainRuntime() &&
-                       cx->jobQueue->useDebugQueue(cx->global());
-
-  JS::MicroTask task = reaction->toInlineMicroTask(cx, flowId);
-
   // HostEnqueuePromiseJob(job.[[Job]], job.[[Realm]]).
-  if (MOZ_UNLIKELY(useDebugQueue)) {
-    return cx->microTaskQueues->enqueueDebugMicroTask(cx, task);
-  }
-  return cx->microTaskQueues->enqueueRegularMicroTask(cx, task);
+  return EnqueueJob(cx,
+                    [&] { return reaction->toInlineMicroTask(cx, flowId); });
 }
 
 [[nodiscard]] static bool TriggerPromiseReactions(JSContext* cx,
