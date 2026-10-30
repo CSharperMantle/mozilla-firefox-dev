@@ -858,18 +858,6 @@ void nsPresContext::AttachPresShell(mozilla::PresShell* aPresShell) {
   UpdateCharSet(doc->GetDocumentCharacterSet());
 }
 
-Maybe<ColorScheme> nsPresContext::GetOverriddenOrEmbedderColorScheme() const {
-  switch (mOverriddenOrEmbedderColorScheme) {
-    case dom::PrefersColorSchemeOverride::Dark:
-      return Some(ColorScheme::Dark);
-    case dom::PrefersColorSchemeOverride::Light:
-      return Some(ColorScheme::Light);
-    case dom::PrefersColorSchemeOverride::None:
-      break;
-  }
-  return Nothing();
-}
-
 void nsPresContext::SetColorSchemeOverride(
     PrefersColorSchemeOverride aOverride) {
   auto oldScheme = mDocument->PreferredColorScheme();
@@ -945,12 +933,11 @@ void nsPresContext::RecomputeBrowsingContextDependentData() {
 
   auto* top = browsingContext->Top();
   SetColorSchemeOverride([&] {
-    auto overriden = top->PrefersColorSchemeOverride();
-    if (browsingContext == top &&
-        overriden != PrefersColorSchemeOverride::None) {
-      return overriden;
+    auto embedder = browsingContext->GetEmbedderColorSchemes().mPreferred;
+    if (embedder != PrefersColorSchemeOverride::None) {
+      return embedder;
     }
-    return browsingContext->GetEmbedderColorSchemes().mPreferred;
+    return top->PrefersColorSchemeOverride();
   }());
 
   SetEmbedderScrollbarInset(LayoutDevicePixel::ToAppUnits(
