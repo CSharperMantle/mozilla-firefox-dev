@@ -5249,7 +5249,6 @@ version = "0.1.0"
 name = "mozannotation_server"
 version = "0.1.0"
 dependencies = [
- "memoffset",
  "mozannotation_client",
  "process_reader",
  "thiserror 2.0.12",
@@ -6613,7 +6612,6 @@ dependencies = [
  "libc",
  "log",
  "mach2 0.6.0",
- "memoffset",
  "mozilla-central-workspace-hack",
  "scroll",
  "thiserror 2.0.12",
