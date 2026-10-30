@@ -593,16 +593,13 @@ document.addEventListener(
       });
 
     // when pref browser.tabs.contextmenu.altstructure.enabled is enabled, the
-    // group items live in the #context_addTabToGroup menu
+    // move tab to new group menu item is a child of the #context_moveTabOptions menu
     for (let menu of [
       document.getElementById("context_moveTabToGroupPopupMenu"),
-      document.getElementById("context_addTabToGroup"),
+      document.getElementById("context_moveTabOptions"),
     ]) {
       menu.addEventListener("command", event => {
-        if (
-          event.target.id == "context_moveTabToGroupNewGroup" ||
-          event.target.id == "context_addTabToGroupNewGroup"
-        ) {
+        if (event.target.id == "context_moveTabToGroupNewGroup") {
           TabContextMenu.moveTabsToNewGroup();
           return;
         }

@@ -1861,10 +1861,7 @@ export const GenAI = {
       return;
     }
 
-    item.setAttribute(
-      "label",
-      await lazy.l10n.formatValue("genai-menu-summarize-with-ai")
-    );
+    item.setAttribute("label", summarize.label);
     if (summarize.badge && lazy.chatPageMenuBadge) {
       item.setAttribute("badge", summarize.badge);
     } else {
