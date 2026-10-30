@@ -7028,8 +7028,7 @@ window.mountMultistageMessage = function mountMultistageMessage(container, props
   const {
     messageData,
     handleDismiss,
-    handleBlock,
-    handleClick
+    handleBlock
   } = props;
   const config = messageData.content;
   const impressionListeners = new AbortController();
@@ -7051,24 +7050,20 @@ window.mountMultistageMessage = function mountMultistageMessage(container, props
       });
     },
     AWSendEventTelemetry: data => {
-      if (data.event === "IMPRESSION") {
-        const sendImpression = () => window.ASRouterMessage({
-          type: "AS_ROUTER_TELEMETRY_USER_EVENT",
-          data: {
-            ...data,
-            action: "newtab_message_user_event"
-          }
-        });
-        if (document.visibilityState === "visible") {
-          sendImpression();
-        } else {
-          document.addEventListener("visibilitychange", sendImpression, {
-            once: true,
-            signal: impressionListeners.signal
-          });
+      const sendTelemetry = () => window.ASRouterMessage({
+        type: "AS_ROUTER_TELEMETRY_USER_EVENT",
+        data: {
+          ...data,
+          action: "newtab_message_user_event"
         }
+      });
+      if (data.event !== "IMPRESSION" || document.visibilityState === "visible") {
+        sendTelemetry();
       } else {
-        handleClick(data.event);
+        document.addEventListener("visibilitychange", sendTelemetry, {
+          once: true,
+          signal: impressionListeners.signal
+        });
       }
     },
     AWGetSelectedTheme: () => Promise.resolve(),

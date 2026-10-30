@@ -262,7 +262,7 @@ add_task(async function test_no_click_telemetry_on_render() {
   );
   Assert.ok(
     !AboutWelcomeTelemetry.prototype.submitGleanPingForPing.calledWithMatch(
-      sinon.match({ event: "CLICK" })
+      sinon.match({ event: sinon.match(/^CLICK/) })
     ),
     "No CLICK telemetry was fired on initial render."
   );
@@ -271,8 +271,9 @@ add_task(async function test_no_click_telemetry_on_render() {
 });
 
 /**
- * Tests that clicking a primary button within the multistage message records
- * a CLICK telemetry event.
+ * Tests that clicking the primary and secondary buttons within the multistage
+ * message records a CLICK_BUTTON telemetry event with the screen-specific
+ * message id and the button as the source.
  */
 add_task(async function test_primary_button_click_telemetry() {
   let sandbox = sinon.createSandbox();
@@ -295,6 +296,10 @@ add_task(async function test_primary_button_click_telemetry() {
             title: { raw: "Test Title" },
             primary_button: {
               label: { raw: "Primary" },
+              action: {},
+            },
+            secondary_button: {
+              label: { raw: "Secondary" },
               action: {},
             },
           },
@@ -323,20 +328,28 @@ add_task(async function test_primary_button_click_telemetry() {
       let primaryBtn = shadow.querySelector("button.primary");
       Assert.ok(primaryBtn, "Found primary button in shadow root");
       primaryBtn.click();
+      let secondaryBtn = await ContentTaskUtils.waitForCondition(
+        () => shadow.querySelector("button.secondary"),
+        "Waiting for secondary button in shadow root"
+      );
+      secondaryBtn.click();
     });
   });
 
-  await TestUtils.waitForCondition(
-    () =>
-      AboutWelcomeTelemetry.prototype.submitGleanPingForPing.calledWithMatch(
-        sinon.match({
-          message_id: TEST_MESSAGE_ID,
-          event: "CLICK",
-          pingType: "newtab_message",
-        })
-      ),
-    "Clicking the primary button recorded a CLICK telemetry event."
-  );
+  for (const source of ["primary_button", "secondary_button"]) {
+    await TestUtils.waitForCondition(
+      () =>
+        AboutWelcomeTelemetry.prototype.submitGleanPingForPing.calledWithMatch(
+          sinon.match({
+            message_id: `${TEST_MESSAGE_ID}_0_SCREEN_1`,
+            event: "CLICK_BUTTON",
+            event_context: sinon.match({ source }),
+            pingType: "newtab_message",
+          })
+        ),
+      `Clicking ${source} recorded a CLICK_BUTTON telemetry event.`
+    );
+  }
   BrowserTestUtils.removeTab(gBrowser.selectedTab);
   sandbox.restore();
 });
