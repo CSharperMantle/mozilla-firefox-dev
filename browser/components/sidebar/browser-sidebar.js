@@ -1957,12 +1957,12 @@ var SidebarController = {
     if (switcherMenu) {
       updateAttributes(switcherMenu, sidebar);
     }
-    if (this.panelHeader) {
-      this.panelHeader.heading = label;
-    }
     if (this.initialized && this.currentID === commandID) {
       // Update the sidebar title if this extension is the current sidebar.
       this.title = label;
+      if (this.panelHeader) {
+        this.panelHeader.heading = label;
+      }
       if (this.isOpen && needsRefresh) {
         this.show(commandID);
       }
