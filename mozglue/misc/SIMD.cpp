@@ -11,6 +11,7 @@
 
 #include "mozilla/Assertions.h"
 #include "mozilla/LSX.h"
+#include "mozilla/RVV.h"
 #include "mozilla/SSE.h"
 
 #ifdef MOZILLA_PRESUME_SSE2
@@ -997,6 +998,88 @@ const char16_t* SIMD::memchr2x16(const char16_t* ptr, char16_t v1, char16_t v2,
                                  size_t length) {
   if (supports_lsx()) {
     return memchr2x16LSX(ptr, v1, v2, length);
+  }
+  const char16_t* end = ptr + length - 1;
+  while (ptr < end) {
+    ptr = memchr16(ptr, v1, end - ptr);
+    if (!ptr) {
+      return nullptr;
+    }
+    if (ptr[1] == v2) {
+      return ptr;
+    }
+    ptr++;
+  }
+  return nullptr;
+}
+
+#elif defined(MOZILLA_MAY_SUPPORT_RVV)
+
+// libc's memchr is a scalar loop on riscv64.
+const char* SIMD::memchr8(const char* ptr, char value, size_t length) {
+  if (supports_rvv()) {
+    return memchr8RVV(ptr, value, length);
+  }
+  const void* result = ::memchr(reinterpret_cast<const void*>(ptr),
+                                static_cast<int>(value), length);
+  return reinterpret_cast<const char*>(result);
+}
+
+const char* SIMD::memchr8SSE2(const char* ptr, char value, size_t length) {
+  return memchr8(ptr, value, length);
+}
+
+const char16_t* SIMD::memchr16(const char16_t* ptr, char16_t value,
+                               size_t length) {
+  if (supports_rvv()) {
+    return memchr16RVV(ptr, value, length);
+  }
+  return FindInBufferNaive<char16_t>(ptr, value, length);
+}
+
+const char16_t* SIMD::memchr16SSE2(const char16_t* ptr, char16_t value,
+                                   size_t length) {
+  return memchr16(ptr, value, length);
+}
+
+const uint32_t* SIMD::memchr32(const uint32_t* ptr, uint32_t value,
+                               size_t length) {
+  if (supports_rvv()) {
+    return memchr32RVV(ptr, value, length);
+  }
+  return FindInBufferNaive<uint32_t>(ptr, value, length);
+}
+
+const uint64_t* SIMD::memchr64(const uint64_t* ptr, uint64_t value,
+                               size_t length) {
+  if (supports_rvv()) {
+    return memchr64RVV(ptr, value, length);
+  }
+  return FindInBufferNaive<uint64_t>(ptr, value, length);
+}
+
+const char* SIMD::memchr2x8(const char* ptr, char v1, char v2, size_t length) {
+  if (supports_rvv()) {
+    return memchr2x8RVV(ptr, v1, v2, length);
+  }
+  const char* end = ptr + length - 1;
+  while (ptr < end) {
+    ptr = memchr8(ptr, v1, end - ptr);
+    if (!ptr) {
+      return nullptr;
+    }
+    if (ptr[1] == v2) {
+      return ptr;
+    }
+    ptr++;
+  }
+  return nullptr;
+}
+
+const char16_t* SIMD::memchr2x16(const char16_t* ptr, char16_t v1, char16_t v2,
+                                 size_t length) {
+  if (supports_rvv()) {
+    return memchr2x16RVV(ptr, v1, v2, length);
   }
   const char16_t* end = ptr + length - 1;
   while (ptr < end) {
