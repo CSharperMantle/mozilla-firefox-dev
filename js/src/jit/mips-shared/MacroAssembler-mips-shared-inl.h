@@ -55,6 +55,15 @@ void MacroAssembler::and32(Register src, Register dest) {
   as_and(dest, dest, src);
 }
 
+void MacroAssembler::andNot32(Register lhs, Register rhs, Register dest,
+                              Register scratch) {
+  MOZ_ASSERT(scratch == InvalidReg);
+  UseScratchRegisterScope temps(*this);
+  const Register tmp = dest == lhs ? temps.Acquire() : dest;
+  ma_not(tmp, rhs);
+  as_and(dest, lhs, tmp);
+}
+
 void MacroAssembler::and32(Imm32 imm, Register dest) { ma_and(dest, imm); }
 
 void MacroAssembler::and32(Imm32 imm, Register src, Register dest) {

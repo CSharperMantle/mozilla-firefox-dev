@@ -396,6 +396,32 @@ void MacroAssembler::andPtr(Imm32 imm, const Address& dest) {
   storePtr(scratch2, dest);
 }
 
+void MacroAssembler::andNot32(Register lhs, Register rhs, Register dest,
+                              Register scratch) {
+  MOZ_ASSERT(scratch == InvalidReg);
+  if (HasZbbExtension()) {
+    andn(dest, lhs, rhs);
+    return;
+  }
+  UseScratchRegisterScope temps(this);
+  const Register tmp = dest == lhs ? temps.Acquire() : dest;
+  not_(tmp, rhs);
+  and_(dest, lhs, tmp);
+}
+
+void MacroAssembler::andNot64(Register64 lhs, Register64 rhs, Register64 dest,
+                              Register scratch) {
+  MOZ_ASSERT(scratch == InvalidReg);
+  if (HasZbbExtension()) {
+    andn(dest.reg, lhs.reg, rhs.reg);
+    return;
+  }
+  UseScratchRegisterScope temps(this);
+  const Register tmp = dest.reg == lhs.reg ? temps.Acquire() : dest.reg;
+  not_(tmp, rhs.reg);
+  and_(dest.reg, lhs.reg, tmp);
+}
+
 void MacroAssembler::branch8(Condition cond, const Address& lhs, Imm32 rhs,
                              Label* label) {
   UseScratchRegisterScope temps(this);

@@ -105,6 +105,16 @@ void MacroAssembler::xorPtr(Imm32 imm, Register src, Register dest) {
   MOZ_CRASH();
 }
 
+void MacroAssembler::andNot32(Register lhs, Register rhs, Register dest,
+                              Register scratch) {
+  MOZ_CRASH();
+}
+
+void MacroAssembler::andNot64(Register64 lhs, Register64 rhs, Register64 dest,
+                              Register scratch) {
+  MOZ_CRASH();
+}
+
 void MacroAssembler::byteSwap64(Register64 reg) { MOZ_CRASH(); }
 
 void MacroAssembler::addPtr(Register src, Register dest) { MOZ_CRASH(); }

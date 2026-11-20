@@ -123,6 +123,22 @@ void MacroAssembler::nor32(Imm32 imm, Register src, Register dest) {
   not32(dest);
 }
 
+void MacroAssembler::andNot32(Register lhs, Register rhs, Register dest,
+                              Register scratch) {
+  if (AssemblerX86Shared::HasBMI1()) {
+    MOZ_ASSERT(scratch == InvalidReg);
+    andnl(rhs, lhs, dest);
+    return;
+  }
+  MOZ_ASSERT(scratch != InvalidReg);
+  MOZ_ASSERT(scratch != dest);
+  MOZ_ASSERT(scratch != lhs);
+  move32(rhs, scratch);
+  not32(scratch);
+  move32(lhs, dest);
+  and32(scratch, dest);
+}
+
 void MacroAssembler::clz32(Register src, Register dest, bool knownNotZero) {
   if (AssemblerX86Shared::HasLZCNT()) {
     lzcntl(src, dest);

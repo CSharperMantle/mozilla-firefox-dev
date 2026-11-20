@@ -204,6 +204,12 @@ void MacroAssembler::xorPtr(Imm32 imm, Register src, Register dest) {
   xorl(imm, dest);
 }
 
+void MacroAssembler::andNot64(Register64 lhs, Register64 rhs, Register64 dest,
+                              Register scratch) {
+  andNot32(lhs.low, rhs.low, dest.low, scratch);
+  andNot32(lhs.high, rhs.high, dest.high, scratch);
+}
+
 // ===============================================================
 // Swap instructions
 
