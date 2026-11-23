@@ -127,7 +127,8 @@ struct AccessCheck {
   AccessCheck()
       : omitBoundsCheck(false),
         omitAlignmentCheck(false),
-        onlyPointerAlignment(false) {}
+        onlyPointerAlignment(false),
+        i32IndexZeroExtended(false) {}
 
   // If `omitAlignmentCheck` is true then we need check neither the
   // pointer nor the offset.  Otherwise, if `onlyPointerAlignment` is true
@@ -137,6 +138,10 @@ struct AccessCheck {
   bool omitBoundsCheck;
   bool omitAlignmentCheck;
   bool onlyPointerAlignment;
+
+  // The index register is already zero-extended. Only meaningful for I32. See
+  // also ToValidIndex(MacroAssembler&, RegI32).
+  bool i32IndexZeroExtended;
 };
 
 // Encapsulate all the information about a function call.
