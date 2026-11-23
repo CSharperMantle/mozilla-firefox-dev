@@ -2705,17 +2705,6 @@ RegI64 BaseCompiler::popI64RhsForRotate() {
 #endif
 }
 
-void BaseCompiler::popI32ForSignExtendI64(RegI64* r0) {
-#if defined(JS_CODEGEN_X86)
-  // r0 must be edx:eax for cdq
-  need2xI32(specific_.edx, specific_.eax);
-  *r0 = specific_.edx_eax;
-  popI32ToSpecific(specific_.eax);
-#else
-  *r0 = widenI32(popI32());
-#endif
-}
-
 void BaseCompiler::popI64ForSignExtendI64(RegI64* r0) {
 #if defined(JS_CODEGEN_X86)
   // r0 must be edx:eax for cdq
@@ -2726,6 +2715,37 @@ void BaseCompiler::popI64ForSignExtendI64(RegI64* r0) {
   *r0 = popI64();
 #endif
 }
+
+template <bool ZeroExtend>
+void BaseCompiler::popI32ExtendI64(RegI64* r0) {
+#if defined(JS_CODEGEN_X86)
+  if constexpr (!ZeroExtend) {
+    // r0 must be edx:eax for cdq
+    need2xI32(specific_.edx, specific_.eax);
+    *r0 = specific_.edx_eax;
+    popI32ToSpecific(specific_.eax);
+    masm.move32To64SignExtend(lowPart(*r0), *r0);
+    return;
+  }
+#endif
+#ifdef JS_64BIT
+  *r0 = widenI32(popI32ExtendToPtr<ZeroExtend>());
+#else
+  *r0 = widenI32(popI32());
+  if constexpr (ZeroExtend) {
+#  ifdef RABALDR_ZERO_EXTENDS
+    masm.debugAssertCanonicalInt32(lowPart(*r0));
+#  else
+    masm.move32To64ZeroExtend(lowPart(*r0), *r0);
+#  endif
+  } else {
+    masm.move32To64SignExtend(lowPart(*r0), *r0);
+  }
+#endif
+}
+
+template void BaseCompiler::popI32ExtendI64<false>(RegI64* r0);
+template void BaseCompiler::popI32ExtendI64<true>(RegI64* r0);
 
 class OutOfLineTruncateCheckF32OrF64ToI32 : public OutOfLineCode {
   AnyReg src;
@@ -3780,20 +3800,14 @@ void BaseCompiler::emitExtendI64_32() {
 
 void BaseCompiler::emitExtendI32ToI64() {
   RegI64 r;
-  popI32ForSignExtendI64(&r);
-  masm.move32To64SignExtend(lowPart(r), r);
+  popI32ExtendI64<false>(&r);
   pushI64(r);
 }
 
 void BaseCompiler::emitExtendU32ToI64() {
-  RegI32 rs = popI32();
-  RegI64 rd = widenI32(rs);
-#ifdef RABALDR_ZERO_EXTENDS
-  masm.debugAssertCanonicalInt32(rs);
-#else
-  masm.move32To64ZeroExtend(rs, rd);
-#endif
-  pushI64(rd);
+  RegI64 r;
+  popI32ExtendI64<true>(&r);
+  pushI64(r);
 }
 
 #ifndef RABALDR_I64_TO_FLOAT_CALLOUT
@@ -7383,8 +7397,7 @@ bool BaseCompiler::emitTableGrow() {
 
   if (addressType == AddressType::I64) {
     RegI64 r;
-    popI32ForSignExtendI64(&r);
-    masm.move32To64SignExtend(lowPart(r), r);
+    popI32ExtendI64<false>(&r);
     pushI64(r);
   }
 

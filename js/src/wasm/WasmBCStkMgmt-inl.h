@@ -74,6 +74,14 @@ void BaseCompiler::loadLocalI32(const Stk& src, RegI32 dest) {
   fr.loadLocalI32(localFromSlot(src.slot(), MIRType::Int32), dest);
 }
 
+void BaseCompiler::loadLocalI32ZeroExtend(const Stk& src, RegI32 dest) {
+  fr.loadLocalI32ZeroExtend(localFromSlot(src.slot(), MIRType::Int32), dest);
+}
+
+void BaseCompiler::loadLocalI32SignExtend(const Stk& src, RegI32 dest) {
+  fr.loadLocalI32SignExtend(localFromSlot(src.slot(), MIRType::Int32), dest);
+}
+
 void BaseCompiler::loadRegisterI32(const Stk& src, RegI32 dest) {
   moveI32(src.i32reg(), dest);
 }
@@ -784,6 +792,68 @@ RegI32 BaseCompiler::popI32(RegI32 specific) {
   stk_.popBack();
   return specific;
 }
+
+#ifdef JS_64BIT
+template <bool ZeroExtend>
+void BaseCompiler::popI32ExtendToPtr(const Stk& v, RegI32 dest) {
+  MOZ_ASSERT(&v == &stk_.back());
+  bool isExtended = false;
+  switch (v.kind()) {
+    case Stk::ConstI32:
+      loadConstI32(v, dest);
+      break;
+    case Stk::LocalI32:
+      if constexpr (ZeroExtend) {
+        loadLocalI32ZeroExtend(v, dest);
+      } else {
+        loadLocalI32SignExtend(v, dest);
+      }
+      isExtended = true;
+      break;
+    case Stk::MemI32:
+      fr.popGPR(dest);
+      break;
+    case Stk::RegisterI32:
+      loadRegisterI32(v, dest);
+      break;
+    default:
+      MOZ_CRASH("Compiler bug: expected int on stack");
+  }
+  if (!isExtended) {
+    if constexpr (ZeroExtend) {
+#  ifdef RABALDR_ZERO_EXTENDS
+      masm.debugAssertCanonicalInt32(dest);
+#  else
+      masm.move32To64ZeroExtend(dest, Register64(dest));
+#  endif
+    } else {
+      masm.move32To64SignExtend(dest, Register64(dest));
+    }
+  }
+}
+
+template <bool ZeroExtend>
+RegI32 BaseCompiler::popI32ExtendToPtr() {
+  Stk& v = stk_.back();
+  RegI32 r;
+  if (v.kind() == Stk::RegisterI32) {
+    r = v.i32reg();
+    if constexpr (ZeroExtend) {
+#  ifdef RABALDR_ZERO_EXTENDS
+      masm.debugAssertCanonicalInt32(r);
+#  else
+      masm.move32To64ZeroExtend(r, Register64(r));
+#  endif
+    } else {
+      masm.move32To64SignExtend(r, Register64(r));
+    }
+  } else {
+    popI32ExtendToPtr<ZeroExtend>(v, (r = needI32()));
+  }
+  stk_.popBack();
+  return r;
+}
+#endif
 
 #ifdef ENABLE_JIT_SIMD
 // Call only from other popV128() variants.
